@@ -144,9 +144,23 @@ def main() -> None:
             "has_balcony",
             "average_sentiment_score",
             "intelligent_score",
+            "sentiment_positive_ratio",
+            "sentiment_neutral_ratio",
+            "sentiment_negative_ratio",
+            "sentiment_positive_count",
+            "sentiment_neutral_count",
+            "sentiment_negative_count",
         ]
         df_listings = merged[listing_cols].copy()
         for c in ("bedrooms", "beds"):
+            df_listings[c] = (
+                pd.to_numeric(df_listings[c], errors="coerce").fillna(0).round().astype("int64")
+            )
+        for c in (
+            "sentiment_positive_count",
+            "sentiment_neutral_count",
+            "sentiment_negative_count",
+        ):
             df_listings[c] = (
                 pd.to_numeric(df_listings[c], errors="coerce").fillna(0).round().astype("int64")
             )

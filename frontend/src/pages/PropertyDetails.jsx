@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BedDouble, MapPin, Sparkles, Star, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  BedDouble,
+  MapPin,
+  MessageCircle,
+  Sparkles,
+  Star,
+  X,
+} from 'lucide-react'
 import { api } from '../services/api.js'
 import {
   Cell,
@@ -18,13 +26,76 @@ const GALLERY_IMAGES = [
   'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600&q=80',
 ]
 
-const sentimentRadial = [
-  { name: 'Positive', value: 62, fill: '#0d9488' },
-  { name: 'Neutral', value: 28, fill: '#94a3b8' },
-  { name: 'Negative', value: 10, fill: '#fb7185' },
-]
+const SENTIMENT_FILLS = {
+  Positive: '#0d9488',
+  Neutral: '#94a3b8',
+  Negative: '#fb7185',
+}
 
 const vibeTags = ['Quiet', 'Walkable', 'Waterfront']
+
+/** Method A: NLP ratios from listing (0–1) → chart rows (%). */
+function sentimentRowsFromListingRatios(listing) {
+  if (!listing) return null
+  const p = listing.sentiment_positive_ratio
+  const neu = listing.sentiment_neutral_ratio
+  const neg = listing.sentiment_negative_ratio
+  if (p == null || neu == null || neg == null) return null
+  const np = Number(p)
+  const nn = Number(neu)
+  const ng = Number(neg)
+  if ([np, nn, ng].some((x) => Number.isNaN(x))) return null
+  return [
+    {
+      name: 'Positive',
+      value: Math.round(np * 1000) / 10,
+      fill: SENTIMENT_FILLS.Positive,
+    },
+    {
+      name: 'Neutral',
+      value: Math.round(nn * 1000) / 10,
+      fill: SENTIMENT_FILLS.Neutral,
+    },
+    {
+      name: 'Negative',
+      value: Math.round(ng * 1000) / 10,
+      fill: SENTIMENT_FILLS.Negative,
+    },
+  ]
+}
+
+/** Fallback chart: NLP counts on the listing (same source as tab headers). */
+function sentimentRowsFromListingCounts(listing) {
+  if (!listing) return null
+  const p = listing.sentiment_positive_count
+  const neu = listing.sentiment_neutral_count
+  const neg = listing.sentiment_negative_count
+  if (p == null || neu == null || neg == null) return null
+  const np = Number(p)
+  const nn = Number(neu)
+  const ng = Number(neg)
+  if ([np, nn, ng].some((x) => Number.isNaN(x))) return null
+  const total = np + nn + ng
+  if (total === 0) return null
+  const pct = (x) => Math.round((x / total) * 1000) / 10
+  return [
+    {
+      name: 'Positive',
+      value: pct(np),
+      fill: SENTIMENT_FILLS.Positive,
+    },
+    {
+      name: 'Neutral',
+      value: pct(nn),
+      fill: SENTIMENT_FILLS.Neutral,
+    },
+    {
+      name: 'Negative',
+      value: pct(ng),
+      fill: SENTIMENT_FILLS.Negative,
+    },
+  ]
+}
 
 function formatReviewDate(iso) {
   if (!iso) return '—'
@@ -46,29 +117,97 @@ export default function PropertyDetails() {
     return Number.isFinite(n) ? n : NaN
   }, [id])
 
+  const [listing, setListing] = useState(null)
+  const [listingLoading, setListingLoading] = useState(true)
+
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [reviewsError, setReviewsError] = useState(null)
 
-  const positiveReviews = useMemo(
-    () =>
-      reviews.filter((r) => r.sentiment_label === 'Positive'),
-    [reviews],
+  const posCount = Number(listing?.sentiment_positive_count) || 0
+  const neuCount = Number(listing?.sentiment_neutral_count) || 0
+  const negCount = Number(listing?.sentiment_negative_count) || 0
+
+  const { positiveReviews, neutralReviews, negativeReviews } = useMemo(
+    () => ({
+      positiveReviews: reviews.slice(0, posCount),
+      neutralReviews: reviews.slice(posCount, posCount + neuCount),
+      negativeReviews: reviews.slice(
+        posCount + neuCount,
+        posCount + neuCount + negCount,
+      ),
+    }),
+    [reviews, posCount, neuCount, negCount],
   )
-  const negativeReviews = useMemo(
-    () =>
-      reviews.filter((r) => r.sentiment_label === 'Negative'),
-    [reviews],
-  )
-  const neutralCount = useMemo(
-    () =>
-      reviews.filter((r) => r.sentiment_label === 'Neutral').length,
-    [reviews],
-  )
+
+  const sentimentChart = useMemo(() => {
+    const fromRatios = sentimentRowsFromListingRatios(listing)
+    if (fromRatios) {
+      return {
+        rows: fromRatios,
+        sourceLabel: 'NLP profile (dataset ratios)',
+        hasData: true,
+        loading: false,
+      }
+    }
+    const fromCounts = sentimentRowsFromListingCounts(listing)
+    if (fromCounts) {
+      return {
+        rows: fromCounts,
+        sourceLabel: 'NLP profile (review counts)',
+        hasData: true,
+        loading: false,
+      }
+    }
+    if (listingLoading) {
+      return { rows: null, sourceLabel: '', hasData: false, loading: true }
+    }
+    return {
+      rows: null,
+      sourceLabel: '',
+      hasData: false,
+      loading: false,
+    }
+  }, [listing, listingLoading])
+
+  const dominantSlice = useMemo(() => {
+    const rows = sentimentChart.rows
+    if (!rows?.length) return null
+    return rows.reduce((best, r) => (r.value > best.value ? r : best), rows[0])
+  }, [sentimentChart])
 
   const [activeImage, setActiveImage] = useState(0)
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [reviewTab, setReviewTab] = useState('positive')
+
+  useEffect(() => {
+    if (!Number.isFinite(numericListingId)) {
+      setListing(null)
+      setListingLoading(false)
+      setReviews([])
+      setReviewsError(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadListing() {
+      setListingLoading(true)
+      try {
+        const data = await api.getListingById(numericListingId)
+        if (!cancelled) setListing(data)
+      } catch {
+        if (!cancelled) setListing(null)
+      } finally {
+        if (!cancelled) setListingLoading(false)
+      }
+    }
+
+    loadListing()
+    return () => {
+      cancelled = true
+    }
+  }, [numericListingId])
 
   useEffect(() => {
     if (!Number.isFinite(numericListingId)) {
@@ -205,47 +344,80 @@ export default function PropertyDetails() {
               </h2>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              Sentiment mix from reviews & messages — updated nightly.
+              {sentimentChart.sourceLabel
+                ? `${sentimentChart.sourceLabel}.`
+                : 'Sentiment mix from reviews & profile data.'}
             </p>
 
-            <div className="mt-5 h-56 w-full sm:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="20%"
-                  outerRadius="90%"
-                  data={sentimentRadial}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <RadialBar
-                    dataKey="value"
-                    cornerRadius={6}
-                    background={{ fill: '#f1f5f9' }}
+            <div className="relative mt-5 h-56 w-full sm:h-64">
+              {sentimentChart.loading || listingLoading ? (
+                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-600">
+                  Loading sentiment…
+                </div>
+              ) : !sentimentChart.rows || !sentimentChart.hasData ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 text-center">
+                  <p className="text-sm font-medium text-slate-700">
+                    No sentiment data available
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    NLP ratios are missing for this listing and there are no
+                    reviews to estimate from.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="20%"
+                      outerRadius="90%"
+                      data={sentimentChart.rows}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <RadialBar
+                        dataKey="value"
+                        cornerRadius={6}
+                        background={{ fill: '#f1f5f9' }}
+                      >
+                        {sentimentChart.rows.map((entry) => (
+                          <Cell key={entry.name} fill={entry.fill} />
+                        ))}
+                      </RadialBar>
+                      <Tooltip
+                        formatter={(value, _name, props) => [
+                          `${value}%`,
+                          props.payload.name,
+                        ]}
+                        contentStyle={{
+                          borderRadius: '12px',
+                          border: '1px solid #f1f5f9',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
+                        }}
+                      />
+                      <Legend
+                        formatter={(value) => (
+                          <span className="text-xs text-slate-600">{value}</span>
+                        )}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-center"
+                    aria-live="polite"
                   >
-                    {sentimentRadial.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                  </RadialBar>
-                  <Tooltip
-                    formatter={(value, name, props) => [
-                      `${value}%`,
-                      props.payload.name,
-                    ]}
-                    contentStyle={{
-                      borderRadius: '12px',
-                      border: '1px solid #f1f5f9',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
-                    }}
-                  />
-                  <Legend
-                    formatter={(value) => (
-                      <span className="text-xs text-slate-600">{value}</span>
-                    )}
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
+                    <span className="text-2xl font-bold tabular-nums text-slate-800">
+                      {dominantSlice
+                        ? `${dominantSlice.value}%`
+                        : '—'}
+                    </span>
+                    <span className="mt-0.5 max-w-[8rem] text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {dominantSlice ? `${dominantSlice.name} lead` : ''}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -309,13 +481,10 @@ export default function PropertyDetails() {
                   Extracted reviews
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  {neutralCount > 0
-                    ? `${neutralCount} neutral review${neutralCount === 1 ? '' : 's'} hidden from tabs · `
-                    : ''}
-                  Listing #{propertyId}
+                  Tabs match the sentiment chart · Listing #{propertyId}
                 </p>
                 <div
-                  className="mt-4 inline-flex rounded-xl bg-slate-100 p-1"
+                  className="mt-4 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1"
                   role="tablist"
                   aria-label="Review sentiment"
                 >
@@ -325,13 +494,27 @@ export default function PropertyDetails() {
                     aria-selected={reviewTab === 'positive'}
                     onClick={() => setReviewTab('positive')}
                     className={[
-                      'rounded-lg px-4 py-2 text-sm font-semibold transition-all',
+                      'rounded-lg px-3 py-2 text-sm font-semibold transition-all sm:px-4',
                       reviewTab === 'positive'
                         ? 'bg-white text-slate-900 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900',
                     ].join(' ')}
                   >
-                    Positive Reviews
+                    Positive ({posCount})
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={reviewTab === 'neutral'}
+                    onClick={() => setReviewTab('neutral')}
+                    className={[
+                      'rounded-lg px-3 py-2 text-sm font-semibold transition-all sm:px-4',
+                      reviewTab === 'neutral'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900',
+                    ].join(' ')}
+                  >
+                    Neutral ({neuCount})
                   </button>
                   <button
                     type="button"
@@ -339,13 +522,13 @@ export default function PropertyDetails() {
                     aria-selected={reviewTab === 'negative'}
                     onClick={() => setReviewTab('negative')}
                     className={[
-                      'rounded-lg px-4 py-2 text-sm font-semibold transition-all',
+                      'rounded-lg px-3 py-2 text-sm font-semibold transition-all sm:px-4',
                       reviewTab === 'negative'
                         ? 'bg-white text-slate-900 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900',
                     ].join(' ')}
                   >
-                    Negative Reviews
+                    Negative ({negCount})
                   </button>
                 </div>
               </div>
@@ -374,7 +557,7 @@ export default function PropertyDetails() {
                 !reviewsError &&
                 reviewTab === 'positive' && (
                   <ul className="space-y-4">
-                    {positiveReviews.length === 0 ? (
+                    {posCount === 0 ? (
                       <li className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
                         No positive reviews for this listing.
                       </li>
@@ -393,7 +576,53 @@ export default function PropertyDetails() {
                             </span>
                           </div>
                           <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                            {r.review_text_cleaned || r.comments || '—'}
+                            {r.review_text_cleaned || '—'}
+                          </p>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+              {!reviewsLoading &&
+                !reviewsError &&
+                reviewTab === 'neutral' && (
+                  <ul className="space-y-4">
+                    {neuCount === 0 ? (
+                      <li className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200/90 bg-gradient-to-b from-slate-50 to-white px-6 py-12 text-center shadow-sm">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 ring-4 ring-slate-50">
+                          <MessageCircle
+                            className="h-7 w-7"
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                        </div>
+                        <div>
+                          <p className="text-base font-semibold text-slate-800">
+                            No neutral reviews found for this property.
+                          </p>
+                          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
+                            When guest feedback is balanced or mixed, it will
+                            appear here — aligned with the neutral slice in the
+                            sentiment chart above.
+                          </p>
+                        </div>
+                      </li>
+                    ) : (
+                      neutralReviews.map((r) => (
+                        <li
+                          key={r.id}
+                          className="rounded-xl border border-slate-100 border-l-4 border-l-slate-400 bg-slate-50/50 px-4 py-4 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="font-semibold text-slate-900">
+                              {r.reviewer_name || 'Guest'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatReviewDate(r.review_date)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                            {r.review_text_cleaned || '—'}
                           </p>
                         </li>
                       ))
@@ -404,7 +633,7 @@ export default function PropertyDetails() {
                 !reviewsError &&
                 reviewTab === 'negative' && (
                   <ul className="space-y-4">
-                    {negativeReviews.length === 0 ? (
+                    {negCount === 0 ? (
                       <li className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
                         No negative reviews for this listing.
                       </li>
@@ -423,7 +652,7 @@ export default function PropertyDetails() {
                             </span>
                           </div>
                           <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                            {r.review_text_cleaned || r.comments || '—'}
+                            {r.review_text_cleaned || '—'}
                           </p>
                         </li>
                       ))

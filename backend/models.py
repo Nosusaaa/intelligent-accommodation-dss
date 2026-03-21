@@ -40,6 +40,12 @@ class Listing(Base):
 
     average_sentiment_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     intelligent_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sentiment_positive_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sentiment_neutral_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sentiment_negative_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sentiment_positive_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sentiment_neutral_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sentiment_negative_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     calendars: Mapped[List["Calendar"]] = relationship(
         back_populates="listing", cascade="all, delete-orphan"

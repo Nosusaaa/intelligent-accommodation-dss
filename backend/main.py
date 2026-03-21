@@ -14,7 +14,6 @@ Optional: bind host/port, e.g. `uvicorn main:app --reload --host 0.0.0.0 --port 
 
 from __future__ import annotations
 
-import re
 from collections.abc import Generator
 from datetime import date, datetime
 from typing import Annotated, Any, List, Optional
@@ -76,6 +75,12 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "has_balcony": listing.has_balcony,
         "average_sentiment_score": _json_value(listing.average_sentiment_score),
         "intelligent_score": _json_value(listing.intelligent_score),
+        "sentiment_positive_ratio": _json_value(listing.sentiment_positive_ratio),
+        "sentiment_neutral_ratio": _json_value(listing.sentiment_neutral_ratio),
+        "sentiment_negative_ratio": _json_value(listing.sentiment_negative_ratio),
+        "sentiment_positive_count": listing.sentiment_positive_count,
+        "sentiment_neutral_count": listing.sentiment_neutral_count,
+        "sentiment_negative_count": listing.sentiment_negative_count,
         "vibe_tags": (
             listing.listing_tags[0].vibe_tags
             if getattr(listing, "listing_tags", None)
@@ -94,81 +99,15 @@ def _monthly_metric_row(m: MonthlyMetric) -> dict[str, Any]:
     }
 
 
-# Lightweight keyword cues (DB has no per-review sentiment column).
-_NEGATIVE_HINTS = (
-    "terrible",
-    "horrible",
-    "awful",
-    "worst",
-    "dirty",
-    "noisy",
-    "rude",
-    "disappointing",
-    "disappointed",
-    "avoid",
-    "never again",
-    "not recommend",
-    "wouldn't recommend",
-    "poor",
-    "bad experience",
-    "uncomfortable",
-    "unsafe",
-)
-_POSITIVE_HINTS = (
-    "great",
-    "wonderful",
-    "lovely",
-    "perfect",
-    "amazing",
-    "excellent",
-    "beautiful",
-    "comfortable",
-    "clean",
-    "recommend",
-    "highly recommend",
-    "love",
-    "loved",
-    "best",
-    "fantastic",
-    "exceptional",
-    "hospitable",
-    "warm",
-    "charming",
-)
-
-
-def _sentiment_label_from_text(text: Optional[str]) -> str:
-    """Return Positive / Negative / Neutral from cleaned review text (heuristic)."""
-    if not text or not str(text).strip():
-        return "Neutral"
-    lower = str(text).lower()
-    neg = sum(1 for h in _NEGATIVE_HINTS if h in lower)
-    pos = sum(1 for h in _POSITIVE_HINTS if h in lower)
-    # Word-level boost for short obvious negatives
-    tokens = re.findall(r"[a-zA-Z']+", lower)
-    for t in tokens:
-        if t in {"bad", "hate", "never"}:
-            neg += 1
-        if t in {"good", "nice", "great", "love"}:
-            pos += 1
-    if neg > pos:
-        return "Negative"
-    if pos > neg:
-        return "Positive"
-    return "Neutral"
-
-
 def _review_row(r: Review) -> dict[str, Any]:
-    text = r.review_text_cleaned
+    """Raw review fields from SQLite (no per-review sentiment in DB)."""
     return {
         "id": r.id,
         "listing_id": r.listing_id,
         "reviewer_name": r.reviewer_name,
         "review_date": _json_value(r.review_date),
-        "review_text_cleaned": text,
-        "comments": text,
+        "review_text_cleaned": r.review_text_cleaned,
         "vibe_tags_detail": r.vibe_tags_detail,
-        "sentiment_label": _sentiment_label_from_text(text),
     }
 
 
@@ -280,10 +219,7 @@ def get_listing_reviews(
     if db.get(Listing, listing_id) is None:
         raise HTTPException(status_code=404, detail="Listing not found")
 
-    stmt = (
-        select(Review)
-        .where(Review.listing_id == listing_id)
-        .order_by(Review.review_date.desc().nulls_last(), Review.id.desc())
-    )
+    # Stable order for UI partitioning by listing-level NLP counts (pos → neutral → neg).
+    stmt = select(Review).where(Review.listing_id == listing_id).order_by(Review.id.asc())
     rows = db.scalars(stmt).all()
     return [_review_row(r) for r in rows]
