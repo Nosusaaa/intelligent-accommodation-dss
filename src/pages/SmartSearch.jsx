@@ -1,12 +1,40 @@
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   CalendarRange,
   GitCompare,
   MapPin,
+  Minus,
+  Plus,
   Search,
-  Users,
 } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
+
+const SUGGESTED_TAGS = [
+  'Location & Accessibility',
+  'Atmosphere & Style',
+  'Cleanliness & Condition',
+  'Host Hospitality',
+  'Key Amenities',
+  'Outdoor & Views',
+  'Value & Practicality',
+]
+
+const ROOM_TYPE_KEYS = [
+  { id: 'entire', label: 'Entire home/apt' },
+  { id: 'private', label: 'Private room' },
+  { id: 'shared', label: 'Shared room' },
+  { id: 'hotel', label: 'Hotel room' },
+]
+
+const AMENITY_KEYS = [
+  { id: 'wifi', label: 'Wifi' },
+  { id: 'kitchen', label: 'Kitchen' },
+  { id: 'ac', label: 'Air conditioning' },
+  { id: 'parking', label: 'Parking' },
+  { id: 'tv', label: 'TV' },
+  { id: 'balcony', label: 'Balcony' },
+]
 
 const properties = [
   {
@@ -58,13 +86,316 @@ const priceBubbles = [
   { label: '$178', left: '78%', top: '72%' },
 ]
 
+function clampInt(value, min, max) {
+  const n = Number.isFinite(value) ? Math.trunc(value) : min
+  return Math.min(max, Math.max(min, n))
+}
+
+function parseIntStrict(raw, fallback) {
+  const n = parseInt(String(raw), 10)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function IntegerStepper({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+}) {
+  const dec = () => onChange(clampInt(value - 1, min, max))
+  const inc = () => onChange(clampInt(value + 1, min, max))
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
+        {label}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={dec}
+          disabled={value <= min}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={`Decrease ${label}`}
+        >
+          <Minus className="h-4 w-4" aria-hidden />
+        </button>
+        <span className="min-w-[2rem] text-center font-mono text-sm font-semibold tabular-nums text-slate-900">
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={inc}
+          disabled={value >= max}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={`Increase ${label}`}
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function SmartSearch() {
   const navigate = useNavigate()
   const { items, toggleCompare, isInCompare } = useCompare()
 
+  const [guests, setGuests] = useState(2)
+  const [bedrooms, setBedrooms] = useState(1)
+  const [beds, setBeds] = useState(2)
+  const [bathrooms, setBathrooms] = useState(1)
+
+  const [priceMin, setPriceMin] = useState(80)
+  const [priceMax, setPriceMax] = useState(400)
+
+  const [roomTypes, setRoomTypes] = useState({
+    entire: false,
+    private: false,
+    shared: false,
+    hotel: false,
+  })
+
+  const [amenities, setAmenities] = useState({
+    wifi: false,
+    kitchen: false,
+    ac: false,
+    parking: false,
+    tv: false,
+    balcony: false,
+  })
+
+  const [selectedTags, setSelectedTags] = useState(() => new Set())
+
+  const toggleTag = useCallback((tag) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
+  }, [])
+
+  const syncPriceRange = useCallback((nextMin, nextMax) => {
+    let a = clampInt(nextMin, 0, 2000)
+    let b = clampInt(nextMax, 0, 2000)
+    if (a > b) [a, b] = [b, a]
+    setPriceMin(a)
+    setPriceMax(b)
+  }, [])
+
+  const onMinInput = (e) => {
+    const v = parseIntStrict(e.target.value, priceMin)
+    syncPriceRange(v, priceMax)
+  }
+
+  const onMaxInput = (e) => {
+    const v = parseIntStrict(e.target.value, priceMax)
+    syncPriceRange(priceMin, v)
+  }
+
+  const onMinRange = (e) => {
+    const v = parseIntStrict(e.target.value, priceMin)
+    syncPriceRange(v, priceMax)
+  }
+
+  const onMaxRange = (e) => {
+    const v = parseIntStrict(e.target.value, priceMax)
+    syncPriceRange(priceMin, v)
+  }
+
   return (
     <div className="relative grid grid-cols-12 gap-6 pb-24 lg:gap-8">
-      <aside className="col-span-12 space-y-6 md:col-span-3">
+      <aside className="col-span-12 space-y-0 md:col-span-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+            Filters
+          </h2>
+
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                Stay dates
+              </h3>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
+                />
+                <input
+                  type="date"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                Capacity
+              </h3>
+              <div className="mt-3 space-y-3">
+                <IntegerStepper
+                  label="Guests"
+                  value={guests}
+                  onChange={(v) => setGuests(v)}
+                  min={1}
+                  max={16}
+                />
+                <IntegerStepper
+                  label="Bedrooms"
+                  value={bedrooms}
+                  onChange={(v) => setBedrooms(v)}
+                  min={0}
+                  max={10}
+                />
+                <IntegerStepper
+                  label="Beds"
+                  value={beds}
+                  onChange={(v) => setBeds(v)}
+                  min={1}
+                  max={10}
+                />
+                <IntegerStepper
+                  label="Bathrooms"
+                  value={bathrooms}
+                  onChange={(v) => setBathrooms(v)}
+                  min={0}
+                  max={10}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                Price range (USD / night)
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">Integers only</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="price-min" className="sr-only">
+                    Minimum price
+                  </label>
+                  <input
+                    id="price-min"
+                    type="number"
+                    inputMode="numeric"
+                    step={1}
+                    min={0}
+                    max={2000}
+                    value={priceMin}
+                    onChange={onMinInput}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm tabular-nums text-slate-900 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="price-max" className="sr-only">
+                    Maximum price
+                  </label>
+                  <input
+                    id="price-max"
+                    type="number"
+                    inputMode="numeric"
+                    step={1}
+                    min={0}
+                    max={2000}
+                    value={priceMax}
+                    onChange={onMaxInput}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm tabular-nums text-slate-900 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase text-slate-500">
+                    <span>Min slider</span>
+                    <span className="font-mono tabular-nums">${priceMin}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2000}
+                    step={1}
+                    value={priceMin}
+                    onChange={onMinRange}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-teal-600"
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase text-slate-500">
+                    <span>Max slider</span>
+                    <span className="font-mono tabular-nums">${priceMax}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2000}
+                    step={1}
+                    value={priceMax}
+                    onChange={onMaxRange}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-teal-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                Room type
+              </h3>
+              <div className="mt-3 space-y-2">
+                {ROOM_TYPE_KEYS.map(({ id, label }) => (
+                  <label
+                    key={id}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-transparent px-1 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={roomTypes[id]}
+                      onChange={(e) =>
+                        setRoomTypes((prev) => ({
+                          ...prev,
+                          [id]: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                Amenities
+              </h3>
+              <div className="mt-3 space-y-2">
+                {AMENITY_KEYS.map(({ id, label }) => (
+                  <label
+                    key={id}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-transparent px-1 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={amenities[id]}
+                      onChange={(e) =>
+                        setAmenities((prev) => ({
+                          ...prev,
+                          [id]: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div className="col-span-12 flex flex-col gap-6 md:col-span-9">
         <div>
           <label htmlFor="command-search" className="sr-only">
             Search
@@ -81,45 +412,34 @@ export default function SmartSearch() {
               className="w-full rounded-2xl border border-slate-100 bg-white py-3.5 pl-12 pr-4 text-sm text-slate-900 shadow-sm outline-none ring-teal-600/20 transition-all placeholder:text-slate-400 focus:border-teal-200 focus:ring-4"
             />
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Filters</h2>
-          <div className="space-y-5">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                <CalendarRange className="h-3.5 w-3.5" aria-hidden />
-                Dates
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  className="w-full rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/15"
-                />
-                <input
-                  type="date"
-                  className="w-full rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/15"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                <Users className="h-3.5 w-3.5" aria-hidden />
-                Guests
-              </div>
-              <select className="w-full rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/15">
-                <option>1 guest</option>
-                <option>2 guests</option>
-                <option>3 guests</option>
-                <option>4+ guests</option>
-              </select>
+          <div className="mt-3">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              Suggested tags
+            </p>
+            <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pt-0.5">
+              {SUGGESTED_TAGS.map((tag) => {
+                const active = selectedTags.has(tag)
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={[
+                      'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all',
+                      active
+                        ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-slate-50',
+                    ].join(' ')}
+                  >
+                    {tag}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
-      </aside>
 
-      <div className="col-span-12 flex flex-col gap-6 md:col-span-9">
         <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-slate-200 shadow-inner sm:min-h-[280px]">
           <div
             className="absolute inset-0 opacity-40"
