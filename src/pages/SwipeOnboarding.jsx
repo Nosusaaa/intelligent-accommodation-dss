@@ -26,8 +26,8 @@ export default function SwipeOnboarding() {
   const progress = Math.min(swipeCount / TOTAL_SWIPES, 1)
 
   return (
-    <div className="flex min-h-[calc(100svh-8rem)] flex-col items-center justify-center px-4 py-8">
-      <div className="mb-8 w-full max-w-md">
+    <div className="flex h-screen max-h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="mx-auto w-full max-w-md shrink-0 px-1 pt-1">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-slate-700">Train your taste</span>
           <span className="tabular-nums text-slate-600">
@@ -50,15 +50,15 @@ export default function SwipeOnboarding() {
         </div>
       </div>
 
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-lg shadow-slate-200/50">
-        <div className="relative aspect-[4/5] w-full">
+      <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-1 py-3">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-lg shadow-slate-200/50">
           <img
             src={CARD_IMAGE}
             alt="Property preview"
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-4 text-white sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-white/70">
@@ -75,7 +75,7 @@ export default function SwipeOnboarding() {
                 <span className="text-sm text-white/80">to center</span>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
               {vibeTags.map((tag) => (
                 <span
                   key={tag}
@@ -89,22 +89,22 @@ export default function SwipeOnboarding() {
         </div>
       </div>
 
-      <div className="mt-10 flex items-center justify-center gap-10">
+      <div className="flex shrink-0 items-center justify-center gap-8 pb-4 pt-2 sm:gap-10 sm:pb-6">
         <button
           type="button"
           onClick={handleSwipe}
           aria-label="Pass"
-          className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 transition-all duration-300 hover:scale-110 hover:bg-red-600 hover:shadow-xl"
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 transition-all duration-300 hover:scale-110 hover:bg-red-600 hover:shadow-xl sm:h-20 sm:w-20"
         >
-          <X className="h-9 w-9 stroke-[2.5]" aria-hidden />
+          <X className="h-8 w-8 stroke-[2.5] sm:h-9 sm:w-9" aria-hidden />
         </button>
         <button
           type="button"
           onClick={handleSwipe}
           aria-label="Like"
-          className="flex h-20 w-20 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/35 transition-all duration-300 hover:scale-110 hover:bg-teal-700 hover:shadow-xl"
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/35 transition-all duration-300 hover:scale-110 hover:bg-teal-700 hover:shadow-xl sm:h-20 sm:w-20"
         >
-          <Heart className="h-9 w-9 fill-current" aria-hidden />
+          <Heart className="h-8 w-8 fill-current sm:h-9 sm:w-9" aria-hidden />
         </button>
       </div>
     </div>

@@ -17,8 +17,8 @@ const navItems = [
 
 export default function UserLayout() {
   return (
-    <div className="min-h-svh bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-100/80 bg-white/70 shadow-sm backdrop-blur-md">
+    <div className="flex min-h-svh flex-col bg-slate-50">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-slate-100/80 bg-white/70 shadow-sm backdrop-blur-md">
         <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="col-span-12 flex flex-wrap items-center justify-between gap-4">
             <NavLink
@@ -53,7 +53,7 @@ export default function UserLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>
