@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminLayout from './components/layout/AdminLayout.jsx'
 import UserLayout from './components/layout/UserLayout.jsx'
 import { CompareProvider } from './context/CompareContext.jsx'
+import GuestLogin from './pages/GuestLogin.jsx'
 import Home from './pages/Home.jsx'
 import AdminLogin from './pages/admin/AdminLogin.jsx'
 import DataSync from './pages/admin/DataSync.jsx'
@@ -19,6 +20,7 @@ export default function App() {
       <CompareProvider>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/guest-login" element={<GuestLogin />} />
         <Route path="/admin/login" element={<AdminLogin />} />
 
         <Route element={<UserLayout />}>

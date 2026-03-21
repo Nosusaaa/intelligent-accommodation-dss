@@ -1,10 +1,24 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+const ADMIN_USER = 'admin'
+const ADMIN_PASS = 'password123'
+
 export default function AdminLogin() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (username === ADMIN_USER && password === ADMIN_PASS) {
+      setError('')
+      navigate('/admin/strategy')
+    } else {
+      setError('Invalid credentials')
+    }
+  }
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-slate-50 px-4 py-12">
@@ -13,23 +27,26 @@ export default function AdminLogin() {
           Admin Portal
         </h1>
 
-        <div className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
             <label
-              htmlFor="admin-email"
+              htmlFor="admin-username"
               className="block text-sm font-medium text-slate-700"
             >
-              Email
+              Username
             </label>
             <input
-              id="admin-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="admin-username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value)
+                if (error) setError('')
+              }}
               className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-teal-300 focus:ring-2 focus:ring-teal-500"
-              placeholder="you@company.com"
+              placeholder="admin"
             />
           </div>
           <div>
@@ -45,20 +62,28 @@ export default function AdminLogin() {
               type="password"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (error) setError('')
+              }}
               className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-teal-300 focus:ring-2 focus:ring-teal-500"
               placeholder="••••••••"
             />
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/admin/strategy')}
-          className="mt-8 w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
-        >
-          Access Dashboard
-        </button>
+          {error ? (
+            <p className="text-sm font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
+          >
+            Access Dashboard
+          </button>
+        </form>
 
         <p className="mt-6 text-center">
           <Link
