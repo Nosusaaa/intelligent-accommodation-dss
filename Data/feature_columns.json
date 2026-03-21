@@ -1,0 +1,43 @@
+{
+  "amenity_flags": [
+    "has_wifi",
+    "has_kitchen",
+    "has_air_conditioning",
+    "has_washer",
+    "has_dryer",
+    "has_tv",
+    "has_heating",
+    "has_parking",
+    "has_balcony"
+  ],
+  "derived_flags": [
+    "is_budget_friendly",
+    "is_family_suitable",
+    "is_large_capacity",
+    "is_well_equipped",
+    "is_highly_rated"
+  ],
+  "filter_fields": [
+    "price_clean",
+    "price_level",
+    "accommodates",
+    "bedrooms",
+    "beds",
+    "bathrooms_num",
+    "room_type",
+    "property_type",
+    "availability_status",
+    "review_score_overall",
+    "instant_bookable",
+    "host_is_superhost",
+    "neighbourhood_cleansed"
+  ],
+  "map_fields": [
+    "id",
+    "name",
+    "latitude",
+    "longitude",
+    "price_clean",
+    "price_level"
+  ]
+}
