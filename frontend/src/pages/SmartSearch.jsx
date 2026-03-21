@@ -1,14 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  CalendarRange,
-  GitCompare,
-  MapPin,
-  Minus,
-  Plus,
-  Search,
-} from 'lucide-react'
+import { GitCompare, MapPin, Minus, Plus, Search } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
+import { api } from '../services/api.js'
 
 const SUGGESTED_TAGS = [
   'Location & Accessibility',
@@ -36,48 +30,8 @@ const AMENITY_KEYS = [
   { id: 'balcony', label: 'Balcony' },
 ]
 
-const properties = [
-  {
-    id: '123',
-    title: 'Harbor View Loft',
-    area: 'Central District',
-    price: 212,
-    beds: 2,
-    rating: 4.8,
-    image:
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80',
-  },
-  {
-    id: '124',
-    title: 'Garden Studio',
-    area: 'Riverside',
-    price: 156,
-    beds: 1,
-    rating: 4.6,
-    image:
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80',
-  },
-  {
-    id: '125',
-    title: 'Skyline Suite',
-    area: 'Uptown',
-    price: 289,
-    beds: 3,
-    rating: 4.9,
-    image:
-      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80',
-  },
-  {
-    id: '126',
-    title: 'Boutique Flat',
-    area: 'Old Town',
-    price: 178,
-    beds: 2,
-    rating: 4.5,
-    image:
-      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=600&q=80',
-  },
-]
+const PLACEHOLDER_IMAGE =
+  'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80'
 
 const priceBubbles = [
   { label: '$156', left: '12%', top: '58%' },
@@ -94,6 +48,59 @@ function clampInt(value, min, max) {
 function parseIntStrict(raw, fallback) {
   const n = parseInt(String(raw), 10)
   return Number.isFinite(n) ? n : fallback
+}
+
+/** Up to 3 vibe labels from pipe-separated tags (matches `listing_tags` / room_tags). */
+function parseVibeTags(raw) {
+  if (!raw || typeof raw !== 'string') return []
+  return raw
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+}
+
+/** `average_sentiment_score` is typically 0–1; show as percent. */
+function formatSentimentScore(value) {
+  if (value == null || value === '') return '—'
+  const n = Number(value)
+  if (Number.isNaN(n)) return '—'
+  const pct = n <= 1 ? n * 100 : n
+  return `${pct.toFixed(2)}%`
+}
+
+/** Maps UI filter state → FastAPI `/api/listings` query params. */
+function buildListingParams({
+  guests,
+  bedrooms,
+  beds,
+  bathrooms,
+  priceMin,
+  priceMax,
+  roomTypes,
+  amenities,
+}) {
+  const params = {
+    min_price: priceMin,
+    max_price: priceMax,
+    guests,
+    bedrooms,
+    beds,
+    bathrooms,
+  }
+  const roomLabels = ROOM_TYPE_KEYS.filter(({ id }) => roomTypes[id]).map(
+    ({ label }) => label,
+  )
+  if (roomLabels.length > 0) {
+    params.room_type = roomLabels.join(',')
+  }
+  if (amenities.wifi) params.has_wifi = true
+  if (amenities.kitchen) params.has_kitchen = true
+  if (amenities.ac) params.has_air_conditioning = true
+  if (amenities.parking) params.has_parking = true
+  if (amenities.tv) params.has_tv = true
+  if (amenities.balcony) params.has_balcony = true
+  return params
 }
 
 function IntegerStepper({
@@ -140,6 +147,10 @@ function IntegerStepper({
 export default function SmartSearch() {
   const navigate = useNavigate()
   const { items, toggleCompare, isInCompare } = useCompare()
+
+  const [listings, setListings] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const [guests, setGuests] = useState(2)
   const [bedrooms, setBedrooms] = useState(1)
@@ -203,6 +214,58 @@ export default function SmartSearch() {
     const v = parseIntStrict(e.target.value, priceMax)
     syncPriceRange(priceMin, v)
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchListings() {
+      setError(null)
+      setIsLoading(true)
+      try {
+        const query = buildListingParams({
+          guests,
+          bedrooms,
+          beds,
+          bathrooms,
+          priceMin,
+          priceMax,
+          roomTypes,
+          amenities,
+        })
+        const data = await api.getListings(query)
+        if (!cancelled) {
+          setListings(Array.isArray(data) ? data : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err?.response?.data?.detail ||
+              err?.message ||
+              'Failed to load listings',
+          )
+          setListings([])
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchListings()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    guests,
+    bedrooms,
+    beds,
+    bathrooms,
+    priceMin,
+    priceMax,
+    roomTypes,
+    amenities,
+  ])
 
   return (
     <div className="relative grid grid-cols-12 gap-6 pb-24 lg:gap-8">
@@ -470,61 +533,106 @@ export default function SmartSearch() {
               Matching stays
             </h2>
             <span className="text-sm text-slate-500">
-              {properties.length} results
+              {isLoading ? '…' : `${listings.length} results`}
             </span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {properties.map((p) => {
-              const selected = isInCompare(p.id)
-              return (
-                <article
-                  key={p.id}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-                >
-                  <Link to="/details/123" className="block">
-                    <div className="relative aspect-[16/10] overflow-hidden">
-                      <img
-                        src={p.image}
-                        alt=""
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-slate-900">{p.title}</h3>
-                      <p className="mt-0.5 text-sm text-slate-500">{p.area}</p>
-                    </div>
-                  </Link>
-                  <div className="flex items-start justify-between gap-2 border-t border-slate-50 px-4 pb-4">
-                    <p className="text-xs text-slate-400">
-                      {p.beds} beds · {p.rating} rating
-                    </p>
-                    <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
-                      ${p.price}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    title={
-                      selected ? 'Remove from compare' : 'Add to compare'
-                    }
-                    className={[
-                      'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-md',
-                      selected
-                        ? 'border-teal-300 bg-teal-600 text-white hover:bg-teal-700'
-                        : 'border-white/80 bg-white/95 text-slate-600 hover:border-teal-200 hover:text-teal-700',
-                    ].join(' ')}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      toggleCompare({ id: p.id, name: p.title })
-                    }}
+            {isLoading && (
+              <div className="col-span-full flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 text-slate-600">
+                <span
+                  className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent"
+                  aria-hidden
+                />
+                <p className="text-sm font-medium">Loading real data…</p>
+              </div>
+            )}
+            {!isLoading && error && (
+              <div className="col-span-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+            {!isLoading &&
+              !error &&
+              listings.map((listing) => {
+                const selected = isInCompare(listing.id)
+                const price =
+                  listing.price_clean != null && !Number.isNaN(Number(listing.price_clean))
+                    ? Number(listing.price_clean)
+                    : null
+                const vibePills = parseVibeTags(listing.vibe_tags)
+                return (
+                  <article
+                    key={listing.id}
+                    className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
                   >
-                    <GitCompare className="h-4 w-4" aria-hidden />
-                  </button>
-                </article>
-              )
-            })}
+                    <Link to={`/details/${listing.id}`} className="block">
+                      <div className="relative aspect-[16/10] overflow-hidden">
+                        <img
+                          src={listing.picture_url || PLACEHOLDER_IMAGE}
+                          alt=""
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-slate-900">
+                          {listing.name || 'Untitled listing'}
+                        </h3>
+                        <p className="mt-0.5 text-sm text-slate-500">
+                          {listing.room_type || listing.property_type || '—'}
+                        </p>
+                        {vibePills.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {vibePills.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-800 ring-1 ring-teal-100"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <div className="flex items-start justify-between gap-2 border-t border-slate-50 px-4 pb-4">
+                      <p className="text-xs text-slate-400">
+                        Sentiment {formatSentimentScore(listing.average_sentiment_score)}
+                      </p>
+                      <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
+                        {price != null ? `$${price}` : '—'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      title={
+                        selected ? 'Remove from compare' : 'Add to compare'
+                      }
+                      className={[
+                        'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-md',
+                        selected
+                          ? 'border-teal-300 bg-teal-600 text-white hover:bg-teal-700'
+                          : 'border-white/80 bg-white/95 text-slate-600 hover:border-teal-200 hover:text-teal-700',
+                      ].join(' ')}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        toggleCompare({
+                          id: listing.id,
+                          name: listing.name || `Listing ${listing.id}`,
+                        })
+                      }}
+                    >
+                      <GitCompare className="h-4 w-4" aria-hidden />
+                    </button>
+                  </article>
+                )
+              })}
+            {!isLoading && !error && listings.length === 0 && (
+              <div className="col-span-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-12 text-center text-sm text-slate-600">
+                No listings found.
+              </div>
+            )}
           </div>
         </div>
       </div>
