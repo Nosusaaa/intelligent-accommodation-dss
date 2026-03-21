@@ -101,6 +101,7 @@ class Review(Base):
     review_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
     review_text_cleaned: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     vibe_tags_detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sentiment_label: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
     listing: Mapped["Listing"] = relationship(back_populates="reviews")
 

@@ -1,4 +1,4 @@
-"""Load CSV data into SQLite using Pandas (see `database.py` for DB path)."""
+"""Load CSV data into SQLite using Pandas. CSV inputs live under ``../Data/`` (see `database.py` for DB path)."""
 
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ import models  # noqa: F401
 
 BACKEND_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BACKEND_DIR.parent
+DATA_DIR = REPO_ROOT / "Data"
 
-# All CSV inputs must end up as these paths (seed may move them from repo root / Data /).
+# All CSV inputs live under ``Data/`` (seed may move them from ``backend/`` or repo root for migration).
 REQUIRED_CSVS = (
     "cleaned_listings.csv",
     "listings_intelligent_profile.csv",
@@ -28,36 +29,37 @@ REQUIRED_CSVS = (
 
 
 def _ensure_csv(name: str) -> Path:
-    """Return ``backend/<name>``, moving the file from repo root or ``Data/`` if needed."""
-    dest = BACKEND_DIR / name
+    """Return ``Data/<name>``, moving the file from ``backend/`` or repo root if needed."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    dest = DATA_DIR / name
     if dest.is_file():
         return dest
 
     stem = Path(name).stem
-    search_dirs = [REPO_ROOT, REPO_ROOT / "Data"]
+    search_dirs = [BACKEND_DIR, REPO_ROOT, DATA_DIR]
 
     for d in search_dirs:
         if not d.is_dir():
             continue
         exact = d / name
-        if exact.is_file():
+        if exact.is_file() and exact.resolve() != dest.resolve():
             shutil.move(str(exact), str(dest))
-            print(f"Moved into backend/: {name} (from {d})")
+            print(f"Moved into Data/: {name} (from {d})")
             return dest
 
     for d in search_dirs:
         if not d.is_dir():
             continue
         for f in sorted(d.glob(f"{stem}*.csv")):
-            if f.is_file():
+            if f.is_file() and f.resolve() != dest.resolve():
                 shutil.move(str(f), str(dest))
-                print(f"Moved into backend/: {name} (from {f.name})")
+                print(f"Moved into Data/: {name} (from {f.name})")
                 return dest
 
     raise FileNotFoundError(
         f"Missing required CSV: {dest}\n"
-        f"Place {name} in the backend/ folder (next to seed_data.py), "
-        f"or in the repository root / Data/ as {name} or {stem}*.csv"
+        f"Place {name} in the Data/ folder at the repository root, "
+        f"or in backend/ / repo root as {name} or {stem}*.csv"
     )
 
 
@@ -119,8 +121,8 @@ def main() -> None:
     conn = engine.connect()
     try:
         print("Seeding Listings Data...")
-        listings = pd.read_csv(BACKEND_DIR / "cleaned_listings.csv")
-        profile = pd.read_csv(BACKEND_DIR / "listings_intelligent_profile.csv")
+        listings = pd.read_csv(DATA_DIR / "cleaned_listings.csv")
+        profile = pd.read_csv(DATA_DIR / "listings_intelligent_profile.csv")
         merged = listings.merge(profile, left_on="id", right_on="listing_id", how="left")
         merged = merged.drop(columns=["listing_id"], errors="ignore")
 
@@ -169,7 +171,7 @@ def main() -> None:
         df_listings.to_sql("listings", conn, if_exists="replace", index=False)
 
         print("Seeding Calendar Data...")
-        cal = pd.read_csv(BACKEND_DIR / "calendar_cleaned.csv")
+        cal = pd.read_csv(DATA_DIR / "calendar_cleaned.csv")
         cal = cal[["listing_id", "date", "available", "price", "adjusted_price"]].copy()
         cal["available"] = _parse_calendar_available(cal["available"])
         ts = pd.to_datetime(cal["date"], errors="coerce")
@@ -179,23 +181,31 @@ def main() -> None:
         cal.to_sql("calendar", conn, if_exists="replace", index=False)
 
         print("Seeding Monthly Metrics Data...")
-        mm = pd.read_csv(BACKEND_DIR / "monthly_forecast_metrics.csv")
+        mm = pd.read_csv(DATA_DIR / "monthly_forecast_metrics.csv")
         mm = mm[["listing_id", "year_month", "avg_adjusted_price", "occupancy_rate"]].copy()
         mm = _fill_na_for_sql(mm, date_cols=frozenset())
         mm = _add_surrogate_ids(mm)
         mm.to_sql("monthly_metrics", conn, if_exists="replace", index=False)
 
         print("Seeding Reviews Data...")
-        rev = pd.read_csv(BACKEND_DIR / "reviews_tags.csv")
+        rev = pd.read_csv(DATA_DIR / "reviews_tags.csv")
         rev = rev.rename(columns={"review_id": "id"})
         rev = rev[
-            ["id", "listing_id", "reviewer_name", "review_date", "review_text_cleaned", "vibe_tags_detail"]
+            [
+                "id",
+                "listing_id",
+                "reviewer_name",
+                "review_date",
+                "review_text_cleaned",
+                "vibe_tags_detail",
+                "sentiment_label",
+            ]
         ].copy()
         rev = _fill_na_for_sql(rev, date_cols=frozenset({"review_date"}))
         rev.to_sql("reviews", conn, if_exists="replace", index=False)
 
         print("Seeding Listing Tags Data...")
-        tags = pd.read_csv(BACKEND_DIR / "room_tags.csv")
+        tags = pd.read_csv(DATA_DIR / "room_tags.csv")
         tags = tags[["listing_id", "vibe_tags"]].copy()
         tags = _fill_na_for_sql(tags, date_cols=frozenset())
         tags = _add_surrogate_ids(tags)

@@ -1,5 +1,7 @@
 # Backend (FastAPI)
 
+CSV 与 SQLite 数据库位于仓库根目录的 **`Data/`**（见 [`../Data/README.md`](../Data/README.md)）。`seed_data.py` 从该目录读取 CSV，并在同目录生成 **`airbnb_dss.db`**。
+
 **若出现 `zsh: command not found: python`：** macOS 没有 `python` 这个命令，请一律改用 **`python3`**（以及 **`pip3`** 或 `python3 -m pip`）。
 
 ## 最快测试（在 `backend/` 目录，需已安装 `make`）

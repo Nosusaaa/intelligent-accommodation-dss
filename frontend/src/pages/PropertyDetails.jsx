@@ -34,69 +34,6 @@ const SENTIMENT_FILLS = {
 
 const vibeTags = ['Quiet', 'Walkable', 'Waterfront']
 
-/** Method A: NLP ratios from listing (0–1) → chart rows (%). */
-function sentimentRowsFromListingRatios(listing) {
-  if (!listing) return null
-  const p = listing.sentiment_positive_ratio
-  const neu = listing.sentiment_neutral_ratio
-  const neg = listing.sentiment_negative_ratio
-  if (p == null || neu == null || neg == null) return null
-  const np = Number(p)
-  const nn = Number(neu)
-  const ng = Number(neg)
-  if ([np, nn, ng].some((x) => Number.isNaN(x))) return null
-  return [
-    {
-      name: 'Positive',
-      value: Math.round(np * 1000) / 10,
-      fill: SENTIMENT_FILLS.Positive,
-    },
-    {
-      name: 'Neutral',
-      value: Math.round(nn * 1000) / 10,
-      fill: SENTIMENT_FILLS.Neutral,
-    },
-    {
-      name: 'Negative',
-      value: Math.round(ng * 1000) / 10,
-      fill: SENTIMENT_FILLS.Negative,
-    },
-  ]
-}
-
-/** Fallback chart: NLP counts on the listing (same source as tab headers). */
-function sentimentRowsFromListingCounts(listing) {
-  if (!listing) return null
-  const p = listing.sentiment_positive_count
-  const neu = listing.sentiment_neutral_count
-  const neg = listing.sentiment_negative_count
-  if (p == null || neu == null || neg == null) return null
-  const np = Number(p)
-  const nn = Number(neu)
-  const ng = Number(neg)
-  if ([np, nn, ng].some((x) => Number.isNaN(x))) return null
-  const total = np + nn + ng
-  if (total === 0) return null
-  const pct = (x) => Math.round((x / total) * 1000) / 10
-  return [
-    {
-      name: 'Positive',
-      value: pct(np),
-      fill: SENTIMENT_FILLS.Positive,
-    },
-    {
-      name: 'Neutral',
-      value: pct(nn),
-      fill: SENTIMENT_FILLS.Neutral,
-    },
-    {
-      name: 'Negative',
-      value: pct(ng),
-      fill: SENTIMENT_FILLS.Negative,
-    },
-  ]
-}
-
 function formatReviewDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -106,6 +43,22 @@ function formatReviewDate(iso) {
     month: 'short',
     day: 'numeric',
   })
+}
+
+/** Map API/legacy rows to one of Positive | Neutral | Negative (ETL uses these exact strings). */
+function normalizeSentimentLabel(label) {
+  if (label === 'Positive' || label === 'Neutral' || label === 'Negative') {
+    return label
+  }
+  return 'Neutral'
+}
+
+function safeSentimentPercent(count, total) {
+  const c = Number(count)
+  const t = Number(total)
+  if (!(t > 0) || !Number.isFinite(c) || !Number.isFinite(t)) return 0
+  const p = Math.round((c / t) * 100)
+  return Number.isFinite(p) ? p : 0
 }
 
 export default function PropertyDetails() {
@@ -124,55 +77,69 @@ export default function PropertyDetails() {
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [reviewsError, setReviewsError] = useState(null)
 
-  const posCount = Number(listing?.sentiment_positive_count) || 0
-  const neuCount = Number(listing?.sentiment_neutral_count) || 0
-  const negCount = Number(listing?.sentiment_negative_count) || 0
-
-  const { positiveReviews, neutralReviews, negativeReviews } = useMemo(
-    () => ({
-      positiveReviews: reviews.slice(0, posCount),
-      neutralReviews: reviews.slice(posCount, posCount + neuCount),
-      negativeReviews: reviews.slice(
-        posCount + neuCount,
-        posCount + neuCount + negCount,
-      ),
-    }),
-    [reviews, posCount, neuCount, negCount],
+  const positiveReviews = useMemo(
+    () =>
+      reviews.filter((r) => normalizeSentimentLabel(r.sentiment_label) === 'Positive'),
+    [reviews],
+  )
+  const neutralReviews = useMemo(
+    () =>
+      reviews.filter((r) => normalizeSentimentLabel(r.sentiment_label) === 'Neutral'),
+    [reviews],
+  )
+  const negativeReviews = useMemo(
+    () =>
+      reviews.filter((r) => normalizeSentimentLabel(r.sentiment_label) === 'Negative'),
+    [reviews],
   )
 
   const sentimentChart = useMemo(() => {
-    const fromRatios = sentimentRowsFromListingRatios(listing)
-    if (fromRatios) {
-      return {
-        rows: fromRatios,
-        sourceLabel: 'NLP profile (dataset ratios)',
-        hasData: true,
-        loading: false,
-      }
-    }
-    const fromCounts = sentimentRowsFromListingCounts(listing)
-    if (fromCounts) {
-      return {
-        rows: fromCounts,
-        sourceLabel: 'NLP profile (review counts)',
-        hasData: true,
-        loading: false,
-      }
-    }
-    if (listingLoading) {
+    if (reviewsLoading) {
       return { rows: null, sourceLabel: '', hasData: false, loading: true }
     }
+    const totalAnalyzed =
+      positiveReviews.length + neutralReviews.length + negativeReviews.length
+    if (totalAnalyzed > 0) {
+      const rows = [
+        {
+          name: 'Positive',
+          value: safeSentimentPercent(positiveReviews.length, totalAnalyzed),
+          fill: SENTIMENT_FILLS.Positive,
+        },
+        {
+          name: 'Neutral',
+          value: safeSentimentPercent(neutralReviews.length, totalAnalyzed),
+          fill: SENTIMENT_FILLS.Neutral,
+        },
+        {
+          name: 'Negative',
+          value: safeSentimentPercent(negativeReviews.length, totalAnalyzed),
+          fill: SENTIMENT_FILLS.Negative,
+        },
+      ]
+      return {
+        rows,
+        sourceLabel: 'Precomputed VADER labels — share of loaded reviews',
+        hasData: true,
+        loading: false,
+      }
+    }
     return {
-      rows: null,
-      sourceLabel: '',
+      rows: [{ name: 'No Data', value: 100, fill: '#cbd5e1' }],
+      sourceLabel: 'No reviews to analyze yet',
       hasData: false,
       loading: false,
     }
-  }, [listing, listingLoading])
+  }, [
+    positiveReviews,
+    neutralReviews,
+    negativeReviews,
+    reviewsLoading,
+  ])
 
   const dominantSlice = useMemo(() => {
     const rows = sentimentChart.rows
-    if (!rows?.length) return null
+    if (!rows?.length || !sentimentChart.hasData) return null
     return rows.reduce((best, r) => (r.value > best.value ? r : best), rows[0])
   }, [sentimentChart])
 
@@ -282,7 +249,9 @@ export default function PropertyDetails() {
               Listing #{propertyId}
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Azure Pier Residence
+              {listingLoading
+                ? 'Loading…'
+                : listing?.name || 'Azure Pier Residence'}
             </h1>
           </div>
         </div>
@@ -346,25 +315,15 @@ export default function PropertyDetails() {
             <p className="mt-1 text-sm text-slate-500">
               {sentimentChart.sourceLabel
                 ? `${sentimentChart.sourceLabel}.`
-                : 'Sentiment mix from reviews & profile data.'}
+                : 'Sentiment share from precomputed VADER labels.'}
             </p>
 
             <div className="relative mt-5 h-56 w-full sm:h-64">
-              {sentimentChart.loading || listingLoading ? (
+              {sentimentChart.loading ? (
                 <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-600">
-                  Loading sentiment…
+                  Loading reviews for sentiment chart…
                 </div>
-              ) : !sentimentChart.rows || !sentimentChart.hasData ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 text-center">
-                  <p className="text-sm font-medium text-slate-700">
-                    No sentiment data available
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    NLP ratios are missing for this listing and there are no
-                    reviews to estimate from.
-                  </p>
-                </div>
-              ) : (
+              ) : sentimentChart.rows?.length ? (
                 <>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart
@@ -408,16 +367,21 @@ export default function PropertyDetails() {
                     aria-live="polite"
                   >
                     <span className="text-2xl font-bold tabular-nums text-slate-800">
-                      {dominantSlice
+                      {dominantSlice &&
+                      Number.isFinite(Number(dominantSlice.value))
                         ? `${dominantSlice.value}%`
                         : '—'}
                     </span>
                     <span className="mt-0.5 max-w-[8rem] text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {dominantSlice ? `${dominantSlice.name} lead` : ''}
+                      {dominantSlice
+                        ? `${dominantSlice.name} lead`
+                        : sentimentChart.hasData
+                          ? ''
+                          : 'No data'}
                     </span>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -481,7 +445,7 @@ export default function PropertyDetails() {
                   Extracted reviews
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Tabs match the sentiment chart · Listing #{propertyId}
+                  Precomputed sentiment labels · Listing #{propertyId}
                 </p>
                 <div
                   className="mt-4 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1"
@@ -500,7 +464,7 @@ export default function PropertyDetails() {
                         : 'text-slate-600 hover:text-slate-900',
                     ].join(' ')}
                   >
-                    Positive ({posCount})
+                    Positive ({positiveReviews.length})
                   </button>
                   <button
                     type="button"
@@ -514,7 +478,7 @@ export default function PropertyDetails() {
                         : 'text-slate-600 hover:text-slate-900',
                     ].join(' ')}
                   >
-                    Neutral ({neuCount})
+                    Neutral ({neutralReviews.length})
                   </button>
                   <button
                     type="button"
@@ -528,7 +492,7 @@ export default function PropertyDetails() {
                         : 'text-slate-600 hover:text-slate-900',
                     ].join(' ')}
                   >
-                    Negative ({negCount})
+                    Negative ({negativeReviews.length})
                   </button>
                 </div>
               </div>
@@ -557,7 +521,7 @@ export default function PropertyDetails() {
                 !reviewsError &&
                 reviewTab === 'positive' && (
                   <ul className="space-y-4">
-                    {posCount === 0 ? (
+                    {positiveReviews.length === 0 ? (
                       <li className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
                         No positive reviews for this listing.
                       </li>
@@ -587,7 +551,7 @@ export default function PropertyDetails() {
                 !reviewsError &&
                 reviewTab === 'neutral' && (
                   <ul className="space-y-4">
-                    {neuCount === 0 ? (
+                    {neutralReviews.length === 0 ? (
                       <li className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200/90 bg-gradient-to-b from-slate-50 to-white px-6 py-12 text-center shadow-sm">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 ring-4 ring-slate-50">
                           <MessageCircle
@@ -601,9 +565,8 @@ export default function PropertyDetails() {
                             No neutral reviews found for this property.
                           </p>
                           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-                            When guest feedback is balanced or mixed, it will
-                            appear here — aligned with the neutral slice in the
-                            sentiment chart above.
+                            VADER labels a review neutral when the compound score
+                            is between −0.05 and 0.05.
                           </p>
                         </div>
                       </li>
@@ -633,7 +596,7 @@ export default function PropertyDetails() {
                 !reviewsError &&
                 reviewTab === 'negative' && (
                   <ul className="space-y-4">
-                    {negCount === 0 ? (
+                    {negativeReviews.length === 0 ? (
                       <li className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
                         No negative reviews for this listing.
                       </li>

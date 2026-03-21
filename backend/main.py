@@ -100,7 +100,7 @@ def _monthly_metric_row(m: MonthlyMetric) -> dict[str, Any]:
 
 
 def _review_row(r: Review) -> dict[str, Any]:
-    """Raw review fields from SQLite (no per-review sentiment in DB)."""
+    """Review fields as stored (sentiment_label precomputed at ETL time)."""
     return {
         "id": r.id,
         "listing_id": r.listing_id,
@@ -108,6 +108,7 @@ def _review_row(r: Review) -> dict[str, Any]:
         "review_date": _json_value(r.review_date),
         "review_text_cleaned": r.review_text_cleaned,
         "vibe_tags_detail": r.vibe_tags_detail,
+        "sentiment_label": r.sentiment_label,
     }
 
 
@@ -219,7 +220,10 @@ def get_listing_reviews(
     if db.get(Listing, listing_id) is None:
         raise HTTPException(status_code=404, detail="Listing not found")
 
-    # Stable order for UI partitioning by listing-level NLP counts (pos → neutral → neg).
-    stmt = select(Review).where(Review.listing_id == listing_id).order_by(Review.id.asc())
+    stmt = (
+        select(Review)
+        .where(Review.listing_id == listing_id)
+        .order_by(Review.review_date.desc().nulls_last(), Review.id.desc())
+    )
     rows = db.scalars(stmt).all()
     return [_review_row(r) for r in rows]
