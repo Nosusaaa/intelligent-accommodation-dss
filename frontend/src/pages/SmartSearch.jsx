@@ -4,22 +4,28 @@ import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
 import { api } from '../services/api.js'
 
+/** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
 const SUGGESTED_TAGS = [
-  'Location & Accessibility',
-  'Atmosphere & Style',
-  'Cleanliness & Condition',
-  'Host Hospitality',
-  'Key Amenities',
-  'Outdoor & Views',
-  'Value & Practicality',
-  'Quiet',
-  'Walkable',
-  'Waterfront',
-  'Urban',
-  'Cozy',
-  'Modern',
-  'Historic',
-  'Beachfront',
+  'Above & Beyond',
+  'Artistic & Curated',
+  'Climate Comfort',
+  'Cozy & Homey',
+  'Exceptional Host',
+  'Fully Equipped',
+  'General Stay',
+  'Highly Walkable',
+  'Historic Charm',
+  'Modern & Updated',
+  'Outdoor Oasis',
+  'Pet Friendly',
+  'Prime Location',
+  'Responsive & Clear',
+  'Safe & Quiet',
+  'Spacious & Bright',
+  'Spotless & Pristine',
+  'Transit Friendly',
+  'Value for Money',
+  'Work-Friendly',
 ]
 
 const ROOM_TYPE_KEYS = [
@@ -58,14 +64,13 @@ function parseIntStrict(raw, fallback) {
   return Number.isFinite(n) ? n : fallback
 }
 
-/** Up to 3 vibe labels from pipe-separated tags (matches `listing_tags` / room_tags). */
+/** All segments from pipe-separated `vibe_tags` (typically 5 per listing in room_tags.csv). */
 function parseVibeTags(raw) {
   if (!raw || typeof raw !== 'string') return []
   return raw
     .split('|')
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, 3)
 }
 
 /** `average_sentiment_score` is typically 0–1; show as percent. */
@@ -205,10 +210,10 @@ export default function SmartSearch() {
 
   const [guests, setGuests] = useState(2)
   const [bedrooms, setBedrooms] = useState(1)
-  const [beds, setBeds] = useState(2)
+  const [beds, setBeds] = useState(1)
   const [bathrooms, setBathrooms] = useState(1)
 
-  const [priceMin, setPriceMin] = useState(80)
+  const [priceMin, setPriceMin] = useState(30)
   const [priceMax, setPriceMax] = useState(400)
 
   const [roomTypes, setRoomTypes] = useState({

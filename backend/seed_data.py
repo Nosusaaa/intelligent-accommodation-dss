@@ -205,8 +205,23 @@ def main() -> None:
         rev.to_sql("reviews", conn, if_exists="replace", index=False)
 
         print("Seeding Listing Tags Data...")
-        tags = pd.read_csv(DATA_DIR / "room_tags.csv")
-        tags = tags[["listing_id", "vibe_tags"]].copy()
+        # `room_tags.csv` often has large `listing_id` mangled as scientific notation when read as
+        # float, producing orphan rows that never join `listings`. `listings_intelligent_profile.csv`
+        # has the same row order and matching `total_reviews`; use its `listing_id` as source of truth.
+        tags = pd.read_csv(DATA_DIR / "room_tags.csv")[["total_reviews", "vibe_tags"]].copy()
+        profile = pd.read_csv(
+            DATA_DIR / "listings_intelligent_profile.csv",
+            usecols=["listing_id", "total_reviews"],
+        )
+        if len(tags) != len(profile) or not (
+            tags["total_reviews"].to_numpy() == profile["total_reviews"].to_numpy()
+        ).all():
+            raise ValueError(
+                "room_tags.csv and listings_intelligent_profile.csv must have the same length "
+                "and identical total_reviews column (row-aligned) so listing_id can be repaired."
+            )
+        tags["listing_id"] = profile["listing_id"].astype("int64")
+        tags = tags[["listing_id", "vibe_tags"]]
         tags = _fill_na_for_sql(tags, date_cols=frozenset())
         tags = _add_surrogate_ids(tags)
         tags.to_sql("listing_tags", conn, if_exists="replace", index=False)
