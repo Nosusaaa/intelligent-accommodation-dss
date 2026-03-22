@@ -44,4 +44,16 @@ export const api = {
     const { data } = await client.get(`/listings/${id}/reviews`);
     return data;
   },
+
+  /** @param {{ email: string, password: string }} credentials */
+  async login(credentials) {
+    const { data } = await client.post("/auth/login", credentials);
+    return data;
+  },
+
+  /** @param {{ email: string, password: string }} credentials */
+  async signup(credentials) {
+    const { data } = await client.post("/auth/signup", credentials);
+    return data;
+  },
 };

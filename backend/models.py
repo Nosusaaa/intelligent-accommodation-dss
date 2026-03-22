@@ -116,3 +116,11 @@ class ListingTag(Base):
     vibe_tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     listing: Mapped["Listing"] = relationship(back_populates="listing_tags")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)

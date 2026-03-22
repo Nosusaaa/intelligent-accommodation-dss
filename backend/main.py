@@ -15,17 +15,39 @@ Optional: bind host/port, e.g. `uvicorn main:app --reload --host 0.0.0.0 --port 
 from __future__ import annotations
 
 from collections.abc import Generator
+from contextlib import asynccontextmanager
 from datetime import date, datetime
 from typing import Annotated, Any, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+import bcrypt
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal
+from database import Base, engine
+from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal, User
 
-app = FastAPI(title="Airbnb DSS API", version="0.1.0")
+
+def _hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(plain: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="Airbnb DSS API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -117,6 +139,51 @@ def _parse_room_type_values(room_type: Optional[str]) -> list[str]:
     if not room_type or not str(room_type).strip():
         return []
     return [p.strip() for p in str(room_type).split(",") if p.strip()]
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+class AuthCredentials(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    password: str = Field(..., min_length=1, max_length=256)
+
+
+@app.post("/api/auth/signup")
+def auth_signup(
+    body: AuthCredentials,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    email = _normalize_email(body.email)
+    existing = db.scalars(select(User).where(User.email == email)).first()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered",
+        )
+    user = User(email=email, password=_hash_password(body.password))
+    db.add(user)
+    db.commit()
+    return {"message": "Registration successful"}
+
+
+@app.post("/api/auth/login")
+def auth_login(
+    body: AuthCredentials,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    email = _normalize_email(body.email)
+    user = db.scalars(select(User).where(User.email == email)).first()
+    if user is None or not _verify_password(body.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    return {
+        "message": "Login successful",
+        "email": user.email,
+    }
 
 
 @app.get("/api/listings")
