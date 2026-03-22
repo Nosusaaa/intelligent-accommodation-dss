@@ -292,24 +292,6 @@ export default function SmartSearch() {
     setSearchQuery('')
   }, [])
 
-  // Remove a tag (works for both manual and query-extracted tags)
-  const removeTag = useCallback(
-    (tag) => {
-      // If it's a query-extracted tag, clear the search
-      if (queryExtractedTags.includes(tag)) {
-        setInputValue('')
-        setSearchQuery('')
-      } else {
-        setSelectedTags((prev) => {
-          const next = new Set(prev)
-          next.delete(tag)
-          return next
-        })
-      }
-    },
-    [queryExtractedTags],
-  )
-
   const toggleTag = useCallback((tag) => {
     // Only toggle in selectedTags (not in query-extracted)
     setSelectedTags((prev) => {
@@ -390,10 +372,21 @@ export default function SmartSearch() {
         }
       } catch (err) {
         if (!cancelled) {
+          const detail = err?.response?.data?.detail
+          const fromServer =
+            typeof detail === 'string'
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((x) => x?.msg || x).filter(Boolean).join(', ')
+                : null
+          const isNetwork =
+            !err?.response &&
+            (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error')
           setError(
-            err?.response?.data?.detail ||
-              err?.message ||
-              'Failed to load listings',
+            fromServer ||
+              (isNetwork
+                ? '无法连接 API。请先在 backend 目录启动服务：python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000，并确保前端使用 npm run dev（走 Vite 代理）。'
+                : err?.message || 'Failed to load listings'),
           )
           setListings([])
         }
@@ -420,22 +413,6 @@ export default function SmartSearch() {
 
           <div className="mt-4 space-y-4">
             <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
-                Stay dates
-              </h3>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
-                />
-                <input
-                  type="date"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 pt-4">
               <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
                 Capacity
               </h3>

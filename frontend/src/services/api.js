@@ -18,8 +18,18 @@ function serializeParams(params) {
   return usp.toString();
 }
 
+/**
+ * Default `/api` uses the Vite dev/preview proxy → FastAPI on :8000 (see `vite.config.js`).
+ * Override with `VITE_API_BASE_URL` (e.g. `http://127.0.0.1:8000/api`) if you serve the UI without a proxy.
+ */
+const apiBase =
+  typeof import.meta.env.VITE_API_BASE_URL === "string" &&
+  import.meta.env.VITE_API_BASE_URL.trim() !== ""
+    ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "")
+    : "/api";
+
 const client = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: apiBase,
   paramsSerializer: { serialize: serializeParams },
 });
 

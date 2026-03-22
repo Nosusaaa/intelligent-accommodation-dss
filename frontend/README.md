@@ -1,5 +1,13 @@
 # React + Vite
 
+## Backend API
+
+`npm run dev` proxies `/api` → `http://127.0.0.1:8000` (see `vite.config.js`). Start FastAPI from `../backend` first, e.g. `python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000`.
+
+For production builds without that proxy, set `VITE_API_BASE_URL` (e.g. `http://127.0.0.1:8000/api`) when running `npm run build`.
+
+---
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
