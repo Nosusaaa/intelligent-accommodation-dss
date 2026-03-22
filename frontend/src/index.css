@@ -8,3 +8,92 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* ─── Room Slider Background ─────────────────────────────────────────── */
+
+.room-slider-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Overlay so page content stays readable */
+.room-slider-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg,
+      rgba(240, 253, 250, 0.82) 0%,
+      rgba(236, 253, 245, 0.75) 50%,
+      rgba(240, 253, 250, 0.85) 100%);
+  z-index: 2;
+}
+
+.room-slider-skew-wrapper {
+  position: absolute;
+  /* Extra bleed so skewed edges never show gaps */
+  inset: -10% -8%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 0;
+  /* The key skew — gentle X-axis tilt */
+  transform: skewY(-5deg);
+  transform-origin: center center;
+  z-index: 1;
+}
+
+.room-slider-row {
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.room-slider-track {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  will-change: transform;
+  /* No transition — JS drives this */
+}
+
+.room-slider-card {
+  flex-shrink: 0;
+  width: 260px;
+  height: 180px;
+  border-radius: 14px;
+  overflow: hidden;
+  /* Counter-skew the card so images stay upright */
+  transform: skewY(5deg);
+  transform-origin: center center;
+  box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.18);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: default;
+}
+
+/* Un-skew + slight scale on hover (pointer-events re-enabled per card via JS) */
+.room-slider-card:hover {
+  transform: skewY(5deg) scale(1.06);
+  /* Tadao Ando-style hard shadow — offset, no blur spread */
+  box-shadow:
+    6px 6px 0 0 rgba(0, 0, 0, 0.45),
+    0 12px 32px -4px rgba(0, 0, 0, 0.28);
+  z-index: 10;
+  position: relative;
+}
+
+.room-slider-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Prevent image from inheriting skew distortion */
+  transform: skewY(0deg);
+  user-select: none;
+  pointer-events: none;
+}
