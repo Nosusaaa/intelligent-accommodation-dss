@@ -12,12 +12,12 @@ import {
 import { api } from '../services/api.js'
 import {
   Cell,
-  Legend,
-  RadialBar,
-  RadialBarChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
+
 
 const GALLERY_IMAGES = [
   'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1600&q=80',
@@ -32,7 +32,14 @@ const SENTIMENT_FILLS = {
   Negative: '#fb7185',
 }
 
-const vibeTags = ['Quiet', 'Walkable', 'Waterfront']
+/** Parse pipe-separated vibe_tags string from API into an array of tag strings. */
+function parseVibeTags(raw) {
+  if (!raw) return []
+  return raw
+    .split('|')
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
 
 /** Strip HTML tags for safe text display; turn &lt;br&gt; into newlines. */
 function stripHtmlForDisplay(raw) {
@@ -153,12 +160,6 @@ export default function PropertyDetails() {
     negativeReviews,
     reviewsLoading,
   ])
-
-  const dominantSlice = useMemo(() => {
-    const rows = sentimentChart.rows
-    if (!rows?.length || !sentimentChart.hasData) return null
-    return rows.reduce((best, r) => (r.value > best.value ? r : best), rows[0])
-  }, [sentimentChart])
 
   const [activeImage, setActiveImage] = useState(0)
   const [reviewsOpen, setReviewsOpen] = useState(false)
@@ -349,82 +350,87 @@ export default function PropertyDetails() {
                 : 'Sentiment share from precomputed RoBERTa labels.'}
             </p>
 
-            <div className="relative mt-5 h-56 w-full sm:h-64">
+            <div className="relative mt-5 h-52 w-full">
               {sentimentChart.loading ? (
                 <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-600">
                   Loading reviews for sentiment chart…
                 </div>
-              ) : sentimentChart.rows?.length ? (
+              ) : sentimentChart.hasData ? (
                 <>
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="20%"
-                      outerRadius="90%"
-                      data={sentimentChart.rows}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      <RadialBar
+                    <PieChart>
+                      <Pie
+                        data={sentimentChart.rows}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="52%"
+                        outerRadius="78%"
+                        paddingAngle={3}
                         dataKey="value"
-                        cornerRadius={6}
-                        background={{ fill: '#f1f5f9' }}
+                        strokeWidth={0}
                       >
                         {sentimentChart.rows.map((entry) => (
                           <Cell key={entry.name} fill={entry.fill} />
                         ))}
-                      </RadialBar>
+                      </Pie>
                       <Tooltip
                         formatter={(value, _name, props) => [
                           `${value}%`,
                           props.payload.name,
                         ]}
                         contentStyle={{
-                          borderRadius: '12px',
+                          borderRadius: '10px',
                           border: '1px solid #f1f5f9',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
+                          fontSize: '13px',
                         }}
                       />
-                      <Legend
-                        formatter={(value) => (
-                          <span className="text-xs text-slate-600">{value}</span>
-                        )}
-                      />
-                    </RadialBarChart>
+                    </PieChart>
                   </ResponsiveContainer>
-                  <div
-                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-center"
-                    aria-live="polite"
-                  >
+                  {/* Centre label */}
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
                     <span className="text-2xl font-bold tabular-nums text-slate-800">
-                      {dominantSlice &&
-                      Number.isFinite(Number(dominantSlice.value))
-                        ? `${dominantSlice.value}%`
-                        : '—'}
+                      {sentimentChart.rows[0].value}%
                     </span>
-                    <span className="mt-0.5 max-w-[8rem] text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {dominantSlice
-                        ? `${dominantSlice.name} lead`
-                        : sentimentChart.hasData
-                          ? ''
-                          : 'No data'}
+                    <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Positive
                     </span>
                   </div>
+                  {/* Legend */}
+                  <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-4">
+                    {sentimentChart.rows.map((entry) => (
+                      <div key={entry.name} className="flex items-center gap-1.5">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: entry.fill }}
+                        />
+                        <span className="text-xs text-slate-600">
+                          {entry.name}{' '}
+                          <span className="font-semibold tabular-nums">{entry.value}%</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </>
-              ) : null}
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 text-sm text-slate-600">
+                  No reviews to analyze yet
+                </div>
+              )}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {vibeTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800 ring-1 ring-teal-100"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {listing?.vibe_tags && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {parseVibeTags(listing.vibe_tags).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800 ring-1 ring-teal-100"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <button
               type="button"
