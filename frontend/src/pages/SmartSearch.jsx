@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
+import { usePreference } from '../context/PreferenceContext.jsx'
 import { api } from '../services/api.js'
 
 /** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
@@ -202,6 +203,7 @@ function IntegerStepper({
 export default function SmartSearch() {
   const navigate = useNavigate()
   const { items, toggleCompare, isInCompare } = useCompare()
+  const { topVibeTag } = usePreference()
 
   const [listings, setListings] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -236,6 +238,8 @@ export default function SmartSearch() {
   })
 
   const [selectedTags, setSelectedTags] = useState(() => new Set())
+  // track whether we've already applied the onboarding preference tag
+  const preferenceApplied = useRef(false)
 
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 12
@@ -329,6 +333,18 @@ export default function SmartSearch() {
     const v = parseIntStrict(e.target.value, priceMax)
     syncPriceRange(priceMin, v)
   }
+
+  // Auto-select the top vibe tag from onboarding (fires once on mount when tag is available)
+  useEffect(() => {
+    if (topVibeTag && !preferenceApplied.current) {
+      preferenceApplied.current = true
+      setSelectedTags((prev) => {
+        const next = new Set(prev)
+        next.add(topVibeTag)
+        return next
+      })
+    }
+  }, [topVibeTag])
 
   useEffect(() => {
     let cancelled = false

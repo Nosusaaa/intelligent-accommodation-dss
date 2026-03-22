@@ -131,3 +131,22 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    preferences: Mapped[List["UserPreference"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class UserPreference(Base):
+    """Stores per-user vibe tag preference scores collected during onboarding."""
+
+    __tablename__ = "user_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    tag_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    preference_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    user: Mapped["User"] = relationship(back_populates="preferences")

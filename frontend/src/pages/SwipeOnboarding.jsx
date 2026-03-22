@@ -1,38 +1,184 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, X } from 'lucide-react'
+import { Heart, Loader2, X } from 'lucide-react'
+import { usePreference } from '../context/PreferenceContext.jsx'
+import { api } from '../services/api.js'
 
-const CARD_IMAGE =
+const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80'
-
-const vibeTags = ['Quiet', 'Walkable', 'Scenic view']
 
 const TOTAL_SWIPES = 8
 
+function parseVibeTags(raw) {
+  if (!raw || typeof raw !== 'string') return []
+  return raw
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 export default function SwipeOnboarding() {
   const navigate = useNavigate()
+  const { saveTopVibeTag } = usePreference()
+
+  const [rooms, setRooms] = useState([])
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+
+  // tagScores: { [tagName]: count }
+  const tagScores = useRef({})
   const [swipeCount, setSwipeCount] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // drag / swipe state
+  const [dragX, setDragX] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef(null)
+  const cardRef = useRef(null)
 
   useEffect(() => {
-    if (swipeCount === TOTAL_SWIPES) {
-      navigate('/search')
+    let cancelled = false
+    async function load() {
+      try {
+        setIsLoadingRooms(true)
+        const data = await api.getOnboardingRooms()
+        if (!cancelled) setRooms(Array.isArray(data) ? data : [])
+      } catch {
+        if (!cancelled) setLoadError('Could not load rooms — make sure the backend is running.')
+      } finally {
+        if (!cancelled) setIsLoadingRooms(false)
+      }
     }
-  }, [swipeCount, navigate])
+    load()
+    return () => { cancelled = true }
+  }, [])
 
-  const handleSwipe = () => {
-    setSwipeCount((c) => (c >= TOTAL_SWIPES ? c : c + 1))
+  const currentRoom = rooms[swipeCount] ?? null
+  const progress = Math.min(swipeCount / TOTAL_SWIPES, 1)
+
+  async function finishOnboarding() {
+    setIsSaving(true)
+    const scores = tagScores.current
+
+    // Compute top tag
+    const topTag = Object.keys(scores).length
+      ? Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]
+      : null
+
+    // Persist to backend if user_id is available
+    const userId = sessionStorage.getItem('user_id')
+    if (userId && Object.keys(scores).length > 0) {
+      try {
+        await api.savePreferences({ user_id: Number(userId), tag_scores: scores })
+      } catch {
+        // non-fatal: still navigate
+      }
+    }
+
+    saveTopVibeTag(topTag)
+    navigate('/search')
   }
 
-  const progress = Math.min(swipeCount / TOTAL_SWIPES, 1)
+  function handleLike() {
+    if (currentRoom) {
+      const tags = parseVibeTags(currentRoom.vibe_tags)
+      tags.forEach((tag) => {
+        tagScores.current[tag] = (tagScores.current[tag] ?? 0) + 1
+      })
+    }
+    advance()
+  }
+
+  function handlePass() {
+    advance()
+  }
+
+  function advance() {
+    const next = swipeCount + 1
+    if (next >= TOTAL_SWIPES || next >= rooms.length) {
+      finishOnboarding()
+    } else {
+      setSwipeCount(next)
+      setDragX(0)
+    }
+  }
+
+  // ── Pointer drag handlers ──────────────────────────────────────
+  function onPointerDown(e) {
+    dragStart.current = e.clientX
+    setIsDragging(true)
+    cardRef.current?.setPointerCapture(e.pointerId)
+  }
+
+  function onPointerMove(e) {
+    if (!isDragging || dragStart.current === null) return
+    setDragX(e.clientX - dragStart.current)
+  }
+
+  function onPointerUp() {
+    if (!isDragging) return
+    setIsDragging(false)
+    const threshold = 80
+    if (dragX > threshold) {
+      handleLike()
+    } else if (dragX < -threshold) {
+      handlePass()
+    } else {
+      setDragX(0)
+    }
+    dragStart.current = null
+  }
+
+  // derived drag visuals
+  const rotate = dragX * 0.08
+  const likeOpacity = Math.min(Math.max(dragX / 100, 0), 1)
+  const passOpacity = Math.min(Math.max(-dragX / 100, 0), 1)
+
+  if (isLoadingRooms) {
+    return (
+      <div className="flex h-screen items-center justify-center gap-3 text-slate-500">
+        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+        <span className="text-sm font-medium">Loading your taste cards…</span>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-red-600">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => navigate('/search')}
+          className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+        >
+          Skip to Search
+        </button>
+      </div>
+    )
+  }
+
+  if (isSaving) {
+    return (
+      <div className="flex h-screen items-center justify-center gap-3 text-slate-500">
+        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+        <span className="text-sm font-medium">Saving your taste profile…</span>
+      </div>
+    )
+  }
+
+  const tags = currentRoom ? parseVibeTags(currentRoom.vibe_tags) : []
+  const price = currentRoom?.price_clean != null ? Number(currentRoom.price_clean) : null
 
   return (
     <div className="flex h-screen max-h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="mx-auto w-full max-w-md shrink-0 px-1 pt-1">
+      {/* Header */}
+      <div className="mx-auto w-full max-w-md shrink-0 px-1 pt-4">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-slate-700">Train your taste</span>
           <span className="tabular-nums text-slate-600">
             <span className="font-semibold text-slate-900">{swipeCount}</span>
-            <span className="text-slate-400"> / {TOTAL_SWIPES}</span>
+            <span className="text-slate-400"> / {Math.min(TOTAL_SWIPES, rooms.length)}</span>
           </span>
         </div>
         <div
@@ -48,51 +194,89 @@ export default function SwipeOnboarding() {
             style={{ width: `${progress * 100}%` }}
           />
         </div>
+        <p className="mt-2 text-center text-xs text-slate-400">
+          Swipe right or press <span className="font-semibold text-teal-600">Like</span> on rooms you enjoy
+        </p>
       </div>
 
+      {/* Card */}
       <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-1 py-3">
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-lg shadow-slate-200/50">
+        <div
+          ref={cardRef}
+          className="relative min-h-0 flex-1 cursor-grab overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-lg shadow-slate-200/50 select-none active:cursor-grabbing"
+          style={{
+            transform: `translateX(${dragX}px) rotate(${rotate}deg)`,
+            transition: isDragging ? 'none' : 'transform 0.3s ease',
+          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
           <img
-            src={CARD_IMAGE}
+            src={currentRoom?.picture_url || PLACEHOLDER_IMAGE}
             alt="Property preview"
             className="absolute inset-0 h-full w-full object-cover"
+            draggable={false}
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
+
+          {/* LIKE overlay */}
+          <div
+            className="pointer-events-none absolute left-6 top-8 rotate-[-22deg] rounded-xl border-4 border-teal-400 px-4 py-2 text-2xl font-black uppercase text-teal-400"
+            style={{ opacity: likeOpacity }}
+          >
+            LIKE
+          </div>
+          {/* PASS overlay */}
+          <div
+            className="pointer-events-none absolute right-6 top-8 rotate-[22deg] rounded-xl border-4 border-red-400 px-4 py-2 text-2xl font-black uppercase text-red-400"
+            style={{ opacity: passOpacity }}
+          >
+            PASS
+          </div>
+
           <div className="absolute inset-x-0 bottom-0 p-4 text-white sm:p-6">
-            <div className="flex flex-wrap items-end justify-between gap-3">
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug">
+              {currentRoom?.name || 'Property'}
+            </h3>
+            {currentRoom?.neighbourhood_cleansed && (
+              <p className="mt-0.5 text-sm text-white/70">{currentRoom.neighbourhood_cleansed}</p>
+            )}
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-white/70">
-                  Price
+                <p className="text-xs font-medium uppercase tracking-wide text-white/70">Price</p>
+                <p className="text-2xl font-semibold tracking-tight">
+                  {price != null ? `$${price}` : '—'}
                 </p>
-                <p className="text-2xl font-semibold tracking-tight">$189</p>
                 <span className="text-sm text-white/80">/ night</span>
               </div>
               <div className="text-right">
-                <p className="text-xs font-medium uppercase tracking-wide text-white/70">
-                  Distance
-                </p>
-                <p className="text-lg font-semibold">2.4 km</p>
-                <span className="text-sm text-white/80">to center</span>
+                <p className="text-xs font-medium uppercase tracking-wide text-white/70">Type</p>
+                <p className="text-sm font-semibold">{currentRoom?.room_type || '—'}</p>
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
-              {vibeTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-teal-600/90 px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-teal-600/90 px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-8 pb-4 pt-2 sm:gap-10 sm:pb-6">
+      {/* Buttons */}
+      <div className="flex shrink-0 items-center justify-center gap-8 pb-6 pt-2 sm:gap-10">
         <button
           type="button"
-          onClick={handleSwipe}
+          onClick={handlePass}
           aria-label="Pass"
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 transition-all duration-300 hover:scale-110 hover:bg-red-600 hover:shadow-xl sm:h-20 sm:w-20"
         >
@@ -100,7 +284,7 @@ export default function SwipeOnboarding() {
         </button>
         <button
           type="button"
-          onClick={handleSwipe}
+          onClick={handleLike}
           aria-label="Like"
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/35 transition-all duration-300 hover:scale-110 hover:bg-teal-700 hover:shadow-xl sm:h-20 sm:w-20"
         >

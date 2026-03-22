@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Building2, Compass, Home, Radar } from 'lucide-react'
+import { Building2, Home, Radar } from 'lucide-react'
 
 const navLinkClass = ({ isActive }) =>
   [
@@ -10,7 +10,6 @@ const navLinkClass = ({ isActive }) =>
   ].join(' ')
 
 const navItems = [
-  { to: '/onboarding', label: 'Onboarding', icon: Compass },
   { to: '/search', label: 'Smart Search', icon: Building2 },
   { to: '/compare', label: 'Compare', icon: Radar },
 ]

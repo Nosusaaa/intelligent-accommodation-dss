@@ -24,7 +24,7 @@ export default function GuestLogin() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const goOnboarding = () => navigate('/onboarding')
+  const goSearch = () => navigate('/search')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -33,11 +33,20 @@ export default function GuestLogin() {
     try {
       const credentials = { email: email.trim(), password }
       if (isLoginMode) {
-        await api.login(credentials)
+        const result = await api.login(credentials)
+        // Store user_id for preference association
+        if (result?.user_id) {
+          sessionStorage.setItem('user_id', String(result.user_id))
+        }
+        navigate('/search')
       } else {
-        await api.signup(credentials)
+        const result = await api.signup(credentials)
+        // New user: store user_id and trigger onboarding
+        if (result?.user_id) {
+          sessionStorage.setItem('user_id', String(result.user_id))
+        }
+        navigate('/onboarding')
       }
-      navigate('/search')
     } catch (err) {
       setError(errorMessageFromAxios(err))
     } finally {
@@ -55,7 +64,7 @@ export default function GuestLogin() {
           Welcome
         </h1>
         <p className="mt-2 text-center text-sm text-slate-600">
-          Sign in or continue as a guest to start onboarding.
+          Sign up to personalize your experience, or continue as a guest.
         </p>
 
         {error ? (
@@ -151,7 +160,7 @@ export default function GuestLogin() {
 
         <button
           type="button"
-          onClick={goOnboarding}
+          onClick={goSearch}
           className="mt-3 w-full rounded-lg border-2 border-slate-200 bg-transparent px-4 py-3 text-sm font-semibold text-slate-700 shadow-none transition-all hover:border-teal-300 hover:bg-teal-50/50 hover:text-teal-900"
         >
           Continue as Guest

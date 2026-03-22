@@ -66,4 +66,19 @@ export const api = {
     const { data } = await client.post("/auth/signup", credentials);
     return data;
   },
+
+  /** Fetch 8 random rooms with vibe tags for onboarding swipe cards. */
+  async getOnboardingRooms() {
+    const { data } = await client.get("/onboarding/rooms");
+    return data;
+  },
+
+  /**
+   * Save onboarding vibe-tag preferences for a user.
+   * @param {{ user_id: number, tag_scores: Record<string, number> }} body
+   */
+  async savePreferences(body) {
+    const { data } = await client.post("/auth/preferences", body);
+    return data;
+  },
 };

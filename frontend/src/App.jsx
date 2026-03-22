@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminLayout from './components/layout/AdminLayout.jsx'
 import UserLayout from './components/layout/UserLayout.jsx'
 import { CompareProvider } from './context/CompareContext.jsx'
+import { PreferenceProvider } from './context/PreferenceContext.jsx'
 import GuestLogin from './pages/GuestLogin.jsx'
 import Home from './pages/Home.jsx'
 import AdminLogin from './pages/admin/AdminLogin.jsx'
@@ -17,6 +18,7 @@ import SwipeOnboarding from './pages/SwipeOnboarding.jsx'
 export default function App() {
   return (
     <BrowserRouter>
+      <PreferenceProvider>
       <CompareProvider>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -41,6 +43,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </CompareProvider>
+      </PreferenceProvider>
     </BrowserRouter>
   )
 }

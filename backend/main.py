@@ -27,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from database import Base, engine
-from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal, User
+from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal, User, UserPreference
 
 
 def _hash_password(plain: str) -> str:
@@ -179,7 +179,8 @@ def auth_signup(
     user = User(email=email, password=_hash_password(body.password))
     db.add(user)
     db.commit()
-    return {"message": "Registration successful"}
+    db.refresh(user)
+    return {"message": "Registration successful", "user_id": user.id}
 
 
 @app.post("/api/auth/login")
@@ -197,7 +198,86 @@ def auth_login(
     return {
         "message": "Login successful",
         "email": user.email,
+        "user_id": user.id,
     }
+
+
+@app.get("/api/onboarding/rooms")
+def get_onboarding_rooms(
+    db: Annotated[Session, Depends(get_db)],
+) -> list[dict[str, Any]]:
+    """Return 8 random listings that each have at least one vibe tag, for onboarding swipe cards."""
+    import random
+    from sqlalchemy import func as sqlfunc
+
+    # Pick listing IDs that have at least one ListingTag entry with non-empty vibe_tags
+    tag_subq = (
+        select(ListingTag.listing_id)
+        .where(ListingTag.vibe_tags.isnot(None))
+        .where(ListingTag.vibe_tags != "")
+        .distinct()
+        .subquery()
+    )
+    ids_result = db.scalars(select(tag_subq.c.listing_id)).all()
+    if not ids_result:
+        return []
+
+    sample_ids = random.sample(list(ids_result), min(8, len(ids_result)))
+
+    rows = db.scalars(
+        select(Listing)
+        .where(Listing.id.in_(sample_ids))
+        .options(selectinload(Listing.listing_tags))
+    ).all()
+
+    result = []
+    for listing in rows:
+        result.append({
+            "id": listing.id,
+            "name": listing.name,
+            "picture_url": listing.picture_url,
+            "price_clean": _json_value(listing.price_clean),
+            "room_type": listing.room_type,
+            "neighbourhood_cleansed": listing.neighbourhood_cleansed,
+            "vibe_tags": (
+                listing.listing_tags[0].vibe_tags
+                if listing.listing_tags
+                else ""
+            ),
+        })
+    return result
+
+
+class PreferencesBody(BaseModel):
+    user_id: int
+    tag_scores: dict[str, int]  # {tag_name: score}
+
+
+@app.post("/api/auth/preferences")
+def save_preferences(
+    body: PreferencesBody,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    """Upsert vibe-tag preference scores for a user after onboarding."""
+    user = db.get(User, body.user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Delete existing preferences and replace with new ones
+    db.query(UserPreference).filter(UserPreference.user_id == body.user_id).delete()
+    for tag_name, score in body.tag_scores.items():
+        if tag_name.strip() and score > 0:
+            pref = UserPreference(
+                user_id=body.user_id,
+                tag_name=tag_name.strip(),
+                preference_score=score,
+            )
+            db.add(pref)
+    db.commit()
+
+    # Find the top tag
+    top_tag = max(body.tag_scores.items(), key=lambda x: x[1], default=(None, 0))
+    return {"message": "Preferences saved", "top_vibe_tag": top_tag[0] if top_tag[1] > 0 else None}
 
 
 @app.get("/api/listings")
