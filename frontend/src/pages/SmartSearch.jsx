@@ -54,6 +54,9 @@ const priceBubbles = [
   { label: '$178', left: '78%', top: '72%' },
 ]
 
+/** Must match `LISTING_PRICE_FILTER_MAX` in `backend/main.py`. */
+const PRICE_FILTER_MAX = 1000
+
 function clampInt(value, min, max) {
   const n = Number.isFinite(value) ? Math.trunc(value) : min
   return Math.min(max, Math.max(min, n))
@@ -318,8 +321,8 @@ export default function SmartSearch() {
   }, [])
 
   const syncPriceRange = useCallback((nextMin, nextMax) => {
-    let a = clampInt(nextMin, 0, 2000)
-    let b = clampInt(nextMax, 0, 2000)
+    let a = clampInt(nextMin, 0, PRICE_FILTER_MAX)
+    let b = clampInt(nextMax, 0, PRICE_FILTER_MAX)
     if (a > b) [a, b] = [b, a]
     setPriceMin(a)
     setPriceMax(b)
@@ -484,7 +487,7 @@ export default function SmartSearch() {
                     inputMode="numeric"
                     step={1}
                     min={0}
-                    max={2000}
+                    max={PRICE_FILTER_MAX}
                     value={priceMin}
                     onChange={onMinInput}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm tabular-nums text-slate-900 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
@@ -500,7 +503,7 @@ export default function SmartSearch() {
                     inputMode="numeric"
                     step={1}
                     min={0}
-                    max={2000}
+                    max={PRICE_FILTER_MAX}
                     value={priceMax}
                     onChange={onMaxInput}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm tabular-nums text-slate-900 shadow-sm outline-none focus:border-teal-200 focus:ring-2 focus:ring-teal-600/20"
@@ -516,7 +519,7 @@ export default function SmartSearch() {
                   <input
                     type="range"
                     min={0}
-                    max={2000}
+                    max={PRICE_FILTER_MAX}
                     step={1}
                     value={priceMin}
                     onChange={onMinRange}
@@ -531,7 +534,7 @@ export default function SmartSearch() {
                   <input
                     type="range"
                     min={0}
-                    max={2000}
+                    max={PRICE_FILTER_MAX}
                     step={1}
                     value={priceMax}
                     onChange={onMaxRange}

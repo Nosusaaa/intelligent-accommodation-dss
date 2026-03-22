@@ -49,6 +49,9 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Airbnb DSS API", version="0.1.0", lifespan=lifespan)
 
+# Upper bound for `min_price` / `max_price` query filters (keep in sync with search UI).
+LISTING_PRICE_FILTER_MAX = 1000
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -195,8 +198,8 @@ def auth_login(
 @app.get("/api/listings")
 def list_listings(
     db: Annotated[Session, Depends(get_db)],
-    min_price: Optional[int] = Query(None, ge=0),
-    max_price: Optional[int] = Query(None, ge=0),
+    min_price: Optional[int] = Query(None, ge=0, le=LISTING_PRICE_FILTER_MAX),
+    max_price: Optional[int] = Query(None, ge=0, le=LISTING_PRICE_FILTER_MAX),
     guests: Optional[int] = Query(None, ge=1, description="Minimum accommodates"),
     bedrooms: Optional[int] = Query(None, ge=0),
     beds: Optional[int] = Query(None, ge=0),
