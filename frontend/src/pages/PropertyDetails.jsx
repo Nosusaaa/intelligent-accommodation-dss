@@ -119,7 +119,8 @@ export default function PropertyDetails() {
       ]
       return {
         rows,
-        sourceLabel: 'Precomputed VADER labels — share of loaded reviews',
+        sourceLabel:
+          'Precomputed RoBERTa sentiment (3-class) — share of loaded reviews',
         hasData: true,
         loading: false,
       }
@@ -315,7 +316,7 @@ export default function PropertyDetails() {
             <p className="mt-1 text-sm text-slate-500">
               {sentimentChart.sourceLabel
                 ? `${sentimentChart.sourceLabel}.`
-                : 'Sentiment share from precomputed VADER labels.'}
+                : 'Sentiment share from precomputed RoBERTa labels.'}
             </p>
 
             <div className="relative mt-5 h-56 w-full sm:h-64">
@@ -565,8 +566,8 @@ export default function PropertyDetails() {
                             No neutral reviews found for this property.
                           </p>
                           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-                            VADER labels a review neutral when the compound score
-                            is between −0.05 and 0.05.
+                            Neutral is assigned by the offline 3-class English
+                            model; empty review text is stored as neutral.
                           </p>
                         </div>
                       </li>

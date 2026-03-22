@@ -111,6 +111,77 @@ def _parse_calendar_available(series: pd.Series) -> pd.Series:
     return series.map(cell)
 
 
+LISTING_SENTIMENT_COLS = (
+    "average_sentiment_score",
+    "sentiment_positive_ratio",
+    "sentiment_neutral_ratio",
+    "sentiment_negative_ratio",
+    "sentiment_positive_count",
+    "sentiment_neutral_count",
+    "sentiment_negative_count",
+)
+
+
+def _apply_listing_sentiment_from_reviews(
+    df_listings: pd.DataFrame, rev: pd.DataFrame
+) -> pd.DataFrame:
+    """For each listing that has rows in ``rev``, recompute sentiment fields from ``sentiment_label``.
+
+    Keeps profile CSV values for listings with no matching reviews. ``average_sentiment_score`` is
+    the mean of 1.0 (positive), 0.5 (neutral), 0.0 (negative) so it stays in 0–1 for the UI.
+    """
+    if not {"listing_id", "sentiment_label"}.issubset(rev.columns):
+        return df_listings
+
+    rw = rev[["listing_id", "sentiment_label"]].copy()
+    rw["listing_id"] = pd.to_numeric(rw["listing_id"], errors="coerce")
+    rw = rw.dropna(subset=["listing_id"])
+    if rw.empty:
+        return df_listings
+
+    rw["listing_id"] = rw["listing_id"].astype("int64")
+    lab = rw["sentiment_label"]
+    lab = lab.fillna("").astype(str).str.strip()
+    rw["is_pos"] = lab.eq("Positive")
+    rw["is_neg"] = lab.eq("Negative")
+    rw["is_neu"] = ~(rw["is_pos"] | rw["is_neg"])
+
+    agg = rw.groupby("listing_id", as_index=False).agg(
+        n=("is_pos", "count"),
+        sentiment_positive_count=("is_pos", "sum"),
+        sentiment_negative_count=("is_neg", "sum"),
+        sentiment_neutral_count=("is_neu", "sum"),
+    )
+    agg["sentiment_positive_ratio"] = agg["sentiment_positive_count"] / agg["n"]
+    agg["sentiment_neutral_ratio"] = agg["sentiment_neutral_count"] / agg["n"]
+    agg["sentiment_negative_ratio"] = agg["sentiment_negative_count"] / agg["n"]
+    agg["average_sentiment_score"] = (
+        agg["sentiment_positive_count"] * 1.0 + agg["sentiment_neutral_count"] * 0.5
+    ) / agg["n"]
+    agg = agg.drop(columns=["n"]).rename(columns={"listing_id": "id"})
+
+    out = df_listings.copy()
+    merged = out.merge(agg, on="id", how="left", suffixes=("", "_r"))
+    for c in LISTING_SENTIMENT_COLS:
+        out[c] = merged[f"{c}_r"].combine_first(out[c])
+
+    for c in (
+        "sentiment_positive_count",
+        "sentiment_neutral_count",
+        "sentiment_negative_count",
+    ):
+        out[c] = pd.to_numeric(out[c], errors="coerce").fillna(0).round().astype("int64")
+    for c in (
+        "average_sentiment_score",
+        "sentiment_positive_ratio",
+        "sentiment_neutral_ratio",
+        "sentiment_negative_ratio",
+    ):
+        out[c] = pd.to_numeric(out[c], errors="coerce")
+
+    return out
+
+
 def main() -> None:
     print("Checking CSV data files...")
     _ensure_all_required_csvs()
@@ -168,6 +239,11 @@ def main() -> None:
             )
         df_listings = _fill_na_for_sql(df_listings, date_cols=frozenset())
 
+        print("Loading reviews for listing sentiment alignment…")
+        rev = pd.read_csv(DATA_DIR / "reviews_tags.csv")
+        df_listings = _apply_listing_sentiment_from_reviews(df_listings, rev)
+        print("Listing sentiment counts/ratios updated from reviews where available.")
+
         df_listings.to_sql("listings", conn, if_exists="replace", index=False)
 
         print("Seeding Calendar Data...")
@@ -188,7 +264,6 @@ def main() -> None:
         mm.to_sql("monthly_metrics", conn, if_exists="replace", index=False)
 
         print("Seeding Reviews Data...")
-        rev = pd.read_csv(DATA_DIR / "reviews_tags.csv")
         rev = rev.rename(columns={"review_id": "id"})
         rev = rev[
             [
