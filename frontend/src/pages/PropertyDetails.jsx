@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BedDouble,
+  DollarSign,
   MapPin,
   MessageCircle,
   Sparkles,
@@ -10,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { api } from '../services/api.js'
+import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import {
   Cell,
   Pie,
@@ -311,6 +313,12 @@ export default function PropertyDetails() {
                 {listingLoading
                   ? 'Loading…'
                   : listing?.neighbourhood_cleansed || 'Rochester'}
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-700">
+                <DollarSign className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
+                {listingLoading
+                  ? 'Loading…'
+                  : `${formatListingPriceDisplay(listing?.price_clean)} / night`}
               </li>
               <li className="flex items-center gap-2 text-sm text-slate-700">
                 <BedDouble className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />

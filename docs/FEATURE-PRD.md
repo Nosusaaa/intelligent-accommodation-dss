@@ -3,7 +3,7 @@
 
 | 项目   | 说明                                 |
 | ---- | ---------------------------------- |
-| 文档版本 | 0.2.0                              |
+| 文档版本 | 0.2.1                              |
 | 最后更新 | 2026-03-22                         |
 | 代码范围 | 仓库内 `frontend/`、`backend/`、`Data/` |
 
@@ -80,6 +80,26 @@
 ### 3.3 跨页状态：对比列表
 
 `[CompareContext](../frontend/src/context/CompareContext.jsx)` 提供 `add` / `remove` / `toggle` / `isInCompare` / `setCompareItems`，在搜索页卡片上可加入对比，托盘非空时可进入 `/compare`。
+
+### 3.4 房源「展示价」规则（`price_clean`，方案 C — 仅前端）
+
+**数据来源**：后端 `GET /api/listings` / `GET /api/listings/{id}` 返回的 **`price_clean`**（来自 SQLite `listings` 表；种子阶段缺失值可能被写成 `0`）。
+
+**统一逻辑**（实现于 `[frontend/src/utils/listingPriceDisplay.js](../frontend/src/utils/listingPriceDisplay.js)`）：
+
+| 条件 | UI 展示 |
+| --- | --- |
+| `price_clean` 为 `null` / `undefined`，或非有限数字，或 **`≤ 0`**（含 **`0`**） | 视为**无有效 nightly 价**，展示 **`询价`**（不按 `$0` 展示） |
+| 为正有限数字 | 展示 **`$` + 四舍五入整数**（如 `$129`） |
+
+**使用页面（与列表一致）**：
+
+- **搜索列表** `[SmartSearch.jsx](../frontend/src/pages/SmartSearch.jsx)`：卡片右下角价签。
+- **详情** `[PropertyDetails.jsx](../frontend/src/pages/PropertyDetails.jsx)`：Property details 区块增加 **「询价 / $N / night」** 一行，与列表同一套 `formatListingPriceDisplay`。
+- **引导滑动** `[SwipeOnboarding.jsx](../frontend/src/pages/SwipeOnboarding.jsx)`：大卡片价格区；仅在有有效价时显示 **「/ night」** 后缀。
+- **预测页** `[ForecastDashboard.jsx](../frontend/src/pages/ForecastDashboard.jsx)`：用 `getListingPriceNightly` 参与图表与建议逻辑；**无有效 `price_clean` 时**占位曲线基准为 **100 USD**（仅用于无月度数据时的示意，**不**在 UI 上显示为房源标价）。
+
+**说明**：本规则**不修改**数据库与 API 字段；若需从根上消除 `0`，需在 ETL/种子层保留 `NULL` 或补全价格（见产品讨论，非本 PRD 范围）。
 
 ---
 
@@ -166,5 +186,6 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | ---------- | ------------------------ |
 | 2026-03-22 | 首版：基于当前前后端代码整理功能列表与 API。 |
 | 2026-03-22 | Admin 模块与后端完全对接：新增 AdminUser、ScenicSpot、StrategyConfig、SyncLog 模型及相关 CRUD API；前端各 Admin 页面改为调用后端接口。 |
+| 2026-03-22 | **v0.2.1**：新增 §3.4 — 房源 `price_clean` 前端展示统一规则（`null`/无效/≤0 显示「询价」，非 `$0`）；实现 `listingPriceDisplay.js`；搜索列表、详情、引导、预测页对齐；预测页无有效价时占位曲线基准 100。 |
 
 

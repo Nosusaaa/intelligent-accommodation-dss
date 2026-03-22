@@ -4,6 +4,7 @@ import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
 import { usePreference } from '../context/PreferenceContext.jsx'
 import { api } from '../services/api.js'
+import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 
 /** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
 const SUGGESTED_TAGS = [
@@ -722,10 +723,6 @@ export default function SmartSearch() {
               !error &&
               listings.map((listing) => {
                 const selected = isInCompare(listing.id)
-                const price =
-                  listing.price_clean != null && !Number.isNaN(Number(listing.price_clean))
-                    ? Number(listing.price_clean)
-                    : null
                 const vibePills = parseVibeTags(listing.vibe_tags)
                 return (
                   <article
@@ -767,7 +764,7 @@ export default function SmartSearch() {
                         Sentiment {formatSentimentScore(listing.average_sentiment_score)}
                       </p>
                       <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
-                        {price != null ? `$${price}` : '—'}
+                        {formatListingPriceDisplay(listing.price_clean)}
                       </span>
                     </div>
                     <button

@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Heart, Loader2, X } from 'lucide-react'
 import { usePreference } from '../context/PreferenceContext.jsx'
 import { api } from '../services/api.js'
+import {
+  formatListingPriceDisplay,
+  getListingPriceNightly,
+} from '../utils/listingPriceDisplay.js'
 
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80'
@@ -168,7 +172,9 @@ export default function SwipeOnboarding() {
   }
 
   const tags = currentRoom ? parseVibeTags(currentRoom.vibe_tags) : []
-  const price = currentRoom?.price_clean != null ? Number(currentRoom.price_clean) : null
+  const nightlyPrice = currentRoom
+    ? getListingPriceNightly(currentRoom.price_clean)
+    : null
 
   return (
     <div className="flex h-screen max-h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -247,9 +253,11 @@ export default function SwipeOnboarding() {
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-white/70">Price</p>
                 <p className="text-2xl font-semibold tracking-tight">
-                  {price != null ? `$${price}` : '—'}
+                  {formatListingPriceDisplay(currentRoom?.price_clean)}
                 </p>
-                <span className="text-sm text-white/80">/ night</span>
+                {nightlyPrice != null ? (
+                  <span className="text-sm text-white/80">/ night</span>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="text-xs font-medium uppercase tracking-wide text-white/70">Type</p>
