@@ -30,6 +30,13 @@ class Listing(Base):
     bedrooms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     beds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     bathrooms_num: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bathrooms_text: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+
+    neighbourhood_cleansed: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    neighborhood_overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    review_scores_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    number_of_reviews: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     has_wifi: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     has_parking: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)

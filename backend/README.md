@@ -36,3 +36,9 @@ python3 -m uvicorn main:app --reload
 ```
 
 若提示没有 `python3`，需先安装 [Python](https://www.python.org/downloads/) 或通过 Homebrew：`brew install python`.
+
+## 重启后端
+```bash
+python seed_data.py
+uvicorn main:app --reload
+```

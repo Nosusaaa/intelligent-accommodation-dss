@@ -49,9 +49,17 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Airbnb DSS API", version="0.1.0", lifespan=lifespan)
 
+# Upper bound for `min_price` / `max_price` query filters (keep in sync with search UI).
+LISTING_PRICE_FILTER_MAX = 1000
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,6 +97,12 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "bedrooms": listing.bedrooms,
         "beds": listing.beds,
         "bathrooms_num": _json_value(listing.bathrooms_num),
+        "bathrooms_text": listing.bathrooms_text,
+        "bathrooms": _json_value(listing.bathrooms_num),
+        "neighbourhood_cleansed": listing.neighbourhood_cleansed,
+        "neighborhood_overview": listing.neighborhood_overview,
+        "review_scores_rating": _json_value(listing.review_scores_rating),
+        "number_of_reviews": listing.number_of_reviews,
         "has_wifi": listing.has_wifi,
         "has_parking": listing.has_parking,
         "has_kitchen": listing.has_kitchen,
@@ -189,8 +203,8 @@ def auth_login(
 @app.get("/api/listings")
 def list_listings(
     db: Annotated[Session, Depends(get_db)],
-    min_price: Optional[int] = Query(None, ge=0),
-    max_price: Optional[int] = Query(None, ge=0),
+    min_price: Optional[int] = Query(None, ge=0, le=LISTING_PRICE_FILTER_MAX),
+    max_price: Optional[int] = Query(None, ge=0, le=LISTING_PRICE_FILTER_MAX),
     guests: Optional[int] = Query(None, ge=1, description="Minimum accommodates"),
     bedrooms: Optional[int] = Query(None, ge=0),
     beds: Optional[int] = Query(None, ge=0),
