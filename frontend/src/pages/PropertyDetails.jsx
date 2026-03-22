@@ -34,6 +34,22 @@ const SENTIMENT_FILLS = {
 
 const vibeTags = ['Quiet', 'Walkable', 'Waterfront']
 
+/** Strip HTML tags for safe text display; turn &lt;br&gt; into newlines. */
+function stripHtmlForDisplay(raw) {
+  if (raw == null) return ''
+  let s = String(raw)
+  s = s.replace(/<br\s*\/?>/gi, '\n')
+  s = s.replace(/<[^>]+>/g, '')
+  s = s
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+  return s.trim()
+}
+
 function formatReviewDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -281,24 +297,38 @@ export default function PropertyDetails() {
             <h2 className="text-lg font-semibold text-slate-900">
               Property details
             </h2>
-            <p className="mt-3 text-slate-600 leading-relaxed">
-              Waterfront loft with floor-to-ceiling glass, smart climate, and
-              fast access to transit. Recent guests highlight sunrise views and
-              low noise — ideal for focused remote work weeks or weekend city
-              escapes.
+            <p className="mt-3 whitespace-pre-line text-slate-600 leading-relaxed">
+              {listingLoading
+                ? 'Loading…'
+                : stripHtmlForDisplay(listing?.description) ||
+                  'No description provided by the host.'}
             </p>
             <ul className="mt-6 grid gap-3 sm:grid-cols-2">
               <li className="flex items-center gap-2 text-sm text-slate-700">
                 <MapPin className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
-                Harbor District — 6 min walk to metro
+                {listingLoading
+                  ? 'Loading…'
+                  : listing?.neighbourhood_cleansed || 'Rochester'}
               </li>
               <li className="flex items-center gap-2 text-sm text-slate-700">
                 <BedDouble className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
-                2 bedrooms · 2 baths
+                {listingLoading
+                  ? 'Loading…'
+                  : `${listing?.bedrooms ?? 0} bedrooms · ${listing?.bathrooms_num ?? listing?.bathrooms ?? 0} baths`}
               </li>
               <li className="flex items-center gap-2 text-sm text-slate-700">
                 <Star className="h-4 w-4 shrink-0 text-amber-500" aria-hidden />
-                4.9 guest rating (128 reviews)
+                {listingLoading
+                  ? 'Loading…'
+                  : (() => {
+                      const rating = listing?.review_scores_rating
+                      const n = listing?.number_of_reviews ?? 0
+                      const label =
+                        rating != null && Number.isFinite(Number(rating))
+                          ? `${Number(rating).toFixed(2)}`
+                          : 'New'
+                      return `${label} guest rating (${n} reviews)`
+                    })()}
               </li>
             </ul>
           </section>

@@ -68,8 +68,15 @@ def _ensure_all_required_csvs() -> None:
         _ensure_csv(csv_name)
 
 
-def _fill_na_for_sql(df: pd.DataFrame, date_cols: frozenset[str]) -> pd.DataFrame:
-    """Fill NaN for SQLite: text -> '', numerics -> 0, bools -> False; dates handled separately."""
+def _fill_na_for_sql(
+    df: pd.DataFrame,
+    date_cols: frozenset[str],
+    preserve_null_cols: frozenset[str] = frozenset(),
+) -> pd.DataFrame:
+    """Fill NaN for SQLite: text -> '', numerics -> 0, bools -> False; dates handled separately.
+
+    Columns in ``preserve_null_cols`` keep NaN (stored as SQL NULL) instead of 0.0 for floats.
+    """
     out = df.copy()
     for col in out.columns:
         if col in date_cols:
@@ -80,7 +87,10 @@ def _fill_na_for_sql(df: pd.DataFrame, date_cols: frozenset[str]) -> pd.DataFram
         elif pd.api.types.is_integer_dtype(s) or str(s.dtype).startswith("Int"):
             out[col] = s.fillna(0).astype("int64")
         elif pd.api.types.is_float_dtype(s):
-            out[col] = s.fillna(0.0).astype("float64")
+            if col in preserve_null_cols:
+                out[col] = pd.to_numeric(s, errors="coerce")
+            else:
+                out[col] = s.fillna(0.0).astype("float64")
         else:
             out[col] = s.fillna("").astype(str)
     for col in date_cols & set(out.columns):
@@ -138,6 +148,11 @@ def main() -> None:
             "bedrooms",
             "beds",
             "bathrooms_num",
+            "bathrooms_text",
+            "neighbourhood_cleansed",
+            "neighborhood_overview",
+            "review_scores_rating",
+            "number_of_reviews",
             "has_wifi",
             "has_parking",
             "has_kitchen",
@@ -162,11 +177,19 @@ def main() -> None:
             "sentiment_positive_count",
             "sentiment_neutral_count",
             "sentiment_negative_count",
+            "number_of_reviews",
         ):
             df_listings[c] = (
                 pd.to_numeric(df_listings[c], errors="coerce").fillna(0).round().astype("int64")
             )
-        df_listings = _fill_na_for_sql(df_listings, date_cols=frozenset())
+        df_listings["review_scores_rating"] = pd.to_numeric(
+            df_listings["review_scores_rating"], errors="coerce"
+        )
+        df_listings = _fill_na_for_sql(
+            df_listings,
+            date_cols=frozenset(),
+            preserve_null_cols=frozenset({"review_scores_rating"}),
+        )
 
         df_listings.to_sql("listings", conn, if_exists="replace", index=False)
 
