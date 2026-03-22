@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GitCompare, MapPin, Minus, Plus, Search } from 'lucide-react'
+import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
 import { api } from '../services/api.js'
 
@@ -12,6 +12,14 @@ const SUGGESTED_TAGS = [
   'Key Amenities',
   'Outdoor & Views',
   'Value & Practicality',
+  'Quiet',
+  'Walkable',
+  'Waterfront',
+  'Urban',
+  'Cozy',
+  'Modern',
+  'Historic',
+  'Beachfront',
 ]
 
 const ROOM_TYPE_KEYS = [
@@ -69,6 +77,37 @@ function formatSentimentScore(value) {
   return `${pct.toFixed(2)}%`
 }
 
+/** Extract tag-like words from search query and match against known tags. */
+function extractTagsFromQuery(query, knownTags) {
+  if (!query || typeof query !== 'string') return []
+  const normalized = query.toLowerCase().trim()
+  if (!normalized) return []
+
+  const matchedTags = []
+  const queryWords = normalized.split(/\s+/).filter(Boolean)
+
+  for (const tag of knownTags) {
+    const tagLower = tag.toLowerCase()
+    // Exact or partial match in query words
+    const found = queryWords.some((word) => tagLower.includes(word) || word.includes(tagLower))
+    if (found) {
+      matchedTags.push(tag)
+    }
+  }
+
+  // Also check if the entire query matches a tag
+  if (!matchedTags.length) {
+    const exactMatch = knownTags.find(
+      (tag) => tag.toLowerCase() === normalized || normalized.includes(tag.toLowerCase()),
+    )
+    if (exactMatch) {
+      matchedTags.push(exactMatch)
+    }
+  }
+
+  return matchedTags
+}
+
 /** Maps UI filter state → FastAPI `/api/listings` query params. */
 function buildListingParams({
   guests,
@@ -79,6 +118,9 @@ function buildListingParams({
   priceMax,
   roomTypes,
   amenities,
+  selectedTags,
+  page,
+  limit,
 }) {
   const params = {
     min_price: priceMin,
@@ -87,6 +129,8 @@ function buildListingParams({
     bedrooms,
     beds,
     bathrooms,
+    skip: (page - 1) * limit,
+    limit,
   }
   const roomLabels = ROOM_TYPE_KEYS.filter(({ id }) => roomTypes[id]).map(
     ({ label }) => label,
@@ -100,6 +144,9 @@ function buildListingParams({
   if (amenities.parking) params.has_parking = true
   if (amenities.tv) params.has_tv = true
   if (amenities.balcony) params.has_balcony = true
+  if (selectedTags && selectedTags.size > 0) {
+    params.vibe_tags = Array.from(selectedTags)
+  }
   return params
 }
 
@@ -149,8 +196,12 @@ export default function SmartSearch() {
   const { items, toggleCompare, isInCompare } = useCompare()
 
   const [listings, setListings] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [inputValue, setInputValue] = useState('')
 
   const [guests, setGuests] = useState(2)
   const [bedrooms, setBedrooms] = useState(1)
@@ -178,7 +229,53 @@ export default function SmartSearch() {
 
   const [selectedTags, setSelectedTags] = useState(() => new Set())
 
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 12
+
+  // Derive tags from search query
+  const queryExtractedTags = useMemo(
+    () => extractTagsFromQuery(searchQuery, SUGGESTED_TAGS),
+    [searchQuery],
+  )
+
+  // Merge manually selected tags + query-extracted tags
+  const allActiveTags = useMemo(() => {
+    return new Set([...selectedTags, ...queryExtractedTags])
+  }, [selectedTags, queryExtractedTags])
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value
+    setInputValue(value)
+    setSearchQuery(value)
+  }, [])
+
+  // Clear search
+  const clearSearch = useCallback(() => {
+    setInputValue('')
+    setSearchQuery('')
+  }, [])
+
+  // Remove a tag (works for both manual and query-extracted tags)
+  const removeTag = useCallback(
+    (tag) => {
+      // If it's a query-extracted tag, clear the search
+      if (queryExtractedTags.includes(tag)) {
+        setInputValue('')
+        setSearchQuery('')
+      } else {
+        setSelectedTags((prev) => {
+          const next = new Set(prev)
+          next.delete(tag)
+          return next
+        })
+      }
+    },
+    [queryExtractedTags],
+  )
+
   const toggleTag = useCallback((tag) => {
+    // Only toggle in selectedTags (not in query-extracted)
     setSelectedTags((prev) => {
       const next = new Set(prev)
       if (next.has(tag)) next.delete(tag)
@@ -231,10 +328,25 @@ export default function SmartSearch() {
           priceMax,
           roomTypes,
           amenities,
+          selectedTags: allActiveTags,
+          page,
+          limit: PAGE_SIZE,
         })
         const data = await api.getListings(query)
         if (!cancelled) {
-          setListings(Array.isArray(data) ? data : [])
+          // Backend returns { listings: [...], total, skip, limit }
+          const arr = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.listings)
+              ? data.listings
+              : []
+          const total = Number.isFinite(data?.total) ? data.total : arr.length
+          setListings(arr)
+          setTotalCount(total)
+          // Reset to page 1 when filters change
+          if (page !== 1) {
+            setPage(1)
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -265,6 +377,8 @@ export default function SmartSearch() {
     priceMax,
     roomTypes,
     amenities,
+    allActiveTags,
+    page,
   ])
 
   return (
@@ -472,17 +586,48 @@ export default function SmartSearch() {
               id="command-search"
               type="search"
               placeholder="Search neighborhoods, vibes, transit…"
-              className="w-full rounded-2xl border border-slate-100 bg-white py-3.5 pl-12 pr-4 text-sm text-slate-900 shadow-sm outline-none ring-teal-600/20 transition-all placeholder:text-slate-400 focus:border-teal-200 focus:ring-4"
+              value={inputValue}
+              onChange={handleSearchChange}
+              className="w-full rounded-2xl border border-slate-100 bg-white py-3.5 pl-12 pr-10 text-sm text-slate-900 shadow-sm outline-none ring-teal-600/20 transition-all placeholder:text-slate-400 focus:border-teal-200 focus:ring-4"
             />
+            {inputValue && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            )}
           </div>
+
+          {/* Active tags from search query */}
+          {queryExtractedTags.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Tag className="h-3.5 w-3.5 shrink-0 text-teal-600" aria-hidden />
+              <span className="text-xs text-slate-500">Matched tags:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {queryExtractedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800"
+                  >
+                    <Tag className="h-3 w-3" aria-hidden />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-3">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
               Suggested tags
             </p>
-            <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pt-0.5">
+            <div className="-mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1 pt-0.5">
               {SUGGESTED_TAGS.map((tag) => {
-                const active = selectedTags.has(tag)
+                const isSelected = allActiveTags.has(tag)
                 return (
                   <button
                     key={tag}
@@ -490,7 +635,7 @@ export default function SmartSearch() {
                     onClick={() => toggleTag(tag)}
                     className={[
                       'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all',
-                      active
+                      isSelected
                         ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
                         : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-slate-50',
                     ].join(' ')}
@@ -533,7 +678,7 @@ export default function SmartSearch() {
               Matching stays
             </h2>
             <span className="text-sm text-slate-500">
-              {isLoading ? '…' : `${listings.length} results`}
+              {isLoading ? '…' : `${totalCount} results`}
             </span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -634,6 +779,65 @@ export default function SmartSearch() {
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {!isLoading && totalCount > PAGE_SIZE && (
+            <div className="mt-6 flex items-center justify-between">
+              <p className="text-sm text-slate-500">
+                Showing {Math.min((page - 1) * PAGE_SIZE + 1, totalCount)}–{Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <Minus className="h-4 w-4" aria-hidden />
+                </button>
+                {Array.from({ length: Math.min(5, Math.ceil(totalCount / PAGE_SIZE)) }, (_, i) => {
+                  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+                  let pageNum
+                  if (totalPages <= 5) {
+                    pageNum = i + 1
+                  } else if (page <= 3) {
+                    pageNum = i + 1
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i
+                  } else {
+                    pageNum = page - 2 + i
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setPage(pageNum)}
+                      className={[
+                        'flex h-9 min-w-[2.25rem] items-center justify-center rounded-xl border px-3 text-sm font-medium shadow-sm transition-colors',
+                        page === pageNum
+                          ? 'border-teal-300 bg-teal-600 text-white shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-800',
+                      ].join(' ')}
+                      aria-label={`Page ${pageNum}`}
+                      aria-current={page === pageNum ? 'page' : undefined}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(Math.ceil(totalCount / PAGE_SIZE), p + 1))}
+                  disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

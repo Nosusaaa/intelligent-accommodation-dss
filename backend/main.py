@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from models import Listing, MonthlyMetric, Review, SessionLocal
+from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal
 
 app = FastAPI(title="Airbnb DSS API", version="0.1.0")
 
@@ -142,8 +142,18 @@ def list_listings(
     has_parking: Optional[bool] = Query(None),
     has_tv: Optional[bool] = Query(None),
     has_balcony: Optional[bool] = Query(None),
-) -> list[dict[str, Any]]:
-    stmt = select(Listing).options(selectinload(Listing.listing_tags))
+    vibe_tags: Optional[List[str]] = Query(
+        None,
+        description="Repeat query param for vibe tag filtering (case-insensitive partial match on pipe-separated tags)",
+    ),
+    skip: Optional[int] = Query(0, ge=0, description="Number of records to skip for pagination"),
+    limit: Optional[int] = Query(20, ge=1, le=100, description="Max records to return per page"),
+) -> dict[str, Any]:
+    # Only load listing_tags relationship when filtering by vibe_tags
+    if vibe_tags:
+        stmt = select(Listing).options(selectinload(Listing.listing_tags))
+    else:
+        stmt = select(Listing).options(selectinload(Listing.listing_tags))
 
     if min_price is not None:
         stmt = stmt.where(Listing.price_clean >= float(min_price))
@@ -175,9 +185,34 @@ def list_listings(
     if has_balcony is True:
         stmt = stmt.where(Listing.has_balcony.is_(True))
 
+    # Filter by vibe_tags (case-insensitive partial match on pipe-separated tags)
+    if vibe_tags:
+        tag_filters = []
+        for tag in vibe_tags:
+            tag_lower = tag.lower().strip()
+            if tag_lower:
+                tag_filters.append(
+                    ListingTag.vibe_tags.ilike(f"%{tag_lower}%")
+                )
+        if tag_filters:
+            stmt = stmt.join(ListingTag, Listing.id == ListingTag.listing_id)
+            from sqlalchemy import or_
+            stmt = stmt.where(or_(*tag_filters)).distinct()
+
+    # Count total before pagination
+    from sqlalchemy import func
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total_count = db.scalar(count_stmt) or 0
+
     stmt = stmt.order_by(Listing.id)
+    stmt = stmt.offset(skip).limit(limit)
     rows = db.scalars(stmt).all()
-    return [_listing_full(x) for x in rows]
+    return {
+        "listings": [_listing_full(x) for x in rows],
+        "total": total_count,
+        "skip": skip,
+        "limit": limit,
+    }
 
 
 @app.get("/api/listings/{listing_id}")
