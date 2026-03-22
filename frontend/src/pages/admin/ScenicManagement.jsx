@@ -1,26 +1,6 @@
 import { useEffect, useId, useState } from 'react'
-import { Pencil, Plus, Search, Trash2, X } from 'lucide-react'
-
-const initialRows = [
-  {
-    id: 'SP-001',
-    name: 'Harbor Promenade',
-    radiusKm: 12,
-    description: 'Waterfront walking corridor.',
-  },
-  {
-    id: 'SP-002',
-    name: 'Riverside Greenway',
-    radiusKm: 18,
-    description: 'Tree-lined path along the river.',
-  },
-  {
-    id: 'SP-003',
-    name: 'Old Town Lookout',
-    radiusKm: 5,
-    description: 'Elevated viewpoint over historic blocks.',
-  },
-]
+import { Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { api } from '../../services/api'
 
 function thumbnailSrc(seed) {
   return `https://picsum.photos/seed/${encodeURIComponent(seed)}/96/64`
@@ -28,54 +8,95 @@ function thumbnailSrc(seed) {
 
 export default function ScenicManagement() {
   const [query, setQuery] = useState('')
-  const [rows, setRows] = useState(initialRows)
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formRadius, setFormRadius] = useState(8)
+  const [saving, setSaving] = useState(false)
   const titleId = useId()
   const descId = useId()
+
+  // Load scenic spots from backend
+  useEffect(() => {
+    api.getScenics()
+      .then(setRows)
+      .catch((err) => console.error('Failed to load scenic spots:', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => {
     if (!drawerOpen) return
     const onKey = (e) => {
-      if (e.key === 'Escape') setDrawerOpen(false)
+      if (e.key === 'Escape') {
+        setDrawerOpen(false)
+        setEditingId(null)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [drawerOpen])
 
   const filtered = rows.filter((r) =>
-    r.name.toLowerCase().includes(query.trim().toLowerCase()),
+    r.name?.toLowerCase().includes(query.trim().toLowerCase()),
   )
 
-  const handleAdd = (e) => {
-    e.preventDefault()
-    setRows((prev) => {
-      const nextNum =
-        prev.reduce((max, r) => {
-          const m = /^SP-(\d+)$/.exec(r.id)
-          return m ? Math.max(max, Number(m[1])) : max
-        }, 0) + 1
-      const id = `SP-${String(nextNum).padStart(3, '0')}`
-      return [
-        ...prev,
-        {
-          id,
-          name: formName.trim() || 'Untitled scenic spot',
-          radiusKm: formRadius,
-          description: formDesc.trim(),
-        },
-      ]
-    })
+  const openAddDrawer = () => {
+    setEditingId(null)
     setFormName('')
     setFormDesc('')
     setFormRadius(8)
-    setDrawerOpen(false)
+    setDrawerOpen(true)
   }
 
-  const remove = (id) => {
-    setRows((prev) => prev.filter((r) => r.id !== id))
+  const openEditDrawer = (scenic) => {
+    setEditingId(scenic.id)
+    setFormName(scenic.name || '')
+    setFormDesc(scenic.description || '')
+    setFormRadius(scenic.radius_km || 8)
+    setDrawerOpen(true)
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      if (editingId) {
+        const updated = await api.updateScenic(editingId, {
+          name: formName.trim() || 'Untitled scenic spot',
+          description: formDesc.trim(),
+          radius_km: formRadius,
+        })
+        setRows((prev) => prev.map((r) => r.id === editingId ? { ...r, ...updated } : r))
+      } else {
+        const created = await api.createScenic({
+          name: formName.trim() || 'Untitled scenic spot',
+          description: formDesc.trim(),
+          radius_km: formRadius,
+        })
+        setRows((prev) => [...prev, created])
+      }
+      setDrawerOpen(false)
+      setEditingId(null)
+    } catch (err) {
+      console.error('Failed to save scenic spot:', err)
+      alert('Failed to save. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async (id) => {
+    if (!confirm('Are you sure you want to delete this scenic spot?')) return
+    try {
+      await api.deleteScenic(id)
+      setRows((prev) => prev.filter((r) => r.id !== id))
+    } catch (err) {
+      console.error('Failed to delete scenic spot:', err)
+      alert('Failed to delete. Please try again.')
+    }
   }
 
   return (
@@ -105,7 +126,7 @@ export default function ScenicManagement() {
         </div>
         <button
           type="button"
-          onClick={() => setDrawerOpen(true)}
+          onClick={openAddDrawer}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-teal-700 hover:shadow-md"
         >
           <Plus className="h-4 w-4" aria-hidden />
@@ -114,67 +135,73 @@ export default function ScenicManagement() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="px-5 py-3">ID</th>
-              <th className="px-5 py-3">Thumbnail</th>
-              <th className="px-5 py-3">Name</th>
-              <th className="px-5 py-3">Radius Rule (km)</th>
-              <th className="px-5 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row, idx) => (
-              <tr
-                key={row.id}
-                className={idx % 2 === 1 ? 'bg-slate-50/80' : 'bg-white'}
-              >
-                <td className="border-t border-slate-100 px-5 py-4 font-mono text-xs text-slate-600">
-                  {row.id}
-                </td>
-                <td className="border-t border-slate-100 px-5 py-4">
-                  <img
-                    src={thumbnailSrc(row.id)}
-                    alt=""
-                    className="h-12 w-16 rounded-lg border border-slate-200 object-cover"
-                  />
-                </td>
-                <td className="border-t border-slate-100 px-5 py-4 font-medium text-slate-900">
-                  {row.name}
-                </td>
-                <td className="border-t border-slate-100 px-5 py-4 font-mono tabular-nums text-slate-700">
-                  {Number.isInteger(row.radiusKm)
-                    ? row.radiusKm
-                    : row.radiusKm.toFixed(1)}
-                </td>
-                <td className="border-t border-slate-100 px-5 py-4 text-right">
-                  <div className="flex justify-end gap-1">
-                    <button
-                      type="button"
-                      title="Edit"
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-teal-700"
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      title="Delete"
-                      onClick={() => remove(row.id)}
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+          </div>
+        ) : filtered.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-500">
             No scenic spots match your search.
           </p>
+        ) : (
+          <table className="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-5 py-3">ID</th>
+                <th className="px-5 py-3">Thumbnail</th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Radius Rule (km)</th>
+                <th className="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row, idx) => (
+                <tr
+                  key={row.id}
+                  className={idx % 2 === 1 ? 'bg-slate-50/80' : 'bg-white'}
+                >
+                  <td className="border-t border-slate-100 px-5 py-4 font-mono text-xs text-slate-600">
+                    {row.id}
+                  </td>
+                  <td className="border-t border-slate-100 px-5 py-4">
+                    <img
+                      src={row.thumbnail_url || thumbnailSrc(row.id)}
+                      alt=""
+                      className="h-12 w-16 rounded-lg border border-slate-200 object-cover"
+                    />
+                  </td>
+                  <td className="border-t border-slate-100 px-5 py-4 font-medium text-slate-900">
+                    {row.name}
+                  </td>
+                  <td className="border-t border-slate-100 px-5 py-4 font-mono tabular-nums text-slate-700">
+                    {Number.isInteger(row.radius_km)
+                      ? row.radius_km
+                      : row.radius_km?.toFixed(1)}
+                  </td>
+                  <td className="border-t border-slate-100 px-5 py-4 text-right">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        title="Edit"
+                        onClick={() => openEditDrawer(row)}
+                        className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-teal-700"
+                      >
+                        <Pencil className="h-4 w-4" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        title="Delete"
+                        onClick={() => remove(row.id)}
+                        className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -184,7 +211,10 @@ export default function ScenicManagement() {
             type="button"
             aria-label="Close drawer overlay"
             className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
+            onClick={() => {
+              setDrawerOpen(false)
+              setEditingId(null)
+            }}
           />
           <div
             role="dialog"
@@ -199,7 +229,7 @@ export default function ScenicManagement() {
                   id={titleId}
                   className="text-lg font-semibold text-slate-900"
                 >
-                  Add scenic spot
+                  {editingId ? 'Edit scenic spot' : 'Add scenic spot'}
                 </h2>
                 <p id={descId} className="text-sm text-slate-500">
                   Scenic name, description, and radius rule.
@@ -207,7 +237,10 @@ export default function ScenicManagement() {
               </div>
               <button
                 type="button"
-                onClick={() => setDrawerOpen(false)}
+                onClick={() => {
+                  setDrawerOpen(false)
+                  setEditingId(null)
+                }}
                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
               >
@@ -216,7 +249,7 @@ export default function ScenicManagement() {
             </div>
 
             <form
-              onSubmit={handleAdd}
+              onSubmit={handleSave}
               className="flex flex-1 flex-col overflow-y-auto p-5"
             >
               <div className="space-y-5">
@@ -281,16 +314,20 @@ export default function ScenicManagement() {
               <div className="mt-auto flex gap-3 border-t border-slate-100 pt-5">
                 <button
                   type="button"
-                  onClick={() => setDrawerOpen(false)}
+                  onClick={() => {
+                    setDrawerOpen(false)
+                    setEditingId(null)
+                  }}
                   className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
+                  disabled={saving}
+                  className="flex-1 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-60"
                 >
-                  Save spot
+                  {saving ? 'Saving...' : (editingId ? 'Update spot' : 'Save spot')}
                 </button>
               </div>
             </form>

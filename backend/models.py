@@ -131,3 +131,48 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+
+class ScenicSpot(Base):
+    __tablename__ = "scenic_spots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    radius_km: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+
+class StrategyConfig(Base):
+    __tablename__ = "strategy_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    config_key: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    scenic_weight: Mapped[int] = mapped_column(Integer, default=28, nullable=False)
+    cost_weight: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    sentiment_weight: Mapped[int] = mapped_column(Integer, default=26, nullable=False)
+    preference_weight: Mapped[int] = mapped_column(Integer, default=22, nullable=False)
+    updated_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+
+class SyncLog(Base):
+    __tablename__ = "sync_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    file_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    records_updated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sync_date: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)

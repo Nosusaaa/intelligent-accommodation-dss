@@ -26,8 +26,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from database import Base, engine
-from models import Listing, ListingTag, MonthlyMetric, Review, SessionLocal, User
+from database import Base, engine, SessionLocal
+from models import AdminUser, Listing, ListingTag, MonthlyMetric, Review, ScenicSpot, StrategyConfig, SyncLog, User
 
 
 def _hash_password(plain: str) -> str:
@@ -343,3 +343,260 @@ def get_listing_reviews(
     )
     rows = db.scalars(stmt).all()
     return [_review_row(r) for r in rows]
+
+
+# =============================================================================
+# Admin API Endpoints
+# =============================================================================
+
+def _now_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+# --- Admin Login ---
+
+class AdminLoginRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=256)
+
+
+@app.post("/api/admin/login")
+def admin_login(
+    body: AdminLoginRequest,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    admin = db.scalars(
+        select(AdminUser).where(AdminUser.username == body.username)
+    ).first()
+    if admin is None or not _verify_password(body.password, admin.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+    if not admin.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin account is disabled",
+        )
+    return {
+        "message": "Login successful",
+        "username": admin.username,
+        "email": admin.email,
+    }
+
+
+# --- Scenic Spots CRUD ---
+
+class ScenicSpotCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=256)
+    description: Optional[str] = None
+    radius_km: float = Field(default=8.0, ge=1.0, le=50.0)
+    thumbnail_url: Optional[str] = None
+
+
+class ScenicSpotUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=256)
+    description: Optional[str] = None
+    radius_km: Optional[float] = Field(None, ge=1.0, le=50.0)
+    thumbnail_url: Optional[str] = None
+
+
+@app.get("/api/admin/scenics")
+def list_scenics(db: Annotated[Session, Depends(get_db)]) -> list[dict[str, Any]]:
+    rows = db.scalars(select(ScenicSpot).order_by(ScenicSpot.id)).all()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "description": r.description,
+            "radius_km": r.radius_km,
+            "thumbnail_url": r.thumbnail_url,
+            "created_at": r.created_at,
+        }
+        for r in rows
+    ]
+
+
+@app.post("/api/admin/scenics")
+def create_scenic(
+    body: ScenicSpotCreate,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    scenic = ScenicSpot(
+        name=body.name,
+        description=body.description,
+        radius_km=body.radius_km,
+        thumbnail_url=body.thumbnail_url,
+        created_at=_now_iso(),
+    )
+    db.add(scenic)
+    db.commit()
+    db.refresh(scenic)
+    return {
+        "id": scenic.id,
+        "name": scenic.name,
+        "description": scenic.description,
+        "radius_km": scenic.radius_km,
+        "thumbnail_url": scenic.thumbnail_url,
+        "created_at": scenic.created_at,
+    }
+
+
+@app.put("/api/admin/scenics/{scenic_id}")
+def update_scenic(
+    scenic_id: int,
+    body: ScenicSpotUpdate,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    scenic = db.get(ScenicSpot, scenic_id)
+    if scenic is None:
+        raise HTTPException(status_code=404, detail="Scenic spot not found")
+    if body.name is not None:
+        scenic.name = body.name
+    if body.description is not None:
+        scenic.description = body.description
+    if body.radius_km is not None:
+        scenic.radius_km = body.radius_km
+    if body.thumbnail_url is not None:
+        scenic.thumbnail_url = body.thumbnail_url
+    db.commit()
+    db.refresh(scenic)
+    return {
+        "id": scenic.id,
+        "name": scenic.name,
+        "description": scenic.description,
+        "radius_km": scenic.radius_km,
+        "thumbnail_url": scenic.thumbnail_url,
+        "created_at": scenic.created_at,
+    }
+
+
+@app.delete("/api/admin/scenics/{scenic_id}")
+def delete_scenic(
+    scenic_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, str]:
+    scenic = db.get(ScenicSpot, scenic_id)
+    if scenic is None:
+        raise HTTPException(status_code=404, detail="Scenic spot not found")
+    db.delete(scenic)
+    db.commit()
+    return {"message": "Scenic spot deleted"}
+
+
+# --- Strategy Config ---
+
+class StrategyConfigUpdate(BaseModel):
+    scenic_weight: int = Field(..., ge=0, le=100)
+    cost_weight: int = Field(..., ge=0, le=100)
+    sentiment_weight: int = Field(..., ge=0, le=100)
+    preference_weight: int = Field(..., ge=0, le=100)
+
+
+@app.get("/api/admin/strategy")
+def get_strategy(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    config = db.scalars(
+        select(StrategyConfig).where(StrategyConfig.config_key == "default")
+    ).first()
+    if config is None:
+        return {
+            "config_key": "default",
+            "scenic_weight": 28,
+            "cost_weight": 24,
+            "sentiment_weight": 26,
+            "preference_weight": 22,
+            "updated_at": None,
+        }
+    return {
+        "config_key": config.config_key,
+        "scenic_weight": config.scenic_weight,
+        "cost_weight": config.cost_weight,
+        "sentiment_weight": config.sentiment_weight,
+        "preference_weight": config.preference_weight,
+        "updated_at": config.updated_at,
+    }
+
+
+@app.put("/api/admin/strategy")
+def update_strategy(
+    body: StrategyConfigUpdate,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    config = db.scalars(
+        select(StrategyConfig).where(StrategyConfig.config_key == "default")
+    ).first()
+    if config is None:
+        config = StrategyConfig(
+            config_key="default",
+            scenic_weight=body.scenic_weight,
+            cost_weight=body.cost_weight,
+            sentiment_weight=body.sentiment_weight,
+            preference_weight=body.preference_weight,
+            updated_at=_now_iso(),
+        )
+        db.add(config)
+    else:
+        config.scenic_weight = body.scenic_weight
+        config.cost_weight = body.cost_weight
+        config.sentiment_weight = body.sentiment_weight
+        config.preference_weight = body.preference_weight
+        config.updated_at = _now_iso()
+    db.commit()
+    db.refresh(config)
+    return {
+        "config_key": config.config_key,
+        "scenic_weight": config.scenic_weight,
+        "cost_weight": config.cost_weight,
+        "sentiment_weight": config.sentiment_weight,
+        "preference_weight": config.preference_weight,
+        "updated_at": config.updated_at,
+    }
+
+
+# --- Sync Logs ---
+
+class SyncLogCreate(BaseModel):
+    file_type: str = Field(default="CSV", max_length=32)
+    status: str = Field(default="success", max_length=16)
+    records_updated: int = Field(default=0, ge=0)
+
+
+@app.get("/api/admin/sync-logs")
+def list_sync_logs(db: Annotated[Session, Depends(get_db)]) -> list[dict[str, Any]]:
+    rows = db.scalars(
+        select(SyncLog).order_by(SyncLog.id.desc())
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "date": r.sync_date,
+            "file_type": r.file_type,
+            "status": r.status,
+            "records_updated": r.records_updated,
+        }
+        for r in rows
+    ]
+
+
+@app.post("/api/admin/sync-logs")
+def create_sync_log(
+    body: SyncLogCreate,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    log = SyncLog(
+        file_type=body.file_type,
+        status=body.status,
+        records_updated=body.records_updated,
+        sync_date=_now_iso(),
+        created_at=_now_iso(),
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return {
+        "id": log.id,
+        "date": log.sync_date,
+        "file_type": log.file_type,
+        "status": log.status,
+        "records_updated": log.records_updated,
+    }

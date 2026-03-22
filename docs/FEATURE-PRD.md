@@ -3,7 +3,7 @@
 
 | 项目   | 说明                                 |
 | ---- | ---------------------------------- |
-| 文档版本 | 0.1.0                              |
+| 文档版本 | 0.2.0                              |
 | 最后更新 | 2026-03-22                         |
 | 代码范围 | 仓库内 `frontend/`、`backend/`、`Data/` |
 
@@ -34,7 +34,7 @@
 | 角色            | 说明                                                      |
 | ------------- | ------------------------------------------------------- |
 | **访客 / 旅客**   | 使用首页、可选注册/登录或游客进入、完成引导后使用搜索、详情、预测、对比（对比页部分为演示数据）。       |
-| **管理员（前端演示）** | 通过 `/admin/login` 进入后台子路由；登录校验仅在前端硬编码，**不调用**后端管理或会话接口。 |
+| **管理员** | 通过 `/admin/login` 进入后台子路由；登录调用后端 `POST /api/admin/login`，数据持久化到 SQLite。 |
 
 
 ---
@@ -87,13 +87,15 @@
 
 布局见 `[AdminLayout.jsx](../frontend/src/components/layout/AdminLayout.jsx)`。`/admin` 重定向至 `/admin/sync`。
 
+**2026-03-22 更新**：Admin 模块已与 FastAPI 后端完全对接，登录鉴权、景点管理、策略配置、同步日志均使用真实后端 API，数据持久化到 SQLite 数据库。
 
-| 路由                | 页面                 | 后端  | 说明                                                               |
-| ----------------- | ------------------ | --- | ---------------------------------------------------------------- |
-| `/admin/login`    | `AdminLogin`       | 无   | 用户名 `admin`、密码 `password123` 为**前端硬编码**；成功后跳转 `/admin/strategy`。 |
-| `/admin/sync`     | `DataSync`         | 无   | 模拟同步进度与本地日志列表。                                                   |
-| `/admin/scenic`   | `ScenicManagement` | 无   | 景点 CRUD、搜索过滤；数据仅存于组件 state。                                      |
-| `/admin/strategy` | `StrategyConfig`   | 无   | 权重滑块与本地假房源列表的匹配分演示。                                              |
+
+| 路由                | 页面                 | 后端 API | 说明                                                               |
+| ----------------- | ------------------ | ------- | ---------------------------------------------------------------- |
+| `/admin/login`    | `AdminLogin`       | `POST /api/admin/login` | 调用后端验证，返回 username/email。默认账号：`admin` / `password123` |
+| `/admin/sync`     | `DataSync`         | `GET /api/admin/sync-logs`、`POST /api/admin/sync-logs` | 同步日志从后端加载；Simulate Sync 同步成功后写入数据库。 |
+| `/admin/scenic`   | `ScenicManagement` | `GET /api/admin/scenics`、`POST /api/admin/scenics`、`PUT /api/admin/scenics/{id}`、`DELETE /api/admin/scenics/{id}` | 景点 CRUD；支持新增、编辑、删除、搜索。 |
+| `/admin/strategy` | `StrategyConfig`   | `GET /api/admin/strategy`、`PUT /api/admin/strategy` | 权重配置持久化到数据库；支持保存与加载上次配置。 |
 
 
 ---
@@ -113,6 +115,16 @@
 | GET  | `/api/listings/{listing_id}`          | 单条房源；404 若不存在。                                                                                             |
 | GET  | `/api/listings/{listing_id}/forecast` | 该房源 `monthly_metrics`，按 `year_month` 排序。                                                                   |
 | GET  | `/api/listings/{listing_id}/reviews`  | 该房源评论，按日期与 id 降序。                                                                                          |
+| **Admin API** |||
+| POST | `/api/admin/login`                    | Body：`{ username, password }`；bcrypt 验证；成功返回 `username`、`email`。                                              |
+| GET  | `/api/admin/scenics`                  | 获取所有景点列表。                                                                                                    |
+| POST | `/api/admin/scenics`                  | 新增景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                  |
+| PUT  | `/api/admin/scenics/{id}`             | 更新景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                   |
+| DELETE | `/api/admin/scenics/{id}`           | 删除景点。                                                                                                        |
+| GET  | `/api/admin/strategy`                 | 获取策略配置（config_key = "default"）。                                                                             |
+| PUT  | `/api/admin/strategy`                 | 保存策略配置；Body：`{ scenic_weight, cost_weight, sentiment_weight, preference_weight }`。                           |
+| GET  | `/api/admin/sync-logs`                | 获取同步日志列表，按 id 降序。                                                                                         |
+| POST | `/api/admin/sync-logs`                | 创建同步记录；Body：`{ file_type, status, records_updated }`。                                                      |
 
 
 **鉴权**：列表、详情、预测、评论等**业务接口均未要求登录**，与数据库 `User` 表无绑定。
@@ -123,7 +135,7 @@
 
 ## 6. 数据模型与离线脚本（简述）
 
-ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`MonthlyMetric`、`Review`、`ListingTag`、`User` 等。
+ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`MonthlyMetric`、`Review`、`ListingTag`、`User`、`AdminUser`、`ScenicSpot`、`StrategyConfig`、`SyncLog` 等。
 
 
 | 脚本                                                                  | 作用                                                                            |
@@ -140,7 +152,7 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 
 1. **认证**：后端登录仅返回 JSON，前端不存储 token；所有 listing 相关接口公开可访问。
 2. **旅客登录与业务数据**：注册用户信息未用于个性化推荐或权限控制。
-3. **管理端**：与 FastAPI **无对接**，账号与数据均为前端演示。
+3. **管理端**：Admin 模块已与后端完全对接，账号密码存储在数据库（bcrypt 加密），景点/策略/同步日志均持久化。
 4. **对比页 `/compare`**：雷达图与表格指标为**写死演示数据**，不代表当前选中房源的真实计算结果。
 5. **搜索页**：部分 UI（如入住日期）未参与 `buildListingParams`；地图为视觉占位。
 6. **CORS 与访问地址**：后端仅放行 `localhost` 来源的常用端口；前端通过 `127.0.0.1:8000` 调 API 时，只要页面是从 `http://localhost:5173` 打开，一般可正常跨域；若整站用 `127.0.0.1` 打开前端，可能需改 CORS 或统一用 `localhost`。
@@ -153,5 +165,6 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | 日期         | 变更                       |
 | ---------- | ------------------------ |
 | 2026-03-22 | 首版：基于当前前后端代码整理功能列表与 API。 |
+| 2026-03-22 | Admin 模块与后端完全对接：新增 AdminUser、ScenicSpot、StrategyConfig、SyncLog 模型及相关 CRUD API；前端各 Admin 页面改为调用后端接口。 |
 
 

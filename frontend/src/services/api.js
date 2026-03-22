@@ -66,4 +66,55 @@ export const api = {
     const { data } = await client.post("/auth/signup", credentials);
     return data;
   },
+
+  // ============ Admin APIs ============
+
+  /** @param {{ username: string, password: string }} credentials */
+  async adminLogin(credentials) {
+    const { data } = await client.post("/admin/login", credentials);
+    return data;
+  },
+
+  // --- Scenic Spots ---
+  async getScenics() {
+    const { data } = await client.get("/admin/scenics");
+    return data;
+  },
+
+  async createScenic(scenic) {
+    const { data } = await client.post("/admin/scenics", scenic);
+    return data;
+  },
+
+  async updateScenic(scenicId, scenic) {
+    const { data } = await client.put(`/admin/scenics/${scenicId}`, scenic);
+    return data;
+  },
+
+  async deleteScenic(scenicId) {
+    const { data } = await client.delete(`/admin/scenics/${scenicId}`);
+    return data;
+  },
+
+  // --- Strategy Config ---
+  async getStrategy() {
+    const { data } = await client.get("/admin/strategy");
+    return data;
+  },
+
+  async updateStrategy(strategy) {
+    const { data } = await client.put("/admin/strategy", strategy);
+    return data;
+  },
+
+  // --- Sync Logs ---
+  async getSyncLogs() {
+    const { data } = await client.get("/admin/sync-logs");
+    return data;
+  },
+
+  async createSyncLog(log) {
+    const { data } = await client.post("/admin/sync-logs", log);
+    return data;
+  },
 };
