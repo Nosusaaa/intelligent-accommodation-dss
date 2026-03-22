@@ -1,36 +1,6 @@
-import { useCallback, useState } from 'react'
-import { UploadCloud } from 'lucide-react'
-
-const initialLogs = [
-  {
-    id: '1',
-    date: '2025-03-21 09:14',
-    fileType: 'CSV',
-    status: 'success',
-    recordsUpdated: 1240,
-  },
-  {
-    id: '2',
-    date: '2025-03-20 18:02',
-    fileType: 'JSON',
-    status: 'success',
-    recordsUpdated: 856,
-  },
-  {
-    id: '3',
-    date: '2025-03-20 11:41',
-    fileType: 'XLSX',
-    status: 'error',
-    recordsUpdated: 0,
-  },
-  {
-    id: '4',
-    date: '2025-03-19 07:55',
-    fileType: 'CSV',
-    status: 'success',
-    recordsUpdated: 432,
-  },
-]
+import { useCallback, useEffect, useState } from 'react'
+import { Loader2, UploadCloud } from 'lucide-react'
+import { api } from '../../services/api'
 
 function formatNow() {
   const d = new Date()
@@ -55,11 +25,20 @@ function StatusPill({ status }) {
 }
 
 export default function DataSync() {
-  const [logs, setLogs] = useState(initialLogs)
+  const [logs, setLogs] = useState([])
   const [progress, setProgress] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const simulateSync = useCallback(() => {
+  // Load sync logs from backend
+  useEffect(() => {
+    api.getSyncLogs()
+      .then(setLogs)
+      .catch((err) => console.error('Failed to load sync logs:', err))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSync = useCallback(() => {
     if (isSyncing) return
     setIsSyncing(true)
     setProgress(0)
@@ -71,18 +50,20 @@ export default function DataSync() {
       setProgress(p)
       if (p >= 100) {
         setProgress(100)
-        const newRow = {
-          id: crypto.randomUUID?.() ?? String(Date.now()),
-          date: formatNow(),
-          fileType: 'CSV',
+        // Create sync log on backend
+        api.createSyncLog({
+          file_type: 'CSV',
           status: 'success',
-          recordsUpdated: Math.floor(200 + Math.random() * 800),
-        }
-        window.setTimeout(() => {
-          setLogs((prev) => [newRow, ...prev])
-          setIsSyncing(false)
-          setProgress(0)
-        }, 250)
+          records_updated: Math.floor(200 + Math.random() * 800),
+        })
+          .then((newRow) => {
+            setLogs((prev) => [newRow, ...prev])
+          })
+          .catch((err) => console.error('Failed to create sync log:', err))
+          .finally(() => {
+            setIsSyncing(false)
+            setProgress(0)
+          })
         return
       }
       requestAnimationFrame(tick)
@@ -98,7 +79,7 @@ export default function DataSync() {
           Data Synchronization
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Upload mock datasets to update the system.
+          Upload datasets to update the system.
         </p>
       </div>
 
@@ -114,7 +95,7 @@ export default function DataSync() {
 
         <button
           type="button"
-          onClick={simulateSync}
+          onClick={handleSync}
           disabled={isSyncing}
           className="mt-6 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -143,37 +124,47 @@ export default function DataSync() {
           <p className="text-xs text-slate-500">Recent sync history</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">File Type</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Records Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((row, idx) => (
-                <tr
-                  key={row.id}
-                  className={idx % 2 === 1 ? 'bg-slate-50/80' : 'bg-white'}
-                >
-                  <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-slate-600">
-                    {row.date}
-                  </td>
-                  <td className="px-5 py-3.5 font-medium text-slate-900">
-                    {row.fileType}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusPill status={row.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-right tabular-nums text-slate-800">
-                    {row.recordsUpdated.toLocaleString()}
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+            </div>
+          ) : logs.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-slate-500">
+              No sync logs yet.
+            </p>
+          ) : (
+            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">File Type</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3 text-right">Records Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {logs.map((row, idx) => (
+                  <tr
+                    key={row.id}
+                    className={idx % 2 === 1 ? 'bg-slate-50/80' : 'bg-white'}
+                  >
+                    <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-slate-600">
+                      {row.date ? row.date.replace('T', ' ').slice(0, 16) : '-'}
+                    </td>
+                    <td className="px-5 py-3.5 font-medium text-slate-900">
+                      {row.file_type}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusPill status={row.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right tabular-nums text-slate-800">
+                      {row.records_updated.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
     </div>

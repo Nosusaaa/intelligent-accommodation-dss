@@ -1,22 +1,35 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
-const ADMIN_USER = 'admin'
-const ADMIN_PASS = 'password123'
+import { api } from '../../services/api'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (username === ADMIN_USER && password === ADMIN_PASS) {
-      setError('')
-      navigate('/admin/strategy')
-    } else {
-      setError('Invalid credentials')
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter username and password')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      await api.adminLogin({ username: username.trim(), password })
+      navigate('/admin/sync')
+    } catch (err) {
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail)
+      } else if (err.message) {
+        setError(err.message)
+      } else {
+        setError('Login failed. Please try again.')
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -79,9 +92,10 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
+            disabled={loading}
+            className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Access Dashboard
+            {loading ? 'Signing in...' : 'Access Dashboard'}
           </button>
         </form>
 

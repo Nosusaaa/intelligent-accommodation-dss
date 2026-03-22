@@ -192,6 +192,93 @@ def _apply_listing_sentiment_from_reviews(
     return out
 
 
+def _seed_admin_data(conn) -> None:
+    """Create default admin user and initial admin data."""
+    import bcrypt
+    from datetime import datetime
+
+    def hash_password(plain: str) -> str:
+        return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    now = datetime.utcnow().isoformat() + "Z"
+
+    # Check if admin user exists
+    existing = conn.execute(text("SELECT COUNT(*) FROM admin_users WHERE username = 'admin'")).scalar_one_or_none() or 0
+    if existing == 0:
+        conn.execute(text("""
+            INSERT INTO admin_users (username, email, password, is_active, created_at)
+            VALUES (:username, :email, :password, :is_active, :created_at)
+        """), {
+            "username": "admin",
+            "email": "admin@airbnb-dss.com",
+            "password": hash_password("password123"),
+            "is_active": True,
+            "created_at": now,
+        })
+        print("Created default admin user: admin / password123")
+    else:
+        print("Admin user already exists, skipping.")
+
+    # Seed initial scenic spots
+    scenic_count = conn.execute(text("SELECT COUNT(*) FROM scenic_spots")).scalar_one_or_none() or 0
+    if scenic_count == 0:
+        scenics = [
+            ("Harbor Promenade", "Waterfront walking corridor.", 12.0, "https://picsum.photos/seed/HarborPromenade/96/64"),
+            ("Riverside Greenway", "Tree-lined path along the river.", 18.0, "https://picsum.photos/seed/RiversideGreenway/96/64"),
+            ("Old Town Lookout", "Elevated viewpoint over historic blocks.", 5.0, "https://picsum.photos/seed/OldTownLookout/96/64"),
+        ]
+        for i, (name, desc, radius, thumb) in enumerate(scenics, 1):
+            conn.execute(text("""
+                INSERT INTO scenic_spots (name, description, radius_km, thumbnail_url, created_at)
+                VALUES (:name, :desc, :radius, :thumb, :created_at)
+            """), {
+                "name": name,
+                "desc": desc,
+                "radius": radius,
+                "thumb": thumb,
+                "created_at": now,
+            })
+        print(f"Created {len(scenics)} initial scenic spots.")
+
+    # Seed default strategy config
+    strategy_exists = conn.execute(text("SELECT COUNT(*) FROM strategy_configs WHERE config_key = 'default'")).scalar_one_or_none() or 0
+    if strategy_exists == 0:
+        conn.execute(text("""
+            INSERT INTO strategy_configs (config_key, scenic_weight, cost_weight, sentiment_weight, preference_weight, updated_at)
+            VALUES (:key, :scenic, :cost, :sentiment, :preference, :updated_at)
+        """), {
+            "key": "default",
+            "scenic": 28,
+            "cost": 24,
+            "sentiment": 26,
+            "preference": 22,
+            "updated_at": now,
+        })
+        print("Created default strategy configuration.")
+
+    # Seed initial sync logs
+    sync_count = conn.execute(text("SELECT COUNT(*) FROM sync_logs")).scalar_one_or_none() or 0
+    if sync_count == 0:
+        logs = [
+            ("CSV", "success", 1240, "2025-03-21 09:14"),
+            ("JSON", "success", 856, "2025-03-20 18:02"),
+            ("XLSX", "error", 0, "2025-03-20 11:41"),
+            ("CSV", "success", 432, "2025-03-19 07:55"),
+        ]
+        for file_type, status, records, date in logs:
+            conn.execute(text("""
+                INSERT INTO sync_logs (file_type, status, records_updated, sync_date, created_at)
+                VALUES (:file_type, :status, :records, :date, :created_at)
+            """), {
+                "file_type": file_type,
+                "status": status,
+                "records": records,
+                "date": date,
+                "created_at": now,
+            })
+        print(f"Created {len(logs)} initial sync logs.")
+
+
 def main() -> None:
     print("Checking CSV data files...")
     _ensure_all_required_csvs()
@@ -329,6 +416,11 @@ def main() -> None:
         for table in ("listings", "calendar", "monthly_metrics", "reviews", "listing_tags"):
             n = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
             print(f"Done: {table} has {n} rows.")
+
+        # Seed Admin data (must commit — otherwise inserts roll back on conn.close())
+        _seed_admin_data(conn)
+        conn.commit()
+
     finally:
         conn.close()
 
