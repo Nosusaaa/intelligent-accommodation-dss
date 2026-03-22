@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
@@ -248,6 +248,34 @@ export default function SmartSearch() {
     return new Set([...selectedTags, ...queryExtractedTags])
   }, [selectedTags, queryExtractedTags])
 
+  const filterKey = useMemo(
+    () =>
+      JSON.stringify({
+        guests,
+        bedrooms,
+        beds,
+        bathrooms,
+        priceMin,
+        priceMax,
+        roomTypes,
+        amenities,
+        vibeTags: [...allActiveTags].sort(),
+      }),
+    [
+      guests,
+      bedrooms,
+      beds,
+      bathrooms,
+      priceMin,
+      priceMax,
+      roomTypes,
+      amenities,
+      allActiveTags,
+    ],
+  )
+
+  const prevFilterKeyRef = useRef(filterKey)
+
   // Handle search input changes
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value
@@ -320,6 +348,15 @@ export default function SmartSearch() {
   useEffect(() => {
     let cancelled = false
 
+    const filtersJustChanged = prevFilterKeyRef.current !== filterKey
+    if (filtersJustChanged) {
+      prevFilterKeyRef.current = filterKey
+      if (page !== 1) {
+        setPage(1)
+      }
+    }
+    const requestPage = filtersJustChanged ? 1 : page
+
     async function fetchListings() {
       setError(null)
       setIsLoading(true)
@@ -334,12 +371,11 @@ export default function SmartSearch() {
           roomTypes,
           amenities,
           selectedTags: allActiveTags,
-          page,
+          page: requestPage,
           limit: PAGE_SIZE,
         })
         const data = await api.getListings(query)
         if (!cancelled) {
-          // Backend returns { listings: [...], total, skip, limit }
           const arr = Array.isArray(data)
             ? data
             : Array.isArray(data?.listings)
@@ -348,10 +384,6 @@ export default function SmartSearch() {
           const total = Number.isFinite(data?.total) ? data.total : arr.length
           setListings(arr)
           setTotalCount(total)
-          // Reset to page 1 when filters change
-          if (page !== 1) {
-            setPage(1)
-          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -373,18 +405,7 @@ export default function SmartSearch() {
     return () => {
       cancelled = true
     }
-  }, [
-    guests,
-    bedrooms,
-    beds,
-    bathrooms,
-    priceMin,
-    priceMax,
-    roomTypes,
-    amenities,
-    allActiveTags,
-    page,
-  ])
+  }, [filterKey, page])
 
   return (
     <div className="relative grid grid-cols-12 gap-6 pb-24 lg:gap-8">
