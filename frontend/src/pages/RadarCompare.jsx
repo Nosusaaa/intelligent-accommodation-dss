@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import { Search, X, Loader2 } from 'lucide-react'
 import {
   Legend,
   PolarAngleAxis,
@@ -11,77 +12,190 @@ import {
   Tooltip,
 } from 'recharts'
 import { useCompare } from '../context/CompareContext.jsx'
+import { api } from '../services/api.js'
+import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 
-/** Radar uses 0–100 scores; table shows human-readable values per property id. */
 const KEY_CHARS = ['a', 'b', 'c', 'd', 'e']
 
-const RADAR_DIMENSIONS = [
-  {
-    metric: 'Price',
-    scores: { '123': 82, '124': 91, '125': 68, '126': 79 },
-  },
-  {
-    metric: 'Rating',
-    scores: { '123': 92, '124': 86, '125': 96, '126': 84 },
-  },
-  {
-    metric: 'Capacity',
-    scores: { '123': 78, '124': 65, '125': 88, '126': 80 },
-  },
-  {
-    metric: 'Room Size',
-    scores: { '123': 85, '124': 72, '125': 90, '126': 77 },
-  },
-  {
-    metric: 'Scenic Score',
-    scores: { '123': 94, '124': 80, '125': 72, '126': 88 },
-  },
-]
+/**
+ * Clamp and scale a value to 0–100 using a fixed absolute domain.
+ * Using fixed domains means scores reflect real-world values rather than
+ * relative rank within the current compare set (which would always produce
+ * 0 and 100 for 2 items, or all-50 for 1 item).
+ *
+ * @param {number|null} value  Raw field value
+ * @param {number} domainMin   Absolute minimum of the scale (maps to 0)
+ * @param {number} domainMax   Absolute maximum of the scale (maps to 100)
+ * @param {boolean} invert     If true, lower value → higher score (e.g. price)
+ * @returns {number} Integer score 0–100
+ */
+function scaleToScore(value, domainMin, domainMax, invert = false) {
+  if (value == null || !isFinite(value)) return 50
+  const clamped = Math.max(domainMin, Math.min(domainMax, value))
+  const ratio = (clamped - domainMin) / (domainMax - domainMin)
+  return Math.round((invert ? 1 - ratio : ratio) * 100)
+}
 
-const TABLE_ROWS = [
-  {
-    label: 'Price (nightly)',
-    values: { '123': '$212', '124': '$156', '125': '$289', '126': '$178' },
-  },
-  {
-    label: 'Rating',
-    values: { '123': '4.8', '124': '4.6', '125': '4.9', '126': '4.5' },
-  },
-  {
-    label: 'Capacity',
-    values: { '123': '2 guests', '124': '1 guest', '125': '3 guests', '126': '2 guests' },
-  },
-  {
-    label: 'Room size',
-    values: {
-      '123': '58 m²',
-      '124': '42 m²',
-      '125': '72 m²',
-      '126': '51 m²',
-    },
-  },
-  {
-    label: 'Scenic score',
-    values: { '123': '94', '124': '80', '125': '72', '126': '88' },
-  },
-]
+/**
+ * Fixed absolute domains for each radar axis.
+ * Chosen for real-world Airbnb data already in the database:
+ *
+ * Value      : price_clean inverted, capped at $600 so distribution isn't
+ *              crushed at the cheap end (most listings are $50–$400).
+ * Rating     : review_scores_rating 3.0–5.0 (Airbnb floor is ~3).
+ * Popularity : number_of_reviews 0–500 (captures active vs quiet listings).
+ * Amenities  : count of 6 boolean flags (wifi/kitchen/ac/parking/tv/balcony)
+ *              → each flag = ~16.7 pts, no external domain needed.
+ * Sentiment  : intelligent_score 0.0–1.0 (AI composite from reviews).
+ */
+const SCORE_DOMAINS = {
+  Value:      { min: 0,   max: 600, invert: true  },
+  Rating:     { min: 3.0, max: 5.0, invert: false },
+  Popularity: { min: 0,   max: 500, invert: false },
+  Amenities:  { min: 0,   max: 6,   invert: false },
+  Sentiment:  { min: 0.0, max: 1.0, invert: false },
+}
+
+/**
+ * Count how many of the 6 key amenity booleans are true for a listing.
+ */
+function amenityCount(l) {
+  return [
+    l.has_wifi,
+    l.has_kitchen,
+    l.has_air_conditioning,
+    l.has_parking,
+    l.has_tv,
+    l.has_balcony,
+  ].filter(Boolean).length
+}
+
+/**
+ * Given an array of listing objects, compute per-dimension scores (0–100)
+ * using fixed absolute domains.
+ * Returns { [listingId]: { Value, Rating, Popularity, Amenities, Sentiment } }
+ */
+function computeScores(listings) {
+  const result = {}
+  for (const l of listings) {
+    const price      = l.price_clean > 0 ? l.price_clean : null
+    const rating     = l.review_scores_rating
+    const popularity = l.number_of_reviews
+    const amenities  = amenityCount(l)
+    const sentiment  = l.intelligent_score ?? l.average_sentiment_score
+
+    result[l.id] = {
+      Value:      scaleToScore(price,      SCORE_DOMAINS.Value.min,      SCORE_DOMAINS.Value.max,      SCORE_DOMAINS.Value.invert),
+      Rating:     scaleToScore(rating,     SCORE_DOMAINS.Rating.min,     SCORE_DOMAINS.Rating.max,     SCORE_DOMAINS.Rating.invert),
+      Popularity: scaleToScore(popularity, SCORE_DOMAINS.Popularity.min, SCORE_DOMAINS.Popularity.max, SCORE_DOMAINS.Popularity.invert),
+      Amenities:  scaleToScore(amenities,  SCORE_DOMAINS.Amenities.min,  SCORE_DOMAINS.Amenities.max,  SCORE_DOMAINS.Amenities.invert),
+      Sentiment:  scaleToScore(sentiment,  SCORE_DOMAINS.Sentiment.min,  SCORE_DOMAINS.Sentiment.max,  SCORE_DOMAINS.Sentiment.invert),
+    }
+  }
+  return result
+}
+
+const RADAR_AXES = ['Value', 'Rating', 'Popularity', 'Amenities', 'Sentiment']
 
 export default function RadarCompare() {
   const { items: tray, removeFromCompare } = useCompare()
+  const [listingDetails, setListingDetails] = useState({})
+  const [loading, setLoading] = useState(false)
+
+  // Fetch missing listing details whenever the tray changes
+  useEffect(() => {
+    if (tray.length === 0) return
+    const missingIds = tray.map((t) => t.id).filter((id) => !listingDetails[id])
+    if (missingIds.length === 0) return
+
+    setLoading(true)
+    Promise.all(missingIds.map((id) => api.getListingById(id).catch(() => null)))
+      .then((results) => {
+        setListingDetails((prev) => {
+          const next = { ...prev }
+          results.forEach((data, i) => {
+            if (data) next[missingIds[i]] = data
+          })
+          return next
+        })
+      })
+      .finally(() => setLoading(false))
+  }, [tray])
+
+  // Build array of loaded listings in tray order
+  const loadedListings = tray
+    .map((t) => listingDetails[t.id])
+    .filter(Boolean)
+
+  const scores = loadedListings.length > 0 ? computeScores(loadedListings) : {}
 
   const keys = tray.map((t, i) => ({
     key: KEY_CHARS[i],
+    id: t.id,
     name: t.name,
     color: t.color,
   }))
 
-  const chartData = RADAR_DIMENSIONS.map((row) => {
-    const out = { metric: row.metric }
-    tray.forEach((t, i) => {
-      out[KEY_CHARS[i]] = row.scores[t.id] ?? 70
+  const chartData = RADAR_AXES.map((axis) => {
+    const out = { metric: axis }
+    keys.forEach((k) => {
+      out[k.key] = scores[k.id]?.[axis] ?? 50
     })
     return out
   })
+
+  // Table rows built from real data
+  const tableRows = [
+    {
+      label: 'Price (nightly)',
+      getValue: (l) => formatListingPriceDisplay(l?.price_clean),
+    },
+    {
+      label: 'Rating',
+      getValue: (l) =>
+        l?.review_scores_rating != null ? l.review_scores_rating.toFixed(2) : '—',
+    },
+    {
+      label: 'Reviews',
+      getValue: (l) =>
+        l?.number_of_reviews != null ? `${l.number_of_reviews}` : '—',
+    },
+    {
+      label: 'Capacity',
+      getValue: (l) =>
+        l?.accommodates != null
+          ? `${l.accommodates} guest${l.accommodates !== 1 ? 's' : ''}`
+          : '—',
+    },
+    {
+      label: 'Bedrooms',
+      getValue: (l) => (l?.bedrooms != null ? `${l.bedrooms}` : '—'),
+    },
+    {
+      label: 'Beds',
+      getValue: (l) => (l?.beds != null ? `${l.beds}` : '—'),
+    },
+    {
+      label: 'Bathrooms',
+      getValue: (l) =>
+        l?.bathrooms_text ?? (l?.bathrooms_num != null ? `${l.bathrooms_num}` : '—'),
+    },
+    {
+      label: 'Room type',
+      getValue: (l) => l?.room_type ?? '—',
+    },
+    {
+      label: 'Neighbourhood',
+      getValue: (l) => l?.neighbourhood_cleansed ?? '—',
+    },
+    {
+      label: 'Sentiment score',
+      getValue: (l) => {
+        const s = l?.intelligent_score ?? l?.average_sentiment_score
+        return s != null ? s.toFixed(3) : '—'
+      },
+    },
+  ]
 
   if (tray.length === 0) {
     return (
@@ -91,7 +205,7 @@ export default function RadarCompare() {
             Compare properties
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Price, rating, capacity, room size, and scenic score — side by side.
+            Price, rating, capacity, room size, and sentiment — side by side.
           </p>
         </div>
 
@@ -124,6 +238,7 @@ export default function RadarCompare() {
         </p>
       </div>
 
+      {/* Compare tray */}
       <section aria-label="Compare tray">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Compare tray
@@ -158,10 +273,19 @@ export default function RadarCompare() {
         </div>
       </section>
 
+      {/* Radar chart */}
       <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
-        <p className="mb-4 text-sm font-medium text-slate-700">
-          Multi-axis radar (normalized 0–100)
-        </p>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-medium text-slate-700">
+            Multi-axis radar (normalized 0–100)
+          </p>
+          {loading && (
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading data…
+            </span>
+          )}
+        </div>
         <div className="h-[340px] w-full sm:h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
@@ -172,7 +296,7 @@ export default function RadarCompare() {
               />
               <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} />
               <Tooltip
-                formatter={(value) => [`${value}`, 'Score']}
+                formatter={(value, name) => [`${value}`, name]}
                 contentStyle={{
                   borderRadius: '12px',
                   border: '1px solid #f1f5f9',
@@ -199,13 +323,15 @@ export default function RadarCompare() {
             </RadarChart>
           </ResponsiveContainer>
         </div>
+        <p className="mt-2 text-center text-xs text-slate-400">
+          Value is inverted from price — higher score = more affordable. Amenities = count of 6 key facilities.
+        </p>
       </section>
 
+      {/* Detailed comparison table */}
       <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-slate-50/90 px-4 py-3 sm:px-6">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Detailed comparison
-          </h2>
+          <h2 className="text-sm font-semibold text-slate-900">Detailed comparison</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
@@ -226,7 +352,7 @@ export default function RadarCompare() {
               </tr>
             </thead>
             <tbody>
-              {TABLE_ROWS.map((row, idx) => (
+              {tableRows.map((row, idx) => (
                 <tr
                   key={row.label}
                   className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}
@@ -239,7 +365,9 @@ export default function RadarCompare() {
                       key={p.id}
                       className="border-t border-slate-100 px-4 py-3 font-medium text-slate-900 sm:px-6"
                     >
-                      {row.values[p.id] ?? '—'}
+                      {loading && !listingDetails[p.id]
+                        ? <span className="text-slate-300">…</span>
+                        : row.getValue(listingDetails[p.id])}
                     </td>
                   ))}
                 </tr>
