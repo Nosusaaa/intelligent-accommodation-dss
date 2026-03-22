@@ -3,7 +3,7 @@
 
 | 项目   | 说明                                 |
 | ---- | ---------------------------------- |
-| 文档版本 | 0.2.0                              |
+| 文档版本 | 0.4.0                              |
 | 最后更新 | 2026-03-22                         |
 | 代码范围 | 仓库内 `frontend/`、`backend/`、`Data/` |
 
@@ -21,7 +21,7 @@
 
 | 层级  | 技术                                                                         |
 | --- | -------------------------------------------------------------------------- |
-| 前端  | React 19、Vite 8、React Router 7、Tailwind CSS v4、axios、lucide-react、Recharts |
+| 前端  | React 19、Vite 8、React Router 7、Tailwind CSS v4、axios、lucide-react、Recharts、Leaflet + react-leaflet |
 | 后端  | FastAPI、SQLAlchemy、SQLite、bcrypt                                           |
 | 数据  | `Data/` 下 CSV 与 `airbnb_dss.db`（详见 `[Data/README.md](../Data/README.md)`）  |
 
@@ -51,7 +51,7 @@
 | `/`             | 首页 `Home`           | 无                                                          | 营销落地；跳转旅客登录、管理员登录。                                                           |
 | `/guest-login`  | `GuestLogin`        | `POST /api/auth/signup`、`POST /api/auth/login`             | 注册/登录成功后跳转 `/search`；「以游客继续」直达 `/onboarding`，不调接口。前端未持久化 token，请求头不携带认证信息。   |
 | `/onboarding`   | `SwipeOnboarding`   | 无                                                          | 滑动式偏好卡片（静态内容与占位图），完成后进入 `/search`。                                           |
-| `/search`       | `SmartSearch`       | `GET /api/listings`                                        | 筛选、标签、分页列表、跳转详情；入住日期等 UI 未映射到查询参数；地图区域为装饰，非真实联动。每页 **12** 条（`PAGE_SIZE`）。    |
+| `/search`       | `SmartSearch`       | `GET /api/listings`                                        | 筛选、标签、分页列表、跳转详情；地图区域为 Leaflet 真实交互地图，基于 `Data/neighbourhoods.geojson`（Rochester S/NE/NW/E 四个社区多边形）绘制社区边界线（蓝色 outline + 淡蓝填充），其余区域以半透明灰色遮罩覆盖，形成「聚焦 Rochester」视觉效果；房源以蓝色 marker 显示，hover 房源时飞入放大并展开 1 km 虚线圆圈，通过 Overpass API 加载该房源周边 POI（橙色餐厅 + 绿色景点各最多 8 个），hover POI 显示到当前房源的 Haversine 距离。地图默认中心为 Rochester, NY（43.1553, -77.6052）。每页 **12** 条（`PAGE_SIZE`）。    |
 | `/details/:id`  | `PropertyDetails`   | `GET /api/listings/{id}`、`GET /api/listings/{id}/reviews`  | 展示 API 返回的房源与评论；情感图表与评论弹窗基于真实评论数据；部分文案/图集可能仍为占位。                             |
 | `/forecast/:id` | `ForecastDashboard` | `GET /api/listings/{id}`、`GET /api/listings/{id}/forecast` | 月度指标图表；无数据时使用基于当前价格的占位曲线。                                                    |
 | `/compare`      | `RadarCompare`      | 无（对比维度为前端写死）                                               | 从 `CompareContext` 读取已选房源卡片信息；雷达图与对比表使用**预设演示分数/字段**，与所选 listing 的真实字段未一一对应。 |
@@ -111,7 +111,7 @@
 | ---- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | POST | `/api/auth/signup`                    | Body：`{ email, password }`；邮箱规范化后唯一；密码 bcrypt；成功返回注册消息。                                                    |
 | POST | `/api/auth/login`                     | 校验邮箱密码；成功返回 `message`、`email`。**无 JWT / Session / Bearer token**。                                          |
-| GET  | `/api/listings`                       | 分页与筛选见第 3.2 节；响应含 `listings`、`total`、`skip`、`limit`。单条 listing 由 `_listing_full` 序列化（含关联的 `vibe_tags` 文本）。 |
+| GET  | `/api/listings`                       | 分页与筛选见第 3.2 节；响应含 `listings`、`total`、`skip`、`limit`。单条 listing 由 `_listing_full` 序列化（含关联的 `vibe_tags` 文本、`latitude`、`longitude`）。 |
 | GET  | `/api/listings/{listing_id}`          | 单条房源；404 若不存在。                                                                                             |
 | GET  | `/api/listings/{listing_id}/forecast` | 该房源 `monthly_metrics`，按 `year_month` 排序。                                                                   |
 | GET  | `/api/listings/{listing_id}/reviews`  | 该房源评论，按日期与 id 降序。                                                                                          |
@@ -154,7 +154,7 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 2. **旅客登录与业务数据**：注册用户信息未用于个性化推荐或权限控制。
 3. **管理端**：Admin 模块已与后端完全对接，账号密码存储在数据库（bcrypt 加密），景点/策略/同步日志均持久化。
 4. **对比页 `/compare`**：雷达图与表格指标为**写死演示数据**，不代表当前选中房源的真实计算结果。
-5. **搜索页**：部分 UI（如入住日期）未参与 `buildListingParams`；地图为视觉占位。
+5. **搜索页**：部分 UI（如入住日期）未参与 `buildListingParams`；地图为 Leaflet 真实交互地图，仅在 hover 房源时加载其周边 POI，不一次性渲染所有 POI。
 6. **CORS 与访问地址**：后端仅放行 `localhost` 来源的常用端口；前端通过 `127.0.0.1:8000` 调 API 时，只要页面是从 `http://localhost:5173` 打开，一般可正常跨域；若整站用 `127.0.0.1` 打开前端，可能需改 CORS 或统一用 `localhost`。
 
 ---
@@ -166,5 +166,7 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | ---------- | ------------------------ |
 | 2026-03-22 | 首版：基于当前前后端代码整理功能列表与 API。 |
 | 2026-03-22 | Admin 模块与后端完全对接：新增 AdminUser、ScenicSpot、StrategyConfig、SyncLog 模型及相关 CRUD API；前端各 Admin 页面改为调用后端接口。 |
+| 2026-03-22 | 搜索页地图升级：新增 `ListingMap` 组件（Leaflet + react-leaflet），房源以蓝色 marker 显示，hover 房源时飞入放大并展开 1 km 虚线圆圈，通过 Overpass API 加载周边 POI；`Listing` 模型新增 `latitude`/`longitude` 字段，种子脚本同步更新，`GET /api/listings` 返回经纬度数据。地图默认中心为 Rochester, NY（43.1553, -77.6052）。 |
+| 2026-03-22 | 地图 Rochester 边界增强：引入 `Data/neighbourhoods.geojson`（S/NE/NW/E 四社区 MultiPolygon）作为地理边界层，绘制社区蓝色 outline + 淡蓝填充；其余区域以半透明灰色遮罩（large Rectangle）形成聚焦效果；hover 社区显示 tooltip 标签；`Data/neighbourhoods.csv` 提供社区名单。 |
 
 

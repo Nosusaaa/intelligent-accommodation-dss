@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
+import { GitCompare, Minus, Plus, Search, Tag, X } from 'lucide-react'
 import { useCompare } from '../context/CompareContext.jsx'
 import { usePreference } from '../context/PreferenceContext.jsx'
 import { api } from '../services/api.js'
+import ListingMap from '../components/ListingMap.jsx'
 
 /** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
 const SUGGESTED_TAGS = [
@@ -47,13 +48,6 @@ const AMENITY_KEYS = [
 
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80'
-
-const priceBubbles = [
-  { label: '$156', left: '12%', top: '58%' },
-  { label: '$212', left: '44%', top: '32%' },
-  { label: '$289', left: '68%', top: '48%' },
-  { label: '$178', left: '78%', top: '72%' },
-]
 
 /** Must match `LISTING_PRICE_FILTER_MAX` in `backend/main.py`. */
 const PRICE_FILTER_MAX = 1000
@@ -670,29 +664,7 @@ export default function SmartSearch() {
           </div>
         </div>
 
-        <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-slate-200 shadow-inner sm:min-h-[280px]">
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2394a3b8' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="rounded-2xl border border-white/60 bg-white/90 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
-              <MapPin className="mr-2 inline h-4 w-4 text-teal-600" aria-hidden />
-              Map preview — listings update as you filter
-            </div>
-          </div>
-          {priceBubbles.map((b) => (
-            <span
-              key={`${b.left}-${b.top}`}
-              className="absolute z-10 rounded-full bg-teal-600 px-2.5 py-1 text-xs font-bold text-white shadow-md ring-2 ring-white/90"
-              style={{ left: b.left, top: b.top }}
-            >
-              {b.label}
-            </span>
-          ))}
-        </div>
+        <ListingMap listings={listings} />
 
         <div>
           <div className="mb-4 flex items-center justify-between">

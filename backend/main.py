@@ -101,6 +101,8 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "bathrooms": _json_value(listing.bathrooms_num),
         "neighbourhood_cleansed": listing.neighbourhood_cleansed,
         "neighborhood_overview": listing.neighborhood_overview,
+        "latitude": _json_value(listing.latitude),
+        "longitude": _json_value(listing.longitude),
         "review_scores_rating": _json_value(listing.review_scores_rating),
         "number_of_reviews": listing.number_of_reviews,
         "has_wifi": listing.has_wifi,

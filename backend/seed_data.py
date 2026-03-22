@@ -309,6 +309,8 @@ def main() -> None:
             "bathrooms_text",
             "neighbourhood_cleansed",
             "neighborhood_overview",
+            "latitude",
+            "longitude",
             "review_scores_rating",
             "number_of_reviews",
             "has_wifi",
@@ -346,7 +348,7 @@ def main() -> None:
         df_listings = _fill_na_for_sql(
             df_listings,
             date_cols=frozenset(),
-            preserve_null_cols=frozenset({"review_scores_rating"}),
+            preserve_null_cols=frozenset({"review_scores_rating", "latitude", "longitude"}),
         )
 
         print("Loading reviews for listing sentiment alignment…")
