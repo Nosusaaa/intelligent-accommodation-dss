@@ -327,6 +327,8 @@ def main() -> None:
             "sentiment_negative_count",
         ]
         df_listings = merged[listing_cols].copy()
+        # Populated later by `update_galleries.py` from scraped JSON; empty until then.
+        df_listings["gallery_urls"] = ""
         for c in ("bedrooms", "beds"):
             df_listings[c] = (
                 pd.to_numeric(df_listings[c], errors="coerce").fillna(0).round().astype("int64")

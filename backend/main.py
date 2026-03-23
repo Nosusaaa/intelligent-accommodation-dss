@@ -90,6 +90,7 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "name": listing.name,
         "description": listing.description,
         "picture_url": listing.picture_url,
+        "gallery_urls": listing.gallery_urls,
         "property_type": listing.property_type,
         "room_type": listing.room_type,
         "accommodates": listing.accommodates,
