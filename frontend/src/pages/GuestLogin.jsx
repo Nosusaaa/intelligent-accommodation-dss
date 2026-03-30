@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LogIn, UserRound } from 'lucide-react'
 import { api } from '../services/api.js'
+import RoomSliderBackground from '../components/RoomSliderBackground.jsx'
 
 function errorMessageFromAxios(err) {
   const detail = err?.response?.data?.detail
@@ -34,14 +35,12 @@ export default function GuestLogin() {
       const credentials = { email: email.trim(), password }
       if (isLoginMode) {
         const result = await api.login(credentials)
-        // Store user_id for preference association
         if (result?.user_id) {
           sessionStorage.setItem('user_id', String(result.user_id))
         }
         navigate('/search')
       } else {
         const result = await api.signup(credentials)
-        // New user: store user_id and trigger onboarding
         if (result?.user_id) {
           sessionStorage.setItem('user_id', String(result.user_id))
         }
@@ -55,8 +54,12 @@ export default function GuestLogin() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-gradient-to-br from-slate-50 to-teal-50 px-4 py-12">
-      <div className="w-full max-w-sm rounded-xl border border-slate-100 bg-white p-8 shadow-md">
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-gradient-to-br from-teal-50 to-emerald-50 px-4 py-12">
+      {/* Animated room image grid background */}
+      <RoomSliderBackground />
+
+      {/* Login card — above the background overlay */}
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/80 bg-white/85 p-8 shadow-2xl backdrop-blur-md">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-white shadow-sm">
           <UserRound className="h-6 w-6" aria-hidden />
         </div>

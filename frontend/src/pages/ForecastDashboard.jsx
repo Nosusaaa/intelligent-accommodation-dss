@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 import { api } from '../services/api.js'
+import { getListingPriceNightly } from '../utils/listingPriceDisplay.js'
 
 export default function ForecastDashboard() {
   const { id } = useParams()
@@ -61,7 +62,9 @@ export default function ForecastDashboard() {
     }
   }, [numericId])
 
-  const currentPrice = listing?.price_clean ?? 0
+  /** Positive nightly from `price_clean`, or null — charts use a neutral scaffold when missing. */
+  const nightlyPrice = getListingPriceNightly(listing?.price_clean)
+  const chartScaffold = nightlyPrice ?? 100
 
   // Derive scenario data from real monthly metrics
   const scenarioData = useMemo(() => {
@@ -69,28 +72,28 @@ export default function ForecastDashboard() {
       // Fallback mock data when no real data available
       return {
         peak: [
-          { month: 'Jan', price: Math.round(currentPrice * 1.25) },
-          { month: 'Feb', price: Math.round(currentPrice * 1.28) },
-          { month: 'Mar', price: Math.round(currentPrice * 1.32) },
-          { month: 'Apr', price: Math.round(currentPrice * 1.35) },
-          { month: 'May', price: Math.round(currentPrice * 1.40) },
-          { month: 'Jun', price: Math.round(currentPrice * 1.45) },
+          { month: 'Jan', price: Math.round(chartScaffold * 1.25) },
+          { month: 'Feb', price: Math.round(chartScaffold * 1.28) },
+          { month: 'Mar', price: Math.round(chartScaffold * 1.32) },
+          { month: 'Apr', price: Math.round(chartScaffold * 1.35) },
+          { month: 'May', price: Math.round(chartScaffold * 1.40) },
+          { month: 'Jun', price: Math.round(chartScaffold * 1.45) },
         ],
         normal: [
-          { month: 'Jan', price: Math.round(currentPrice * 0.95) },
-          { month: 'Feb', price: Math.round(currentPrice * 0.98) },
-          { month: 'Mar', price: Math.round(currentPrice * 1.00) },
-          { month: 'Apr', price: Math.round(currentPrice * 1.02) },
-          { month: 'May', price: Math.round(currentPrice * 1.05) },
-          { month: 'Jun', price: Math.round(currentPrice * 1.08) },
+          { month: 'Jan', price: Math.round(chartScaffold * 0.95) },
+          { month: 'Feb', price: Math.round(chartScaffold * 0.98) },
+          { month: 'Mar', price: Math.round(chartScaffold * 1.0) },
+          { month: 'Apr', price: Math.round(chartScaffold * 1.02) },
+          { month: 'May', price: Math.round(chartScaffold * 1.05) },
+          { month: 'Jun', price: Math.round(chartScaffold * 1.08) },
         ],
         off: [
-          { month: 'Jan', price: Math.round(currentPrice * 0.65) },
-          { month: 'Feb', price: Math.round(currentPrice * 0.68) },
-          { month: 'Mar', price: Math.round(currentPrice * 0.72) },
-          { month: 'Apr', price: Math.round(currentPrice * 0.75) },
-          { month: 'May', price: Math.round(currentPrice * 0.78) },
-          { month: 'Jun', price: Math.round(currentPrice * 0.82) },
+          { month: 'Jan', price: Math.round(chartScaffold * 0.65) },
+          { month: 'Feb', price: Math.round(chartScaffold * 0.68) },
+          { month: 'Mar', price: Math.round(chartScaffold * 0.72) },
+          { month: 'Apr', price: Math.round(chartScaffold * 0.75) },
+          { month: 'May', price: Math.round(chartScaffold * 0.78) },
+          { month: 'Jun', price: Math.round(chartScaffold * 0.82) },
         ],
       }
     }
@@ -108,10 +111,11 @@ export default function ForecastDashboard() {
 
     const prices = forecast.map((m) => {
       const p = Number(m.avg_adjusted_price)
-      return Number.isFinite(p) ? p : currentPrice
+      return Number.isFinite(p) ? p : (nightlyPrice ?? 0)
     })
 
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length || currentPrice
+    const avgPrice =
+      prices.reduce((a, b) => a + b, 0) / prices.length || (nightlyPrice ?? 0)
 
     return {
       peak: prices.map((p, i) => ({ month: monthLabels[i] || `M${i + 1}`, price: Math.round(p * 1.2) })),
@@ -124,7 +128,7 @@ export default function ForecastDashboard() {
       })),
       avgPrice: Math.round(avgPrice),
     }
-  }, [forecast, currentPrice])
+  }, [forecast, nightlyPrice, chartScaffold])
 
   const [activeScenario, setActiveScenario] = useState('normal')
 
@@ -144,17 +148,17 @@ export default function ForecastDashboard() {
     const avgOccupancy = forecast.length > 0
       ? forecast.reduce((sum, m) => sum + (Number(m.occupancy_rate) || 0), 0) / forecast.length
       : 0
-    const avgPrice = scenarioData.avgPrice || currentPrice
-    const currentPriceNum = Number(currentPrice)
+    const avgPrice = scenarioData.avgPrice ?? nightlyPrice ?? 0
+    const listingNightly = nightlyPrice ?? 0
 
-    if (avgOccupancy > 0.75 || (currentPriceNum > avgPrice * 1.15)) {
+    if (avgOccupancy > 0.75 || (listingNightly > avgPrice * 1.15)) {
       return {
         action: 'wait',
         headline: 'Wait — prices are elevated',
         detail: `Occupancy is high at ${Math.round(avgOccupancy * 100)}%. Prices may soften outside peak periods.`,
         confidence: Math.round(70 + avgOccupancy * 20),
       }
-    } else if (avgOccupancy < 0.45 || currentPriceNum < avgPrice * 0.85) {
+    } else if (avgOccupancy < 0.45 || listingNightly < avgPrice * 0.85) {
       return {
         action: 'buy',
         headline: 'Buy — strongest value',
@@ -169,7 +173,7 @@ export default function ForecastDashboard() {
         confidence: Math.round(75 + (0.6 - Math.abs(avgOccupancy - 0.6)) * 30),
       }
     }
-  }, [forecast, scenarioData, currentPrice])
+  }, [forecast, scenarioData, nightlyPrice])
 
   const gradientId = `priceTrendFill-${activeScenario}-${id ?? 'unknown'}`
 

@@ -23,6 +23,7 @@ class Listing(Base):
     name: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     picture_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    gallery_urls: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     property_type: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     room_type: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     accommodates: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

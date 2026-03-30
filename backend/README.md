@@ -42,3 +42,16 @@ python3 -m uvicorn main:app --reload
 python seed_data.py
 uvicorn main:app --reload
 ```
+
+## PoC：房源图片抓取（Playwright）
+
+`run_scraper.py` 读取 `Data/airbnb_dss.db` 中前 10 条 `listings.id`，用 Chromium 打开 `https://www.airbnb.com/rooms/{id}`，提取 `muscache.com` 图片 URL（最多 5 张），结果写入仓库根目录 **`data/scraped_galleries.json`**（可断点续跑）。
+
+```bash
+cd backend
+pip install -r requirements.txt
+python3 -m playwright install chromium
+python3 run_scraper.py
+```
+
+Airbnb 可能拦截自动化访问；本脚本仅供本地 PoC。
