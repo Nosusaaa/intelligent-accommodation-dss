@@ -59,6 +59,7 @@ async function fetchPOIs(lat, lon) {
 async function fetchAllPOIs(listings) {
   if (!listings.length) return []
   const seen = new Map()
+  const SLEEP_MS = 250 // Overpass 友好：避免连续请求过快
   for (const l of listings) {
     if (l.latitude == null || l.longitude == null) continue
     const r = OVERPASS_RADIUS
@@ -93,6 +94,9 @@ async function fetchAllPOIs(listings) {
     } catch {
       // skip failed listing
     }
+
+    // Avoid hammering Overpass when you have multiple listings.
+    await new Promise((res) => setTimeout(res, SLEEP_MS))
   }
   return [...seen.values()]
 }
@@ -222,7 +226,9 @@ function ListingPopupContent({ listing }) {
 /* ── Hover tooltip (absolute overlay) ─────────────────────────────────── */
 function HoverCard({ listing, pois }) {
   const dist = (poi) =>
-    haversineM(listing.latitude, listing.longitude, poi.lat, poi.lon)
+    typeof poi._dist === 'number'
+      ? poi._dist
+      : haversineM(listing.latitude, listing.longitude, poi.lat, poi.lon)
 
   const restaurants = pois.filter(
     (p) => p.category === 'restaurant' || p.category === 'cafe' || p.category === 'fast_food' || p.category === 'bar',
@@ -232,6 +238,9 @@ function HoverCard({ listing, pois }) {
       p.category === 'attraction' || p.category === 'museum' ||
       p.category === 'gallery' || p.category === 'park',
   )
+
+  const restaurantsIn1km = restaurants.filter((p) => dist(p) <= 1000).length
+  const attractionsIn1km = attractions.filter((p) => dist(p) <= 1000).length
 
   const nearest = (arr) =>
     arr.length
@@ -255,6 +264,21 @@ function HoverCard({ listing, pois }) {
             ? `$${Number(listing.price_clean).toFixed(0)} / night`
             : '—'}
         </span>
+      </div>
+
+      <div className="text-xs text-slate-600 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-orange-400">🍽️</span>
+          <span>
+            1km 内餐厅：<span className="font-semibold text-slate-800">{restaurantsIn1km}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-green-600">🏛️</span>
+          <span>
+            1km 内景区：<span className="font-semibold text-slate-800">{attractionsIn1km}</span>
+          </span>
+        </div>
       </div>
       {r && (
         <div className="flex items-start gap-1.5 text-xs">
