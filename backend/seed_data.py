@@ -307,6 +307,8 @@ def main() -> None:
             "beds",
             "bathrooms_num",
             "bathrooms_text",
+            "latitude",
+            "longitude",
             "neighbourhood_cleansed",
             "neighborhood_overview",
             "review_scores_rating",
@@ -345,10 +347,14 @@ def main() -> None:
         df_listings["review_scores_rating"] = pd.to_numeric(
             df_listings["review_scores_rating"], errors="coerce"
         )
+        df_listings["latitude"] = pd.to_numeric(df_listings["latitude"], errors="coerce")
+        df_listings["longitude"] = pd.to_numeric(df_listings["longitude"], errors="coerce")
         df_listings = _fill_na_for_sql(
             df_listings,
             date_cols=frozenset(),
-            preserve_null_cols=frozenset({"review_scores_rating"}),
+            preserve_null_cols=frozenset(
+                {"review_scores_rating", "latitude", "longitude"}
+            ),
         )
 
         print("Loading reviews for listing sentiment alignment…")

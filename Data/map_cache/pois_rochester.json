@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "city": "rochester",
+  "generated_at": "2026-04-09T09:59:18Z",
+  "bbox": {
+    "south": 43.05,
+    "west": -77.78,
+    "north": 43.28,
+    "east": -77.45
+  },
+  "category_counts": {
+    "transport": 6,
+    "park": 6,
+    "restaurant": 6,
+    "education": 4,
+    "hospital": 4
+  },
+  "coverage": 1.0,
+  "categories": {
+    "transport": [
+      {
+        "id": 900002,
+        "type": "node",
+        "lat": 43.1688,
+        "lon": -77.6202,
+        "name": "Amtrak Rochester Station",
+        "category": "transport"
+      },
+      {
+        "id": 900005,
+        "type": "node",
+        "lat": 43.1423,
+        "lon": -77.6128,
+        "name": "Corn Hill Connector",
+        "category": "transport"
+      },
+      {
+        "id": 900004,
+        "type": "node",
+        "lat": 43.1488,
+        "lon": -77.5799,
+        "name": "East Ave Stop",
+        "category": "transport"
+      },
+      {
+        "id": 900001,
+        "type": "node",
+        "lat": 43.1569,
+        "lon": -77.6086,
+        "name": "RTS Transit Center",
+        "category": "transport"
+      },
+      {
+        "id": 900003,
+        "type": "node",
+        "lat": 43.1304,
+        "lon": -77.6261,
+        "name": "Strong Bus Stop",
+        "category": "transport"
+      },
+      {
+        "id": 900006,
+        "type": "node",
+        "lat": 43.1637,
+        "lon": -77.5901,
+        "name": "University Shuttle",
+        "category": "transport"
+      }
+    ],
+    "park": [
+      {
+        "id": 910003,
+        "type": "node",
+        "lat": 43.1444,
+        "lon": -77.5749,
+        "name": "Cobbs Hill Park",
+        "category": "park"
+      },
+      {
+        "id": 910005,
+        "type": "node",
+        "lat": 43.1398,
+        "lon": -77.6089,
+        "name": "Genesee Riverway Pocket Park",
+        "category": "park"
+      },
+      {
+        "id": 910006,
+        "type": "node",
+        "lat": 43.1232,
+        "lon": -77.6209,
+        "name": "Highland Bowl Green",
+        "category": "park"
+      },
+      {
+        "id": 910001,
+        "type": "node",
+        "lat": 43.1515,
+        "lon": -77.6152,
+        "name": "Highland Park",
+        "category": "park"
+      },
+      {
+        "id": 910004,
+        "type": "node",
+        "lat": 43.1715,
+        "lon": -77.6465,
+        "name": "Maplewood Park",
+        "category": "park"
+      },
+      {
+        "id": 910002,
+        "type": "node",
+        "lat": 43.1642,
+        "lon": -77.6113,
+        "name": "MLK Jr Memorial Park",
+        "category": "park"
+      }
+    ],
+    "restaurant": [
+      {
+        "id": 920002,
+        "type": "node",
+        "lat": 43.1612,
+        "lon": -77.6004,
+        "name": "Downtown Kitchen",
+        "category": "restaurant"
+      },
+      {
+        "id": 920001,
+        "type": "node",
+        "lat": 43.1546,
+        "lon": -77.6045,
+        "name": "East End Bistro",
+        "category": "restaurant"
+      },
+      {
+        "id": 920005,
+        "type": "node",
+        "lat": 43.1678,
+        "lon": -77.5678,
+        "name": "Neighborhood Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 920003,
+        "type": "node",
+        "lat": 43.1482,
+        "lon": -77.5792,
+        "name": "Park Ave Diner",
+        "category": "restaurant"
+      },
+      {
+        "id": 920006,
+        "type": "node",
+        "lat": 43.1432,
+        "lon": -77.5929,
+        "name": "Riverfront Cafe",
+        "category": "restaurant"
+      },
+      {
+        "id": 920004,
+        "type": "node",
+        "lat": 43.1369,
+        "lon": -77.6241,
+        "name": "South Wedge Eats",
+        "category": "restaurant"
+      }
+    ],
+    "education": [
+      {
+        "id": 930002,
+        "type": "node",
+        "lat": 43.1565,
+        "lon": -77.6089,
+        "name": "Downtown Learning Center",
+        "category": "education"
+      },
+      {
+        "id": 930004,
+        "type": "node",
+        "lat": 43.1913,
+        "lon": -77.6092,
+        "name": "RIT City Outpost",
+        "category": "education"
+      },
+      {
+        "id": 930003,
+        "type": "node",
+        "lat": 43.1681,
+        "lon": -77.6123,
+        "name": "School of the Arts",
+        "category": "education"
+      },
+      {
+        "id": 930001,
+        "type": "node",
+        "lat": 43.1284,
+        "lon": -77.6292,
+        "name": "University of Rochester",
+        "category": "education"
+      }
+    ],
+    "hospital": [
+      {
+        "id": 940003,
+        "type": "node",
+        "lat": 43.1458,
+        "lon": -77.5941,
+        "name": "Downtown Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 940004,
+        "type": "node",
+        "lat": 43.1837,
+        "lon": -77.6345,
+        "name": "Northside Clinic",
+        "category": "hospital"
+      },
+      {
+        "id": 940002,
+        "type": "node",
+        "lat": 43.1605,
+        "lon": -77.5494,
+        "name": "Rochester General Hospital",
+        "category": "hospital"
+      },
+      {
+        "id": 940001,
+        "type": "node",
+        "lat": 43.1266,
+        "lon": -77.6243,
+        "name": "Strong Memorial Hospital",
+        "category": "hospital"
+      }
+    ]
+  }
+}

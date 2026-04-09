@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
+import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import { useCompare } from '../context/CompareContext.jsx'
 import { usePreference } from '../context/PreferenceContext.jsx'
 import { api } from '../services/api.js'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
+import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
 
 /** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
 const SUGGESTED_TAGS = [
@@ -49,15 +51,54 @@ const AMENITY_KEYS = [
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80'
 
-const priceBubbles = [
-  { label: '$156', left: '12%', top: '58%' },
-  { label: '$212', left: '44%', top: '32%' },
-  { label: '$289', left: '68%', top: '48%' },
-  { label: '$178', left: '78%', top: '72%' },
-]
-
 /** Must match `LISTING_PRICE_FILTER_MAX` in `backend/main.py`. */
 const PRICE_FILTER_MAX = 1000
+const CATEGORY_SCORE_WEIGHT = {
+  transport: 1.0,
+  park: 0.85,
+  restaurant: 1.15,
+  education: 0.75,
+  hospital: 0.9,
+}
+const CATEGORY_POI_STYLE = {
+  transport: { color: '#2563eb', fillColor: '#60a5fa', radius: 5 },
+  park: { color: '#15803d', fillColor: '#4ade80', radius: 6 },
+  restaurant: { color: '#c2410c', fillColor: '#fb923c', radius: 6 },
+  education: { color: '#7c3aed', fillColor: '#a78bfa', radius: 5 },
+  hospital: { color: '#b91c1c', fillColor: '#f87171', radius: 6 },
+}
+
+class MapErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, message: '' }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error?.message || 'Map failed to render' }
+  }
+
+  componentDidCatch(error) {
+    if (import.meta.env.DEV) {
+      console.error('[MapErrorBoundary]', {
+        name: error?.name,
+        message: error?.message,
+      })
+    }
+    this.props.onError?.(error)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-[320px] items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 text-sm text-red-700 sm:h-[380px]">
+          地图加载失败，已自动降级为列表模式。请刷新页面后重试，并查看控制台首条地图错误。
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function clampInt(value, min, max) {
   const n = Number.isFinite(value) ? Math.trunc(value) : min
@@ -76,6 +117,193 @@ function parseVibeTags(raw) {
     .split('|')
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+function listingLatLon(listing) {
+  const lat = Number(listing?.latitude)
+  const lon = Number(listing?.longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  return [lat, lon]
+}
+
+function toRad(deg) {
+  return (deg * Math.PI) / 180
+}
+
+function haversineKm(aLat, aLon, bLat, bLon) {
+  const R = 6371
+  const dLat = toRad(bLat - aLat)
+  const dLon = toRad(bLon - aLon)
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(x))
+}
+
+function mapIntentScore(listing, pois, category) {
+  const ll = listingLatLon(listing)
+  if (!ll || !Array.isArray(pois) || pois.length === 0) return 0
+  let nearest = Number.POSITIVE_INFINITY
+  for (const poi of pois) {
+    const lat = Number(poi?.lat)
+    const lon = Number(poi?.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
+    const d = haversineKm(ll[0], ll[1], lat, lon)
+    if (d < nearest) nearest = d
+  }
+  if (!Number.isFinite(nearest)) return 0
+  const w = CATEGORY_SCORE_WEIGHT[category] ?? 1
+  const proximity = 100 / (1 + nearest)
+  return Number((w * proximity).toFixed(3))
+}
+
+function ViewportReporter({ onViewportChange }) {
+  const map = useMapEvents({
+    moveend() {
+      const b = map.getBounds()
+      onViewportChange({
+        north: b.getNorth(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        west: b.getWest(),
+      })
+    },
+    zoomend() {
+      const b = map.getBounds()
+      onViewportChange({
+        north: b.getNorth(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        west: b.getWest(),
+      })
+    },
+  })
+  return null
+}
+
+function MapPanel({
+  mapCenter,
+  mappableListings,
+  mapPois,
+  poiCategory,
+  setPoiCategory,
+  onViewportChange,
+  mapError,
+  mapMeta,
+  poiCount,
+  hasPoiData,
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <MapPin className="h-4 w-4 text-teal-600" aria-hidden />
+          <span>Drag/zoom map to update listings in viewport</span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg bg-white p-1 ring-1 ring-slate-200">
+          {POI_CATEGORIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setPoiCategory(c)}
+              className={[
+                'rounded-md px-2 py-1 text-[11px] font-semibold capitalize transition-colors',
+                poiCategory === c
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-600 hover:bg-slate-100',
+              ].join(' ')}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600">
+        {POI_CATEGORIES.map((c) => {
+          const style = CATEGORY_POI_STYLE[c] || CATEGORY_POI_STYLE.transport
+          const active = c === poiCategory
+          return (
+            <span
+              key={`legend-${c}`}
+              className={[
+                'inline-flex items-center gap-1.5 rounded-full px-2 py-1',
+                active ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500',
+              ].join(' ')}
+            >
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full border"
+                style={{ backgroundColor: style.fillColor, borderColor: style.color }}
+              />
+              {c}
+              {active ? ` (${poiCount})` : ''}
+            </span>
+          )
+        })}
+      </div>
+      <div className="h-[320px] w-full sm:h-[380px]">
+        <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="h-full w-full">
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <ViewportReporter onViewportChange={onViewportChange} />
+          {mappableListings.map((listing) => {
+            const ll = listingLatLon(listing)
+            if (!ll) return null
+            return (
+              <Marker key={`listing-${listing.id}`} position={ll} icon={listingMarkerIcon}>
+                <Popup>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">{listing.name || `Listing ${listing.id}`}</p>
+                    <p className="text-xs text-slate-600">
+                      {formatListingPriceDisplay(listing.price_clean)}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            )
+          })}
+          {mapPois.map((poi, idx) => (
+            <CircleMarker
+              key={`poi-${poi.id ?? idx}`}
+              center={[poi.lat, poi.lon]}
+              radius={(CATEGORY_POI_STYLE[poi.category || poiCategory] || CATEGORY_POI_STYLE.transport).radius}
+              pathOptions={{
+                color: (CATEGORY_POI_STYLE[poi.category || poiCategory] || CATEGORY_POI_STYLE.transport).color,
+                fillColor: (CATEGORY_POI_STYLE[poi.category || poiCategory] || CATEGORY_POI_STYLE.transport).fillColor,
+                fillOpacity: 0.75,
+                weight: 2,
+              }}
+            >
+              <Popup>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">{poi.name || 'POI'}</p>
+                  <p className="text-xs capitalize text-slate-600">{poi.category || poiCategory}</p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+        </MapContainer>
+      </div>
+      {mapError && (
+        <div className="border-t border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {mapError}
+        </div>
+      )}
+      {!mapError && mapMeta?.source && (
+        <div className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+          data source: {mapMeta.source}
+          {typeof mapMeta.coverage === 'number' ? ` | coverage: ${(mapMeta.coverage * 100).toFixed(0)}%` : ''}
+          {mapMeta.generatedAt ? ` | generated: ${mapMeta.generatedAt}` : ''}
+        </div>
+      )}
+      {!mapError && !hasPoiData && (
+        <div className="border-t border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+          当前分类暂无点位数据，列表已自动降级为默认排序。
+        </div>
+      )}
+    </div>
+  )
 }
 
 /** `average_sentiment_score` is typically 0–1; show as percent. */
@@ -129,6 +357,7 @@ function buildListingParams({
   roomTypes,
   amenities,
   selectedTags,
+  viewport,
   page,
   limit,
 }) {
@@ -141,6 +370,13 @@ function buildListingParams({
     bathrooms,
     skip: (page - 1) * limit,
     limit,
+  }
+  if (viewport) {
+    params.map_mode = true
+    params.north = viewport.north
+    params.south = viewport.south
+    params.east = viewport.east
+    params.west = viewport.west
   }
   const roomLabels = ROOM_TYPE_KEYS.filter(({ id }) => roomTypes[id]).map(
     ({ label }) => label,
@@ -244,6 +480,15 @@ export default function SmartSearch() {
 
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 12
+  const [viewport, setViewport] = useState(null)
+  const [mapPois, setMapPois] = useState([])
+  const [poiCategory, setPoiCategory] = useState('transport')
+  const [mapError, setMapError] = useState(null)
+  const [mapMeta, setMapMeta] = useState(null)
+  const [mapDisabled, setMapDisabled] = useState(false)
+  const [mapRenderNonce, setMapRenderNonce] = useState(0)
+  const poiCount = mapPois.length
+  const hasPoiData = poiCount > 0
 
   // Derive tags from search query
   const queryExtractedTags = useMemo(
@@ -268,6 +513,7 @@ export default function SmartSearch() {
         roomTypes,
         amenities,
         vibeTags: [...allActiveTags].sort(),
+        viewport,
       }),
     [
       guests,
@@ -279,10 +525,12 @@ export default function SmartSearch() {
       roomTypes,
       amenities,
       allActiveTags,
+      viewport,
     ],
   )
 
   const prevFilterKeyRef = useRef(filterKey)
+  const viewportDebounceRef = useRef(null)
 
   // Handle search input changes
   const handleSearchChange = useCallback((e) => {
@@ -295,6 +543,15 @@ export default function SmartSearch() {
   const clearSearch = useCallback(() => {
     setInputValue('')
     setSearchQuery('')
+  }, [])
+
+  const onViewportChange = useCallback((nextBbox) => {
+    if (viewportDebounceRef.current) {
+      window.clearTimeout(viewportDebounceRef.current)
+    }
+    viewportDebounceRef.current = window.setTimeout(() => {
+      setViewport(nextBbox)
+    }, 280)
   }, [])
 
   const toggleTag = useCallback((tag) => {
@@ -348,6 +605,14 @@ export default function SmartSearch() {
   }, [topVibeTag])
 
   useEffect(() => {
+    return () => {
+      if (viewportDebounceRef.current) {
+        window.clearTimeout(viewportDebounceRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
 
     const filtersJustChanged = prevFilterKeyRef.current !== filterKey
@@ -373,6 +638,7 @@ export default function SmartSearch() {
           roomTypes,
           amenities,
           selectedTags: allActiveTags,
+          viewport,
           page: requestPage,
           limit: PAGE_SIZE,
         })
@@ -419,6 +685,75 @@ export default function SmartSearch() {
       cancelled = true
     }
   }, [filterKey, page])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!viewport) {
+      setMapPois([])
+      setMapError(null)
+      setMapMeta(null)
+      return
+    }
+    async function fetchPois() {
+      try {
+        setMapError(null)
+        const data = await api.getMapPois({
+          north: viewport.north,
+          south: viewport.south,
+          east: viewport.east,
+          west: viewport.west,
+          category: poiCategory,
+        })
+        if (!cancelled) {
+          setMapPois(Array.isArray(data?.pois) ? data.pois : [])
+          setMapMeta({
+            source: data?.source ?? null,
+            coverage: Number.isFinite(data?.coverage) ? data.coverage : null,
+            generatedAt: data?.generated_at ?? null,
+          })
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMapError(err?.response?.data?.detail || err?.message || 'Failed to load map POIs')
+          setMapPois([])
+          setMapMeta(null)
+        }
+      }
+    }
+    fetchPois()
+    return () => {
+      cancelled = true
+    }
+  }, [viewport, poiCategory])
+
+  const rankedListings = useMemo(
+    () => {
+      const enriched = listings.map((listing) => ({
+        ...listing,
+        map_intent_score: mapIntentScore(listing, mapPois, poiCategory),
+      }))
+      if (!hasPoiData) {
+        return enriched.sort((a, b) => a.id - b.id)
+      }
+      return enriched.sort((a, b) => {
+        if (b.map_intent_score !== a.map_intent_score) {
+          return b.map_intent_score - a.map_intent_score
+        }
+        return a.id - b.id
+      })
+    },
+    [listings, mapPois, poiCategory, hasPoiData],
+  )
+
+  const mappableListings = useMemo(
+    () => rankedListings.filter((x) => listingLatLon(x) !== null),
+    [rankedListings],
+  )
+  const mapCenter = useMemo(() => {
+    const first = mappableListings[0]
+    const ll = listingLatLon(first)
+    return ll || ROCHESTER_CENTER
+  }, [mappableListings])
 
   return (
     <div className="relative grid grid-cols-12 gap-6 pb-24 lg:gap-8">
@@ -671,38 +1006,59 @@ export default function SmartSearch() {
           </div>
         </div>
 
-        <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-slate-200 shadow-inner sm:min-h-[280px]">
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2394a3b8' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="rounded-2xl border border-white/60 bg-white/90 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
-              <MapPin className="mr-2 inline h-4 w-4 text-teal-600" aria-hidden />
-              Map preview — listings update as you filter
-            </div>
-          </div>
-          {priceBubbles.map((b) => (
-            <span
-              key={`${b.left}-${b.top}`}
-              className="absolute z-10 rounded-full bg-teal-600 px-2.5 py-1 text-xs font-bold text-white shadow-md ring-2 ring-white/90"
-              style={{ left: b.left, top: b.top }}
+        {mapDisabled ? (
+          <div className="flex h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 text-center sm:h-[380px]">
+            <p className="text-sm text-amber-800">
+              地图已降级为列表模式。你仍可使用所有筛选与房源浏览。
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setMapDisabled(false)
+                setMapRenderNonce((n) => n + 1)
+              }}
+              className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
             >
-              {b.label}
-            </span>
-          ))}
-        </div>
+              重试地图加载
+            </button>
+          </div>
+        ) : (
+          <MapErrorBoundary
+            key={mapRenderNonce}
+            onError={() => {
+              setMapDisabled(true)
+            }}
+          >
+            <MapPanel
+              mapCenter={mapCenter}
+              mappableListings={mappableListings}
+              mapPois={mapPois}
+              poiCategory={poiCategory}
+              setPoiCategory={setPoiCategory}
+              onViewportChange={onViewportChange}
+              mapError={mapError}
+              mapMeta={mapMeta}
+              poiCount={poiCount}
+              hasPoiData={hasPoiData}
+            />
+          </MapErrorBoundary>
+        )}
 
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">
               Matching stays
             </h2>
-            <span className="text-sm text-slate-500">
-              {isLoading ? '…' : `${totalCount} results`}
-            </span>
+            <div className="text-right">
+              <span className="text-sm text-slate-500">
+                {isLoading ? '…' : `${totalCount} results`}
+              </span>
+              <p className="text-[11px] text-slate-400">
+                {hasPoiData
+                  ? `Sorted by ${poiCategory} proximity`
+                  : 'Default order (no POI data)'}
+              </p>
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {isLoading && (
@@ -721,7 +1077,7 @@ export default function SmartSearch() {
             )}
             {!isLoading &&
               !error &&
-              listings.map((listing) => {
+              rankedListings.map((listing) => {
                 const selected = isInCompare(listing.id)
                 const vibePills = parseVibeTags(listing.vibe_tags)
                 return (
@@ -732,7 +1088,12 @@ export default function SmartSearch() {
                     <Link to={`/details/${listing.id}`} className="block">
                       <div className="relative aspect-[16/10] overflow-hidden">
                         <img
-                          src={listing.picture_url || PLACEHOLDER_IMAGE}
+                          src={
+                            listing.picture_url &&
+                            String(listing.picture_url).trim().startsWith('http')
+                              ? listing.picture_url
+                              : PLACEHOLDER_IMAGE
+                          }
                           alt=""
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
@@ -760,9 +1121,12 @@ export default function SmartSearch() {
                       </div>
                     </Link>
                     <div className="flex items-start justify-between gap-2 border-t border-slate-50 px-4 pb-4">
-                      <p className="text-xs text-slate-400">
-                        Sentiment {formatSentimentScore(listing.average_sentiment_score)}
-                      </p>
+                      <div className="text-xs text-slate-400">
+                        <p>Sentiment {formatSentimentScore(listing.average_sentiment_score)}</p>
+                        <p className="mt-0.5 text-teal-700">
+                          Map fit ({poiCategory}) {listing.map_intent_score.toFixed(1)}
+                        </p>
+                      </div>
                       <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
                         {formatListingPriceDisplay(listing.price_clean)}
                       </span>
@@ -792,7 +1156,7 @@ export default function SmartSearch() {
                   </article>
                 )
               })}
-            {!isLoading && !error && listings.length === 0 && (
+            {!isLoading && !error && rankedListings.length === 0 && (
               <div className="col-span-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-12 text-center text-sm text-slate-600">
                 No listings found.
               </div>
