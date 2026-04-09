@@ -299,6 +299,7 @@ def main() -> None:
             "name",
             "description",
             "picture_url",
+            "listing_url",
             "property_type",
             "room_type",
             "accommodates",
