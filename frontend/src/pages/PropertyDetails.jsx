@@ -86,6 +86,16 @@ function safeSentimentPercent(count, total) {
   return Number.isFinite(p) ? p : 0
 }
 
+function isSafeHttpUrl(raw) {
+  if (!raw || typeof raw !== 'string') return false
+  try {
+    const u = new URL(raw)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -189,6 +199,8 @@ export default function PropertyDetails() {
   }, [listing, scrapedGallery])
 
   const thumbImages = displayImages.length > 1 ? displayImages.slice(1) : []
+  const externalListingUrl =
+    listing?.listing_url && isSafeHttpUrl(listing.listing_url) ? listing.listing_url : null
 
   useEffect(() => {
     setActiveImage(0)
@@ -396,6 +408,16 @@ export default function PropertyDetails() {
               </li>
             </ul>
           </section>
+          {externalListingUrl && (
+            <a
+              href={externalListingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-center text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
+            >
+              Open on Airbnb
+            </a>
+          )}
         </div>
 
         <div className="space-y-6">

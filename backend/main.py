@@ -25,7 +25,8 @@ import bcrypt
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text
+from sqlalchemy import or_, select, text
+
 from sqlalchemy.orm import Session, selectinload
 
 from database import Base, engine
@@ -113,6 +114,7 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "name": listing.name,
         "description": listing.description,
         "picture_url": listing.picture_url,
+        "listing_url": listing.listing_url,
         "gallery_urls": listing.gallery_urls,
         "property_type": listing.property_type,
         "room_type": listing.room_type,
@@ -194,10 +196,10 @@ class AuthCredentials(BaseModel):
 
 class ProfileResponse(BaseModel):
     user_id: int
-    full_name: str | None = None
+    full_name: Optional[str] = None
     email: str
-    avatar_url: str | None = None
-    created_at: str | None = None
+    avatar_url: Optional[str] = None
+    created_at: Optional[str] = None
 
 
 class ProfileUpdateBody(BaseModel):
@@ -404,6 +406,10 @@ def list_listings(
         None,
         description="Repeat query param for vibe tag filtering (case-insensitive partial match on pipe-separated tags)",
     ),
+    q: Optional[str] = Query(
+        None,
+        description="Free-text search: whitespace-separated tokens; each token must match listing name or neighbourhood (case-insensitive).",
+    ),
     north: Optional[float] = Query(None, ge=-90, le=90),
     south: Optional[float] = Query(None, ge=-90, le=90),
     east: Optional[float] = Query(None, ge=-180, le=180),
@@ -463,6 +469,19 @@ def list_listings(
     if has_balcony is True:
         stmt = stmt.where(Listing.has_balcony.is_(True))
 
+    q_stripped = (q or "").strip() if q is not None else ""
+    if q_stripped:
+        for token in q_stripped.split():
+            if not token:
+                continue
+            pat = f"%{token}%"
+            stmt = stmt.where(
+                or_(
+                    Listing.name.ilike(pat),
+                    Listing.neighbourhood_cleansed.ilike(pat),
+                )
+            )
+
     # Optional viewport-bound filtering for full map search.
     if map_mode and None not in (north, south, east, west):
         if south > north:
@@ -484,7 +503,6 @@ def list_listings(
                 )
         if tag_filters:
             stmt = stmt.join(ListingTag, Listing.id == ListingTag.listing_id)
-            from sqlalchemy import or_
             stmt = stmt.where(or_(*tag_filters)).distinct()
 
     # Count total before pagination
