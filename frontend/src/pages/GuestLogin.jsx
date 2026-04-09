@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { LogIn, UserRound } from 'lucide-react'
 import { api } from '../services/api.js'
 import RoomSliderBackground from '../components/RoomSliderBackground.jsx'
+import { useUser } from '../context/UserContext.jsx'
 
 function errorMessageFromAxios(err) {
   const detail = err?.response?.data?.detail
@@ -18,6 +19,7 @@ function errorMessageFromAxios(err) {
 
 export default function GuestLogin() {
   const navigate = useNavigate()
+  const { login, continueAsGuest } = useUser()
 
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [email, setEmail] = useState('')
@@ -25,7 +27,10 @@ export default function GuestLogin() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const goSearch = () => navigate('/search')
+  const goSearch = () => {
+    continueAsGuest({ email: email.trim() })
+    navigate('/search')
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -35,15 +40,11 @@ export default function GuestLogin() {
       const credentials = { email: email.trim(), password }
       if (isLoginMode) {
         const result = await api.login(credentials)
-        if (result?.user_id) {
-          sessionStorage.setItem('user_id', String(result.user_id))
-        }
+        await login({ userId: result?.user_id ?? null, email: result?.email ?? credentials.email })
         navigate('/search')
       } else {
         const result = await api.signup(credentials)
-        if (result?.user_id) {
-          sessionStorage.setItem('user_id', String(result.user_id))
-        }
+        await login({ userId: result?.user_id ?? null, email: credentials.email })
         navigate('/onboarding')
       }
     } catch (err) {

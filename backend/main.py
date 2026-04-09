@@ -25,7 +25,7 @@ import bcrypt
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, selectinload
 
 from database import Base, engine
@@ -44,9 +44,24 @@ def _verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
+
+def _ensure_user_profile_columns() -> None:
+    with engine.begin() as conn:
+        columns = {
+            row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+        }
+        if "full_name" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(120)"))
+        if "avatar_url" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url TEXT"))
+        if "created_at" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN created_at VARCHAR(26)"))
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _ensure_user_profile_columns()
     yield
 
 
@@ -177,6 +192,21 @@ class AuthCredentials(BaseModel):
     password: str = Field(..., min_length=1, max_length=256)
 
 
+class ProfileResponse(BaseModel):
+    user_id: int
+    full_name: str | None = None
+    email: str
+    avatar_url: str | None = None
+    created_at: str | None = None
+
+
+class ProfileUpdateBody(BaseModel):
+    user_id: int
+    full_name: str = Field(default="", max_length=120)
+    email: str = Field(..., min_length=3, max_length=320)
+    avatar_url: str = Field(default="")
+
+
 @app.post("/api/auth/signup")
 def auth_signup(
     body: AuthCredentials,
@@ -189,7 +219,11 @@ def auth_signup(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    user = User(email=email, password=_hash_password(body.password))
+    user = User(
+        email=email,
+        password=_hash_password(body.password),
+        created_at=datetime.utcnow().isoformat(),
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -213,6 +247,56 @@ def auth_login(
         "email": user.email,
         "user_id": user.id,
     }
+
+
+@app.get("/api/profile", response_model=ProfileResponse)
+def get_profile(
+    db: Annotated[Session, Depends(get_db)],
+    user_id: int = Query(..., ge=1),
+) -> ProfileResponse:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return ProfileResponse(
+        user_id=user.id,
+        full_name=user.full_name,
+        email=user.email,
+        avatar_url=user.avatar_url,
+        created_at=user.created_at,
+    )
+
+
+@app.put("/api/profile", response_model=ProfileResponse)
+def update_profile(
+    body: ProfileUpdateBody,
+    db: Annotated[Session, Depends(get_db)],
+) -> ProfileResponse:
+    user = db.get(User, body.user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    next_email = _normalize_email(body.email)
+    existing = db.scalars(select(User).where(User.email == next_email, User.id != body.user_id)).first()
+    if existing is not None:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user.full_name = body.full_name.strip() or None
+    user.email = next_email
+    user.avatar_url = body.avatar_url.strip() or None
+    if not user.created_at:
+        user.created_at = datetime.utcnow().isoformat()
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return ProfileResponse(
+        user_id=user.id,
+        full_name=user.full_name,
+        email=user.email,
+        avatar_url=user.avatar_url,
+        created_at=user.created_at,
+    )
 
 
 @app.get("/api/onboarding/rooms")
