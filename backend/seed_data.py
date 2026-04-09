@@ -312,8 +312,6 @@ def main() -> None:
             "longitude",
             "neighbourhood_cleansed",
             "neighborhood_overview",
-            "latitude",
-            "longitude",
             "review_scores_rating",
             "number_of_reviews",
             "has_wifi",
