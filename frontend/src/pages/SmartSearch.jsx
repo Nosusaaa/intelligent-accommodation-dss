@@ -1,9 +1,11 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GitCompare, MapPin, Minus, Plus, Search, Tag, X } from 'lucide-react'
+import { CheckSquare, GitCompare, MapPin, Minus, Plus, Search, Star, Tag, X } from 'lucide-react'
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet'
+import { useCollection } from '../context/CollectionContext.jsx'
 import { useCompare } from '../context/CompareContext.jsx'
 import { usePreference } from '../context/PreferenceContext.jsx'
+import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
@@ -439,8 +441,16 @@ function IntegerStepper({
 
 export default function SmartSearch() {
   const navigate = useNavigate()
+  const { userId } = useUser()
   const { items, toggleCompare, isInCompare } = useCompare()
   const { topVibeTag } = usePreference()
+  const {
+    isFavorite,
+    isStayed,
+    toggleFavorite,
+    toggleStayed,
+    syncListingFlags,
+  } = useCollection()
 
   const [listings, setListings] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -744,6 +754,17 @@ export default function SmartSearch() {
     },
     [listings, mapPois, poiCategory, hasPoiData],
   )
+
+  const listingIdsSyncKey = useMemo(
+    () => rankedListings.map((l) => l.id).join(','),
+    [rankedListings],
+  )
+
+  useEffect(() => {
+    if (!userId || !listingIdsSyncKey) return
+    const ids = listingIdsSyncKey.split(',').map(Number).filter(Boolean)
+    if (ids.length) syncListingFlags(ids)
+  }, [userId, listingIdsSyncKey, syncListingFlags])
 
   const mappableListings = useMemo(
     () => rankedListings.filter((x) => listingLatLon(x) !== null),
@@ -1127,32 +1148,96 @@ export default function SmartSearch() {
                           Map fit ({poiCategory}) {listing.map_intent_score.toFixed(1)}
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
-                        {formatListingPriceDisplay(listing.price_clean)}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          title={
+                            selected ? 'Remove from compare' : 'Add to compare'
+                          }
+                          className={[
+                            'flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md',
+                            selected
+                              ? 'border-teal-300 bg-teal-600 text-white hover:bg-teal-700'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:text-teal-700',
+                          ].join(' ')}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            toggleCompare({
+                              id: listing.id,
+                              name: listing.name || `Listing ${listing.id}`,
+                            })
+                          }}
+                        >
+                          <GitCompare className="h-4 w-4" aria-hidden />
+                        </button>
+                        <span className="rounded-lg bg-teal-50 px-2 py-1 text-sm font-semibold text-teal-800">
+                          {formatListingPriceDisplay(listing.price_clean)}
+                        </span>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      title={
-                        selected ? 'Remove from compare' : 'Add to compare'
-                      }
-                      className={[
-                        'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-md',
-                        selected
-                          ? 'border-teal-300 bg-teal-600 text-white hover:bg-teal-700'
-                          : 'border-white/80 bg-white/95 text-slate-600 hover:border-teal-200 hover:text-teal-700',
-                      ].join(' ')}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        toggleCompare({
-                          id: listing.id,
-                          name: listing.name || `Listing ${listing.id}`,
-                        })
-                      }}
-                    >
-                      <GitCompare className="h-4 w-4" aria-hidden />
-                    </button>
+                    <div className="absolute right-3 top-3 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        title={
+                          userId
+                            ? isFavorite(listing.id)
+                              ? 'Remove from favorites'
+                              : 'Add to favorites'
+                            : 'Sign in to save favorites'
+                        }
+                        className={[
+                          'flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-md',
+                          isFavorite(listing.id)
+                            ? 'border-amber-300 bg-amber-50 text-amber-500'
+                            : 'border-white/80 bg-white/95 text-slate-600 hover:border-amber-200 hover:text-amber-600',
+                        ].join(' ')}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          if (!userId) {
+                            navigate('/guest-login')
+                            return
+                          }
+                          toggleFavorite(listing.id).catch(() => {})
+                        }}
+                      >
+                        <Star
+                          className={[
+                            'h-4 w-4',
+                            isFavorite(listing.id) ? 'fill-current' : '',
+                          ].join(' ')}
+                          aria-hidden
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        title={
+                          userId
+                            ? isStayed(listing.id)
+                              ? 'Unmark as stayed'
+                              : 'Mark as stayed'
+                            : 'Sign in to record stays'
+                        }
+                        className={[
+                          'flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:shadow-md',
+                          isStayed(listing.id)
+                            ? 'border-teal-300 bg-teal-600 text-white hover:bg-teal-700'
+                            : 'border-white/80 bg-white/95 text-slate-600 hover:border-teal-200 hover:text-teal-700',
+                        ].join(' ')}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          if (!userId) {
+                            navigate('/guest-login')
+                            return
+                          }
+                          toggleStayed(listing.id).catch(() => {})
+                        }}
+                      >
+                        <CheckSquare className="h-4 w-4" aria-hidden />
+                      </button>
+                    </div>
                   </article>
                 )
               })}

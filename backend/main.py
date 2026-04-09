@@ -30,7 +30,21 @@ from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from database import Base, engine
-from models import AdminUser, Listing, ListingTag, MonthlyMetric, Review, ScenicSpot, SessionLocal, StrategyConfig, SyncLog, User, UserPreference
+from models import (
+    AdminUser,
+    Listing,
+    ListingTag,
+    MonthlyMetric,
+    Review,
+    ScenicSpot,
+    SessionLocal,
+    StrategyConfig,
+    SyncLog,
+    User,
+    UserFavorite,
+    UserPreference,
+    UserStay,
+)
 from overpass_client import fetch_pois_bbox, load_offline_pois
 
 
@@ -297,6 +311,193 @@ def update_profile(
         avatar_url=user.avatar_url,
         created_at=user.created_at,
     )
+
+
+def _user_or_404(db: Session, user_id: int) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+def _listing_or_404(db: Session, listing_id: int) -> Listing:
+    listing = db.get(Listing, listing_id)
+    if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return listing
+
+
+def _now_iso() -> str:
+    return datetime.utcnow().isoformat()
+
+
+@app.get("/api/users/{user_id}/favorites")
+def get_user_favorites(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    stmt = (
+        select(Listing)
+        .join(UserFavorite, UserFavorite.listing_id == Listing.id)
+        .where(UserFavorite.user_id == user_id)
+        .options(selectinload(Listing.listing_tags))
+        .order_by(UserFavorite.id.desc())
+    )
+    rows = db.scalars(stmt).all()
+    return {"listings": [_listing_full(x) for x in rows], "total": len(rows)}
+
+
+@app.post("/api/users/{user_id}/favorites/{listing_id}")
+def add_user_favorite(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    _listing_or_404(db, listing_id)
+    exists = db.scalars(
+        select(UserFavorite).where(
+            UserFavorite.user_id == user_id,
+            UserFavorite.listing_id == listing_id,
+        )
+    ).first()
+    if exists is not None:
+        return {"ok": True, "message": "Already in favorites"}
+    db.add(
+        UserFavorite(
+            user_id=user_id,
+            listing_id=listing_id,
+            created_at=_now_iso(),
+        )
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/users/{user_id}/favorites/{listing_id}")
+def remove_user_favorite(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    row = db.scalars(
+        select(UserFavorite).where(
+            UserFavorite.user_id == user_id,
+            UserFavorite.listing_id == listing_id,
+        )
+    ).first()
+    if row is None:
+        return {"ok": True, "message": "Not in favorites"}
+    db.delete(row)
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/users/{user_id}/stays")
+def get_user_stays(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    stmt = (
+        select(Listing)
+        .join(UserStay, UserStay.listing_id == Listing.id)
+        .where(UserStay.user_id == user_id)
+        .options(selectinload(Listing.listing_tags))
+        .order_by(UserStay.id.desc())
+    )
+    rows = db.scalars(stmt).all()
+    return {"listings": [_listing_full(x) for x in rows], "total": len(rows)}
+
+
+@app.post("/api/users/{user_id}/stays/{listing_id}")
+def add_user_stay(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    _listing_or_404(db, listing_id)
+    exists = db.scalars(
+        select(UserStay).where(
+            UserStay.user_id == user_id,
+            UserStay.listing_id == listing_id,
+        )
+    ).first()
+    if exists is not None:
+        return {"ok": True, "message": "Already marked as stayed"}
+    now = _now_iso()
+    db.add(
+        UserStay(
+            user_id=user_id,
+            listing_id=listing_id,
+            created_at=now,
+            stayed_at=now,
+        )
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/users/{user_id}/stays/{listing_id}")
+def remove_user_stay(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    row = db.scalars(
+        select(UserStay).where(
+            UserStay.user_id == user_id,
+            UserStay.listing_id == listing_id,
+        )
+    ).first()
+    if row is None:
+        return {"ok": True, "message": "Not in stayed list"}
+    db.delete(row)
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/users/{user_id}/listing-flags")
+def get_user_listing_flags(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    listing_ids: str = Query(..., description="Comma-separated listing ids"),
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    raw_ids = [x.strip() for x in listing_ids.split(",") if x.strip()]
+    ids: list[int] = []
+    for x in raw_ids:
+        try:
+            ids.append(int(x))
+        except ValueError:
+            continue
+    if not ids:
+        return {"flags": {}}
+    fav_rows = db.scalars(
+        select(UserFavorite.listing_id).where(
+            UserFavorite.user_id == user_id,
+            UserFavorite.listing_id.in_(ids),
+        )
+    ).all()
+    fav_set = set(fav_rows)
+    stay_rows = db.scalars(
+        select(UserStay.listing_id).where(
+            UserStay.user_id == user_id,
+            UserStay.listing_id.in_(ids),
+        )
+    ).all()
+    stay_set = set(stay_rows)
+    flags: dict[str, dict[str, bool]] = {}
+    for lid in ids:
+        flags[str(lid)] = {
+            "favorited": lid in fav_set,
+            "stayed": lid in stay_set,
+        }
+    return {"flags": flags}
 
 
 @app.get("/api/onboarding/rooms")

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Camera, Download, Mail, Save, Trash2, User2 } from 'lucide-react'
+import { useCollection } from '../context/CollectionContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
+import { api } from '../services/api.js'
+import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -32,12 +36,15 @@ function downloadJson(filename, obj) {
 
 export default function Profile() {
   const { userId, profile, loadingProfile, fetchProfile, updateProfile } = useUser()
+  const { toggleStayed, refreshStaysFromServer } = useCollection()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef(null)
+  const [stayedListings, setStayedListings] = useState([])
+  const [stayedLoading, setStayedLoading] = useState(false)
 
   useEffect(() => {
     if (userId && !profile) fetchProfile(userId).catch(() => {})
@@ -48,6 +55,31 @@ export default function Profile() {
     setEmail(profile?.email || '')
     setAvatarUrl(profile?.avatar_url || '')
   }, [profile])
+
+  useEffect(() => {
+    if (!userId) {
+      setStayedListings([])
+      return
+    }
+    let cancelled = false
+    setStayedLoading(true)
+    api
+      .getUserStays(userId)
+      .then((data) => {
+        if (!cancelled) {
+          setStayedListings(Array.isArray(data?.listings) ? data.listings : [])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStayedListings([])
+      })
+      .finally(() => {
+        if (!cancelled) setStayedLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
 
   const displayName = useMemo(() => fullName || email || 'Guest', [fullName, email])
   const initials = useMemo(() => initialsFrom(displayName), [displayName])
@@ -227,6 +259,85 @@ export default function Profile() {
             </div>
           </div>
         </section>
+
+        {userId ? (
+          <section className="lg:col-span-2 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Travel log
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">Stayed listings</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Properties you marked as stayed (also available from search cards).
+                </p>
+              </div>
+            </div>
+            {stayedLoading ? (
+              <p className="mt-6 text-sm text-slate-500">Loading stayed listings…</p>
+            ) : stayedListings.length === 0 ? (
+              <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
+                No stays recorded yet. Use the check button on a listing card after you sign in.
+              </p>
+            ) : (
+              <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {stayedListings.slice(0, 6).map((listing) => (
+                  <li
+                    key={listing.id}
+                    className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50 shadow-sm"
+                  >
+                    <Link to={`/details/${listing.id}`} className="block">
+                      <div className="aspect-[16/10] overflow-hidden bg-slate-200">
+                        <img
+                          src={
+                            listing.picture_url &&
+                            String(listing.picture_url).trim().startsWith('http')
+                              ? listing.picture_url
+                              : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80'
+                          }
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="line-clamp-2 text-sm font-semibold text-slate-900">
+                          {listing.name || `Listing ${listing.id}`}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatListingPriceDisplay(listing.price_clean)} / night
+                        </p>
+                      </div>
+                    </Link>
+                    <div className="border-t border-slate-100 px-3 pb-3">
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-600 hover:text-red-800"
+                        onClick={async () => {
+                          try {
+                            await toggleStayed(listing.id)
+                            setStayedListings((prev) =>
+                              prev.filter((x) => x.id !== listing.id),
+                            )
+                            await refreshStaysFromServer()
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                      >
+                        Remove from stayed
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {stayedListings.length > 6 ? (
+              <p className="mt-4 text-center text-xs text-slate-500">
+                Showing 6 of {stayedListings.length}. Manage more from search or favorites.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
 
         <div className="lg:col-span-2 flex items-center justify-between gap-3 border-t border-slate-100 pt-2">
           <p className="text-sm text-slate-500">{loadingProfile ? 'Loading profile…' : status}</p>
