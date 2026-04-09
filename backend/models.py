@@ -134,6 +134,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
 
     preferences: Mapped[List["UserPreference"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

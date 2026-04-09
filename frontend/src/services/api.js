@@ -121,6 +121,16 @@ export const api = {
     return data;
   },
 
+  async getProfile(userId) {
+    const { data } = await client.get("/profile", { params: { user_id: userId } });
+    return data;
+  },
+
+  async updateProfile(body) {
+    const { data } = await client.put("/profile", body);
+    return data;
+  },
+
   /**
    * Save onboarding vibe-tag preferences for a user.
    * @param {{ user_id: number, tag_scores: Record<string, number> }} body
