@@ -10,6 +10,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -144,6 +145,53 @@ class User(Base):
     preferences: Mapped[List["UserPreference"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    favorites: Mapped[List["UserFavorite"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    stays: Mapped[List["UserStay"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class UserFavorite(Base):
+    """User-saved listing (favorites)."""
+
+    __tablename__ = "user_favorites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "listing_id", name="uq_user_favorite_listing"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    listing_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="favorites")
+    listing: Mapped["Listing"] = relationship()
+
+
+class UserStay(Base):
+    """Listing the user marked as stayed."""
+
+    __tablename__ = "user_stays"
+    __table_args__ = (UniqueConstraint("user_id", "listing_id", name="uq_user_stay_listing"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    listing_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    stayed_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="stays")
+    listing: Mapped["Listing"] = relationship()
 
 
 class UserPreference(Base):

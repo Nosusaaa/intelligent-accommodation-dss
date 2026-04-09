@@ -131,6 +131,51 @@ export const api = {
     return data;
   },
 
+  async getUserFavorites(userId) {
+    const { data } = await client.get(`/users/${userId}/favorites`);
+    return data;
+  },
+
+  async addUserFavorite(userId, listingId) {
+    const { data } = await client.post(
+      `/users/${userId}/favorites/${listingId}`,
+    );
+    return data;
+  },
+
+  async removeUserFavorite(userId, listingId) {
+    const { data } = await client.delete(
+      `/users/${userId}/favorites/${listingId}`,
+    );
+    return data;
+  },
+
+  async getUserStays(userId) {
+    const { data } = await client.get(`/users/${userId}/stays`);
+    return data;
+  },
+
+  async addUserStay(userId, listingId) {
+    const { data } = await client.post(`/users/${userId}/stays/${listingId}`);
+    return data;
+  },
+
+  async removeUserStay(userId, listingId) {
+    const { data } = await client.delete(`/users/${userId}/stays/${listingId}`);
+    return data;
+  },
+
+  /** @param {number[]} listingIds */
+  async getUserListingFlags(userId, listingIds) {
+    const ids = Array.isArray(listingIds)
+      ? listingIds.filter((x) => x != null).join(",")
+      : "";
+    const { data } = await client.get(`/users/${userId}/listing-flags`, {
+      params: { listing_ids: ids },
+    });
+    return data;
+  },
+
   /**
    * Save onboarding vibe-tag preferences for a user.
    * @param {{ user_id: number, tag_scores: Record<string, number> }} body
