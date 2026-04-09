@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Camera, Download, Mail, Save, Trash2, User2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Camera, Download, Mail, RefreshCw, Save, Trash2, User2 } from 'lucide-react'
 import { useCollection } from '../context/CollectionContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
@@ -45,6 +45,7 @@ export default function Profile() {
   const fileInputRef = useRef(null)
   const [stayedListings, setStayedListings] = useState([])
   const [stayedLoading, setStayedLoading] = useState(false)
+  const [preferences, setPreferences] = useState(null)
 
   useEffect(() => {
     if (userId && !profile) fetchProfile(userId).catch(() => {})
@@ -75,6 +76,26 @@ export default function Profile() {
       })
       .finally(() => {
         if (!cancelled) setStayedLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  // Fetch user preferences
+  useEffect(() => {
+    if (!userId) {
+      setPreferences(null)
+      return
+    }
+    let cancelled = false
+    api
+      .getPreferences(userId)
+      .then((data) => {
+        if (!cancelled) setPreferences(data)
+      })
+      .catch(() => {
+        if (!cancelled) setPreferences(null)
       })
     return () => {
       cancelled = true
@@ -257,6 +278,47 @@ export default function Profile() {
               <p className="font-semibold text-amber-950">Privacy Notice</p>
               <p className="mt-2 leading-5">Your avatar and account details are stored with your user profile and used to personalize your signed-in experience.</p>
             </div>
+
+            {userId && (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Your Vibe</p>
+                  <Link
+                    to="/onboarding"
+                    className="inline-flex items-center gap-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:border-teal-300 hover:bg-teal-100"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Retest
+                  </Link>
+                </div>
+                {preferences?.top_vibe_tag ? (
+                  <p className="mt-3 text-base font-bold text-teal-700">{preferences.top_vibe_tag}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-400">No preference data yet.</p>
+                )}
+                {preferences?.tag_scores && Object.keys(preferences.tag_scores).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {Object.entries(preferences.tag_scores)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 8)
+                      .map(([tag, score]) => (
+                        <span
+                          key={tag}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            score >= 3
+                              ? 'bg-teal-100 text-teal-800'
+                              : score >= 1
+                              ? 'bg-slate-100 text-slate-700'
+                              : 'bg-slate-50 text-slate-400'
+                          }`}
+                        >
+                          {tag} ×{score}
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

@@ -214,6 +214,7 @@ class ProfileResponse(BaseModel):
     email: str
     avatar_url: Optional[str] = None
     created_at: Optional[str] = None
+    top_vibe_tag: Optional[str] = None
 
 
 class ProfileUpdateBody(BaseModel):
@@ -279,6 +280,7 @@ def get_profile(
         email=user.email,
         avatar_url=user.avatar_url,
         created_at=user.created_at,
+        top_vibe_tag=user.top_vibe_tag,
     )
 
 
@@ -312,6 +314,7 @@ def update_profile(
         email=user.email,
         avatar_url=user.avatar_url,
         created_at=user.created_at,
+        top_vibe_tag=user.top_vibe_tag,
     )
 
 
@@ -575,9 +578,37 @@ def save_preferences(
             db.add(pref)
     db.commit()
 
-    # Find the top tag
+    # Find the top tag and sync to User table
     top_tag = max(body.tag_scores.items(), key=lambda x: x[1], default=(None, 0))
-    return {"message": "Preferences saved", "top_vibe_tag": top_tag[0] if top_tag[1] > 0 else None}
+    top_tag_value = top_tag[0] if top_tag[1] > 0 else None
+    user.top_vibe_tag = top_tag_value
+    db.commit()
+
+    return {"message": "Preferences saved", "top_vibe_tag": top_tag_value}
+
+
+@app.get("/api/auth/preferences/{user_id}")
+def get_preferences(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    """Return the user's vibe tag preference scores and top tag."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    prefs = db.scalars(
+        select(UserPreference)
+        .where(UserPreference.user_id == user_id)
+        .order_by(UserPreference.preference_score.desc())
+    ).all()
+
+    tag_scores = {p.tag_name: p.preference_score for p in prefs}
+    return {
+        "user_id": user_id,
+        "top_vibe_tag": user.top_vibe_tag,
+        "tag_scores": tag_scores,
+    }
 
 
 @app.get("/api/listings")

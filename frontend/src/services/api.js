@@ -185,6 +185,12 @@ export const api = {
     return data;
   },
 
+  /** Fetch user's vibe-tag preferences. */
+  async getPreferences(userId) {
+    const { data } = await client.get(`/auth/preferences/${userId}`);
+    return data;
+  },
+
   // ============ Admin APIs ============
 
   /** @param {{ username: string, password: string }} credentials */

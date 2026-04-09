@@ -141,6 +141,7 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    top_vibe_tag: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
     preferences: Mapped[List["UserPreference"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
