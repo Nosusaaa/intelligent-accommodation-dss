@@ -71,6 +71,8 @@ def _ensure_user_profile_columns() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url TEXT"))
         if "created_at" not in columns:
             conn.execute(text("ALTER TABLE users ADD COLUMN created_at VARCHAR(26)"))
+        if "top_vibe_tag" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN top_vibe_tag VARCHAR(256)"))
 
 
 @asynccontextmanager
