@@ -3,8 +3,8 @@
 
 | 项目   | 说明                                 |
 | ---- | ---------------------------------- |
-| 文档版本 | 0.4.0                              |
-| 最后更新 | 2026-03-22                         |
+| 文档版本 | 0.2.5                              |
+| 最后更新 | 2026-03-21                         |
 | 代码范围 | 仓库内 `frontend/`、`backend/`、`Data/` |
 
 
@@ -51,7 +51,7 @@
 | `/`             | 首页 `Home`           | 无                                                          | 营销落地；跳转旅客登录、管理员登录。                                                           |
 | `/guest-login`  | `GuestLogin`        | `POST /api/auth/signup`、`POST /api/auth/login`             | 注册/登录成功后跳转 `/search`；「以游客继续」直达 `/onboarding`，不调接口。前端未持久化 token，请求头不携带认证信息。   |
 | `/onboarding`   | `SwipeOnboarding`   | 无                                                          | 滑动式偏好卡片（静态内容与占位图），完成后进入 `/search`。                                           |
-| `/search`       | `SmartSearch`       | `GET /api/listings`                                        | 筛选、标签、分页列表、跳转详情；地图区域为 Leaflet 真实交互地图，基于 `Data/neighbourhoods.geojson`（Rochester S/NE/NW/E 四个社区多边形）绘制社区边界线（蓝色 outline + 淡蓝填充），其余区域以半透明灰色遮罩覆盖，形成「聚焦 Rochester」视觉效果；房源以蓝色 marker 显示，hover 房源时飞入放大并展开 1 km 虚线圆圈，通过 Overpass API 加载该房源周边 POI（橙色餐厅 + 绿色景点各最多 8 个），hover POI 显示到当前房源的 Haversine 距离。地图默认中心为 Rochester, NY（43.1553, -77.6052）。每页 **12** 条（`PAGE_SIZE`）。    |
+| `/search`       | `SmartSearch`       | `GET /api/listings`、`GET /api/map/pois`                   | 筛选、标签、分页列表、跳转详情；内置 Leaflet 真实地图，拖拽/缩放按 bbox 联动房源；可切换 POI 分类图层。类别选择会影响列表排序（`map_intent_score`）。每页 **12** 条（`PAGE_SIZE`）。    |
 | `/details/:id`  | `PropertyDetails`   | `GET /api/listings/{id}`、`GET /api/listings/{id}/reviews`  | 展示 API 返回的房源与评论；情感图表与评论弹窗基于真实评论数据；部分文案/图集可能仍为占位。                             |
 | `/forecast/:id` | `ForecastDashboard` | `GET /api/listings/{id}`、`GET /api/listings/{id}/forecast` | 月度指标图表；无数据时使用基于当前价格的占位曲线。                                                    |
 | `/compare`      | `RadarCompare`      | 无（对比维度为前端写死）                                               | 从 `CompareContext` 读取已选房源卡片信息；雷达图与对比表使用**预设演示分数/字段**，与所选 listing 的真实字段未一一对应。 |
@@ -72,10 +72,22 @@
 | `room_type`                                                                          | 房型精确匹配，逗号分隔多个值                                  | 多选房型 label 拼接                               |
 | `has_wifi`、`has_kitchen`、`has_air_conditioning`、`has_parking`、`has_tv`、`has_balcony` | 仅在为 `true` 时收紧条件                                | 设施多选                                        |
 | `vibe_tags`                                                                          | 可重复；对 `listing_tags.vibe_tags` 做不区分大小写的子串匹配（OR） | 搜索启发标签 + 手动选中标签                             |
+| `north` / `south` / `east` / `west`                                                 | 地图视口边界（bbox）                                     | 地图拖拽/缩放联动                                    |
+| `map_mode`                                                                           | `true` 时启用 bbox 过滤                                 | 地图联动请求                                         |
 | `skip` / `limit`                                                                     | 分页                                              | `skip = (page - 1) * limit`，默认 `limit = 12` |
 
 
-后端另支持未在前端使用的 `room_types`（重复 query）与 `room_type` 合并去重后筛选。
+后端另支持未在前端使用的 `room_types`（重复 query）与 `room_type` 合并去重后筛选。`_listing_full` 同时返回 `latitude`、`longitude` 供地图 Marker 渲染。
+
+### 3.6 地图与 POI（Overpass）
+
+- 地图组件：Leaflet + OpenStreetMap tile。
+- 房源点位：来自 `GET /api/listings` 返回的 `latitude` / `longitude`。
+- POI 图层：前端按当前 bbox 请求 `GET /api/map/pois`，默认分类 `transport`，支持 `park`、`restaurant`、`education`、`hospital`。
+- 类别生效：所选 POI 分类会参与列表排序，按邻近度生成 `map_intent_score`（前端计算）并用于排序。
+- 数据源策略：后端读取 `Data/map_cache/pois_rochester.json`（离线优先）；离线不可用时再走 Overpass 在线与 fallback。
+- 稳定性策略：主实例失败时自动重试 fallback 实例；全部失败触发短时熔断窗口并返回可读错误，前端保持列表可用。
+- 前端地图容错：地图子树异常由错误边界兜底，自动切换“仅列表模式”，并支持手动重试地图挂载。
 
 ### 3.3 跨页状态：对比列表
 
@@ -100,6 +112,17 @@
 - **预测页** `[ForecastDashboard.jsx](../frontend/src/pages/ForecastDashboard.jsx)`：用 `getListingPriceNightly` 参与图表与建议逻辑；**无有效 `price_clean` 时**占位曲线基准为 **100 USD**（仅用于无月度数据时的示意，**不**在 UI 上显示为房源标价）。
 
 **说明**：本规则**不修改**数据库与 API 字段；若需从根上消除 `0`，需在 ETL/种子层保留 `NULL` 或补全价格（见产品讨论，非本 PRD 范围）。
+
+### 3.5 封面图 `picture_url` vs 抓取图库 `gallery_urls`
+
+| 字段 | 来源 | 使用场景 |
+| --- | --- | --- |
+| **`picture_url`** | CSV / 种子写入 `listings` | **搜索列表卡片主图**（`SmartSearch.jsx`）、**首页背景轮播**（`RoomSliderBackground.jsx` 仅 `l.picture_url`）。必须为 `http` 才使用，否则占位图。 |
+| **`gallery_urls`** | PoC 抓取脚本 `update_galleries.py` 写入，逗号分隔 URL | **仅详情页** `[PropertyDetails.jsx](../frontend/src/pages/PropertyDetails.jsx)`：优先整段作为图库；无抓取数据时回退为单张 `picture_url` 或 Unsplash 占位。 |
+
+**后端约束**：`[update_galleries.py](../backend/update_galleries.py)` **只更新 `gallery_urls`**，**不得**修改 `picture_url`。
+
+**详情页图库**：解析 `gallery_urls.split(',')`；主 Hero 为 `displayImages[activeImage]`（默认首张为抓取图库 `[0]` 或回退封面）；缩略图为 **`displayImages.slice(1)`** 动态条数（`flex-wrap`），**不**固定 5 格。
 
 ---
 
@@ -132,6 +155,9 @@
 | POST | `/api/auth/signup`                    | Body：`{ email, password }`；邮箱规范化后唯一；密码 bcrypt；成功返回注册消息。                                                    |
 | POST | `/api/auth/login`                     | 校验邮箱密码；成功返回 `message`、`email`。**无 JWT / Session / Bearer token**。                                          |
 | GET  | `/api/listings`                       | 分页与筛选见第 3.2 节；响应含 `listings`、`total`、`skip`、`limit`。单条 listing 由 `_listing_full` 序列化（含关联的 `vibe_tags` 文本、`latitude`、`longitude`）。 |
+| GET  | `/api/listings`                       | 分页与筛选见第 3.2 节；支持 `map_mode + bbox` 过滤；响应含 `listings`、`total`、`skip`、`limit`。单条 listing 由 `_listing_full` 序列化（含 `vibe_tags`、`latitude`、`longitude`）。 |
+| GET  | `/api/map/pois`                       | 以 bbox + `category` 查询 POI（离线优先）；返回 `pois`、`cached`、`upstream`、`fallback_used`、`source`、`generated_at`、`coverage`。 |
+>>>>>>> 31d06c28a6643412cea4e0ead038fcfda7667ccd
 | GET  | `/api/listings/{listing_id}`          | 单条房源；404 若不存在。                                                                                             |
 | GET  | `/api/listings/{listing_id}/forecast` | 该房源 `monthly_metrics`，按 `year_month` 排序。                                                                   |
 | GET  | `/api/listings/{listing_id}/reviews`  | 该房源评论，按日期与 id 降序。                                                                                          |
@@ -162,6 +188,9 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `[backend/seed_data.py](../backend/seed_data.py)`                   | 将 `Data/` 下清洗后的 CSV 写入 SQLite（房源、日历、月度指标、评论、listing 标签等）；运行前需按 README 准备数据路径。 |
 | `[backend/preprocess_reviews.py](../backend/preprocess_reviews.py)` | 使用 VADER 处理 `reviews_tags.csv` 的 `sentiment_label` 并写回 CSV；非 HTTP 服务。         |
+| `[backend/update_galleries.py](../backend/update_galleries.py)` | 从 `Data/scraped_galleries.json`（或 `data/`）读入图库 URL，**仅**更新 `listings.gallery_urls`；不碰 `picture_url`。 |
+| `[backend/overpass_client.py](../backend/overpass_client.py)` | 组装 Overpass 查询并拉取 bbox POI 数据；由 `/api/map/pois` 调用。 |
+| `[backend/build_map_cache.py](../backend/build_map_cache.py)` | 生成 `Data/map_cache/` 离线地图缓存（POI 分类、房源坐标快照、瓦片元数据索引）。 |
 
 
 仓库根说明：`[README.md](../README.md)`；数据目录说明：`[Data/README.md](../Data/README.md)`。
@@ -174,8 +203,8 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 2. **旅客登录与业务数据**：注册用户信息未用于个性化推荐或权限控制。
 3. **管理端**：Admin 模块已与后端完全对接，账号密码存储在数据库（bcrypt 加密），景点/策略/同步日志均持久化。
 4. **对比页 `/compare`**：雷达图与表格指标为**写死演示数据**，不代表当前选中房源的真实计算结果。
-5. **搜索页**：部分 UI（如入住日期）未参与 `buildListingParams`；地图为 Leaflet 真实交互地图，仅在 hover 房源时加载其周边 POI，不一次性渲染所有 POI。
-6. **CORS 与访问地址**：后端仅放行 `localhost` 来源的常用端口；前端通过 `127.0.0.1:8000` 调 API 时，只要页面是从 `http://localhost:5173` 打开，一般可正常跨域；若整站用 `127.0.0.1` 打开前端，可能需改 CORS 或统一用 `localhost`。
+5. **地图上游限制**：Overpass 为公共服务，可能限流或超时；后端已加入 fallback 与短时熔断，但极端情况下 POI 仍可能短时不可用（不影响列表检索）。
+6. **CORS 与访问地址**：建议通过前端 `/api` 代理访问后端，避免本地跨域来源差异。
 
 ---
 
@@ -189,5 +218,9 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | 2026-03-22 | 搜索页地图升级：新增 `ListingMap` 组件（Leaflet + react-leaflet），房源以蓝色 marker 显示，hover 房源时飞入放大并展开 1 km 虚线圆圈，通过 Overpass API 加载周边 POI；`Listing` 模型新增 `latitude`/`longitude` 字段，种子脚本同步更新，`GET /api/listings` 返回经纬度数据。地图默认中心为 Rochester, NY（43.1553, -77.6052）。 |
 | 2026-03-22 | 地图 Rochester 边界增强：引入 `Data/neighbourhoods.geojson`（S/NE/NW/E 四社区 MultiPolygon）作为地理边界层，绘制社区蓝色 outline + 淡蓝填充；其余区域以半透明灰色遮罩（large Rectangle）形成聚焦效果；hover 社区显示 tooltip 标签；`Data/neighbourhoods.csv` 提供社区名单。 |
 | 2026-03-22 | **v0.2.1**：新增 §3.4 — 房源 `price_clean` 前端展示统一规则（`null`/无效/≤0 显示「询价」，非 `$0`）；实现 `listingPriceDisplay.js`；搜索列表、详情、引导、预测页对齐；预测页无有效价时占位曲线基准 100。 |
+| 2026-03-22 | **v0.2.2**：新增 §3.5 — 明确 `picture_url`（列表/首页）与 `gallery_urls`（详情图库）分工；`update_galleries.py` 仅写 `gallery_urls`；详情页图库动态条数、主图优先抓取序列；搜索卡与 `RoomSliderBackground` 仅绑定 `picture_url`。 |
+| 2026-03-22 | **v0.2.3**：`/search` 升级为真实地图联动（Leaflet + OSM）；`/api/listings` 支持 `map_mode + bbox`；新增 `/api/map/pois`（Overpass）与后端缓存；文档补充 Overpass 公共实例配置。 |
+| 2026-03-21 | **v0.2.4**：地图稳定性升级：依赖拓扑规范为 `frontend/` 单一依赖树；地图错误边界切换列表模式并支持重试；`/api/map/pois` 增加 fallback 上游、失败冷却窗口与 `upstream/fallback_used` 响应字段；补充前后端排障说明。 |
+| 2026-03-21 | **v0.2.5**：地图离线优先：新增 `Data/map_cache` 与 `build_map_cache.py`；`/api/map/pois` 增加 `source/generated_at/coverage`；POI 类别选择参与列表排序（`map_intent_score`），不再仅影响图层显示。 |
 
 

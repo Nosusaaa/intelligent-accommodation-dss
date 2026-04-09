@@ -167,6 +167,40 @@ export default function PropertyDetails() {
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [reviewTab, setReviewTab] = useState('positive')
 
+  /** Parsed scraped URLs only (no fallbacks). */
+  const scrapedGallery = useMemo(() => {
+    if (!listing?.gallery_urls || !String(listing.gallery_urls).trim()) return []
+    return String(listing.gallery_urls)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [listing])
+
+  /**
+   * Hero + strip: prefer scraped high-res gallery; else CSV `picture_url`; else placeholders.
+   * List/search cards must keep using `picture_url` only — never mix gallery there.
+   */
+  const displayImages = useMemo(() => {
+    if (!listing) return GALLERY_IMAGES
+    if (scrapedGallery.length > 0) return scrapedGallery
+    const cover = listing.picture_url && String(listing.picture_url).trim()
+    if (cover && cover.startsWith('http')) return [cover]
+    return GALLERY_IMAGES
+  }, [listing, scrapedGallery])
+
+  const thumbImages = displayImages.length > 1 ? displayImages.slice(1) : []
+
+  useEffect(() => {
+    setActiveImage(0)
+  }, [numericListingId])
+
+  useEffect(() => {
+    if (!displayImages.length) return
+    setActiveImage((prev) =>
+      prev >= displayImages.length ? 0 : prev,
+    )
+  }, [displayImages.length])
+
   useEffect(() => {
     if (!Number.isFinite(numericListingId)) {
       setListing(null)
@@ -259,7 +293,11 @@ export default function PropertyDetails() {
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="relative aspect-[21/9] max-h-[420px] w-full">
           <img
-            src={GALLERY_IMAGES[activeImage]}
+            src={
+              displayImages[
+                Math.min(activeImage, Math.max(0, displayImages.length - 1))
+              ] ?? displayImages[0]
+            }
             alt=""
             className="h-full w-full object-cover"
           />
@@ -275,24 +313,40 @@ export default function PropertyDetails() {
             </h1>
           </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-slate-50/80 p-3 sm:p-4">
-          {GALLERY_IMAGES.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              onClick={() => setActiveImage(i)}
-              className={[
-                'relative h-16 w-24 shrink-0 overflow-hidden rounded-lg ring-2 ring-offset-2 transition-all',
-                activeImage === i
-                  ? 'ring-teal-600 ring-offset-white'
-                  : 'ring-transparent opacity-80 hover:opacity-100',
-              ].join(' ')}
-              aria-label={`View image ${i + 1}`}
-            >
-              <img src={src} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
+        {thumbImages.length > 0 && (
+          <div className="border-t border-slate-100 bg-slate-50/80 p-3 sm:p-4">
+            {activeImage > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveImage(0)}
+                className="mb-2 text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline"
+              >
+                ← Cover photo
+              </button>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {thumbImages.map((src, i) => {
+                const idx = i + 1
+                return (
+                  <button
+                    key={`${idx}-${src.slice(-48)}`}
+                    type="button"
+                    onClick={() => setActiveImage(idx)}
+                    className={[
+                      'relative h-16 min-w-[5.5rem] max-w-[8rem] flex-1 overflow-hidden rounded-lg ring-2 ring-offset-2 transition-all sm:h-20 sm:min-w-[6rem]',
+                      activeImage === idx
+                        ? 'ring-teal-600 ring-offset-white'
+                        : 'ring-transparent opacity-80 hover:opacity-100',
+                    ].join(' ')}
+                    aria-label={`View image ${idx + 1}`}
+                  >
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">

@@ -32,6 +32,8 @@ class Listing(Base):
     beds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     bathrooms_num: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     bathrooms_text: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     neighbourhood_cleansed: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     neighborhood_overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

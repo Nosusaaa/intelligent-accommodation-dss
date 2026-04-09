@@ -17,6 +17,8 @@ from __future__ import annotations
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 from datetime import date, datetime
+import logging
+import time
 from typing import Annotated, Any, List, Optional
 
 import bcrypt
@@ -28,6 +30,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from database import Base, engine
 from models import AdminUser, Listing, ListingTag, MonthlyMetric, Review, ScenicSpot, SessionLocal, StrategyConfig, SyncLog, User, UserPreference
+from overpass_client import fetch_pois_bbox, load_offline_pois
 
 
 def _hash_password(plain: str) -> str:
@@ -51,6 +54,11 @@ app = FastAPI(title="Airbnb DSS API", version="0.1.0", lifespan=lifespan)
 
 # Upper bound for `min_price` / `max_price` query filters (keep in sync with search UI).
 LISTING_PRICE_FILTER_MAX = 1000
+OVERPASS_CACHE_TTL_SEC = 120.0
+_overpass_cache: dict[tuple[str, float, float, float, float], tuple[float, list[dict[str, Any]]]] = {}
+OVERPASS_FAILURE_WINDOW_SEC = 25.0
+_overpass_breaker_until = 0.0
+logger = logging.getLogger("map-api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,6 +108,8 @@ def _listing_full(listing: Listing) -> dict[str, Any]:
         "bathrooms_num": _json_value(listing.bathrooms_num),
         "bathrooms_text": listing.bathrooms_text,
         "bathrooms": _json_value(listing.bathrooms_num),
+        "latitude": _json_value(listing.latitude),
+        "longitude": _json_value(listing.longitude),
         "neighbourhood_cleansed": listing.neighbourhood_cleansed,
         "neighborhood_overview": listing.neighborhood_overview,
         "latitude": _json_value(listing.latitude),
@@ -310,9 +320,29 @@ def list_listings(
         None,
         description="Repeat query param for vibe tag filtering (case-insensitive partial match on pipe-separated tags)",
     ),
+    north: Optional[float] = Query(None, ge=-90, le=90),
+    south: Optional[float] = Query(None, ge=-90, le=90),
+    east: Optional[float] = Query(None, ge=-180, le=180),
+    west: Optional[float] = Query(None, ge=-180, le=180),
+    map_mode: Optional[bool] = Query(
+        False,
+        description="Optional map viewport mode; when true and bbox is provided, filter by latitude/longitude bounds.",
+    ),
     skip: Optional[int] = Query(0, ge=0, description="Number of records to skip for pagination"),
     limit: Optional[int] = Query(20, ge=1, le=100, description="Max records to return per page"),
 ) -> dict[str, Any]:
+    if map_mode:
+        logger.info(
+            "listings map_mode request",
+            extra={
+                "north": north,
+                "south": south,
+                "east": east,
+                "west": west,
+                "skip": skip,
+                "limit": limit,
+            },
+        )
     # Only load listing_tags relationship when filtering by vibe_tags
     if vibe_tags:
         stmt = select(Listing).options(selectinload(Listing.listing_tags))
@@ -349,6 +379,16 @@ def list_listings(
     if has_balcony is True:
         stmt = stmt.where(Listing.has_balcony.is_(True))
 
+    # Optional viewport-bound filtering for full map search.
+    if map_mode and None not in (north, south, east, west):
+        if south > north:
+            raise HTTPException(status_code=422, detail="Invalid bbox: south must be <= north")
+        if west > east:
+            raise HTTPException(status_code=422, detail="Invalid bbox: west must be <= east")
+        stmt = stmt.where(Listing.latitude.isnot(None), Listing.longitude.isnot(None))
+        stmt = stmt.where(Listing.latitude >= float(south), Listing.latitude <= float(north))
+        stmt = stmt.where(Listing.longitude >= float(west), Listing.longitude <= float(east))
+
     # Filter by vibe_tags (case-insensitive partial match on pipe-separated tags)
     if vibe_tags:
         tag_filters = []
@@ -371,11 +411,103 @@ def list_listings(
     stmt = stmt.order_by(Listing.id)
     stmt = stmt.offset(skip).limit(limit)
     rows = db.scalars(stmt).all()
+    if map_mode:
+        logger.info(
+            "listings map_mode response",
+            extra={"count": len(rows), "total": total_count},
+        )
     return {
         "listings": [_listing_full(x) for x in rows],
         "total": total_count,
         "skip": skip,
         "limit": limit,
+    }
+
+
+@app.get("/api/map/pois")
+def get_map_pois(
+    north: float = Query(..., ge=-90, le=90),
+    south: float = Query(..., ge=-90, le=90),
+    east: float = Query(..., ge=-180, le=180),
+    west: float = Query(..., ge=-180, le=180),
+    category: str = Query(
+        "transport",
+        description="POI category: transport | park | restaurant | education | hospital",
+    ),
+) -> dict[str, Any]:
+    global _overpass_breaker_until
+    if south > north:
+        raise HTTPException(status_code=422, detail="Invalid bbox: south must be <= north")
+    if west > east:
+        raise HTTPException(status_code=422, detail="Invalid bbox: west must be <= east")
+
+    # Round cache keys slightly so micro-pan jitters do not thrash Overpass.
+    key = (
+        category,
+        round(south, 4),
+        round(west, 4),
+        round(north, 4),
+        round(east, 4),
+    )
+    now = time.monotonic()
+    if now < _overpass_breaker_until:
+        wait_sec = int(max(1, _overpass_breaker_until - now))
+        raise HTTPException(
+            status_code=503,
+            detail=f"Map POI service cooling down after upstream failures. Retry in ~{wait_sec}s.",
+        )
+    offline_pois, generated_at, coverage = load_offline_pois(
+        south=south,
+        west=west,
+        north=north,
+        east=east,
+        category=category,
+    )
+    if generated_at is not None:
+        return {
+            "pois": offline_pois,
+            "cached": False,
+            "upstream": None,
+            "fallback_used": False,
+            "source": "offline",
+            "generated_at": generated_at,
+            "coverage": coverage,
+        }
+
+    cached = _overpass_cache.get(key)
+    if cached is not None and (now - cached[0]) < OVERPASS_CACHE_TTL_SEC:
+        return {
+            "pois": cached[1],
+            "cached": True,
+            "upstream": None,
+            "fallback_used": False,
+            "source": "cache",
+            "generated_at": None,
+            "coverage": 0.0,
+        }
+
+    try:
+        pois, upstream, fallback_used = fetch_pois_bbox(
+            south=south,
+            west=west,
+            north=north,
+            east=east,
+            category=category,
+        )
+    except Exception as e:
+        _overpass_breaker_until = time.monotonic() + OVERPASS_FAILURE_WINDOW_SEC
+        logger.warning("map pois upstream failure: %s", e)
+        raise HTTPException(status_code=502, detail=f"Overpass upstream failed: {e}") from e
+
+    _overpass_cache[key] = (now, pois)
+    return {
+        "pois": pois,
+        "cached": False,
+        "upstream": upstream,
+        "fallback_used": fallback_used,
+        "source": "online_fallback",
+        "generated_at": None,
+        "coverage": 0.0,
     }
 
 

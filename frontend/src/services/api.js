@@ -33,11 +33,59 @@ const client = axios.create({
   paramsSerializer: { serialize: serializeParams },
 });
 
+const isDev = Boolean(import.meta.env.DEV);
+
 /** Centralized API client for the FastAPI backend (`/api` routes). */
 export const api = {
   async getListings(params) {
-    const { data } = await client.get("/listings", { params });
-    return data;
+    if (isDev && params?.map_mode) {
+      console.debug("[api:listings:map_mode:request]", params);
+    }
+    try {
+      const { data } = await client.get("/listings", { params });
+      if (isDev && params?.map_mode) {
+        const count = Array.isArray(data?.listings) ? data.listings.length : 0;
+        console.debug("[api:listings:map_mode:success]", { count });
+      }
+      return data;
+    } catch (error) {
+      if (isDev && params?.map_mode) {
+        console.error("[api:listings:map_mode:error]", {
+          message: error?.message,
+          detail: error?.response?.data?.detail,
+          status: error?.response?.status,
+        });
+      }
+      throw error;
+    }
+  },
+
+  async getMapPois(params) {
+    if (isDev) {
+      console.debug("[api:map_pois:request]", params);
+    }
+    try {
+      const { data } = await client.get("/map/pois", { params });
+      if (isDev) {
+        const count = Array.isArray(data?.pois) ? data.pois.length : 0;
+        console.debug("[api:map_pois:success]", {
+          count,
+          cached: Boolean(data?.cached),
+          upstream: data?.upstream ?? null,
+          fallback_used: Boolean(data?.fallback_used),
+        });
+      }
+      return data;
+    } catch (error) {
+      if (isDev) {
+        console.error("[api:map_pois:error]", {
+          message: error?.message,
+          detail: error?.response?.data?.detail,
+          status: error?.response?.status,
+        });
+      }
+      throw error;
+    }
   },
 
   async getListingById(id) {

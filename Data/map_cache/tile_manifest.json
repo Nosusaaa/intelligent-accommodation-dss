@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-09T09:59:18Z",
+  "bbox": {
+    "south": 43.05,
+    "west": -77.78,
+    "north": 43.28,
+    "east": -77.45
+  },
+  "tiles": {
+    "provider": "openstreetmap",
+    "template": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "min_zoom": 10,
+    "max_zoom": 16,
+    "note": "metadata only; no offline tile bundle"
+  }
+}

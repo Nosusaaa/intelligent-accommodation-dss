@@ -12,8 +12,10 @@
 | `monthly_forecast_metrics.csv` | 月度指标 |
 | `reviews_tags.csv` | 评论与标签；情感标签可由 `backend/preprocess_reviews.py` 预计算并写回此文件 |
 | `room_tags.csv` | 房间标签 |
+| `map_cache/` | 地图离线缓存（POI、房源坐标快照、瓦片元数据） |
 
 路径约定：
 
 - **数据库路径**：`backend/database.py` → `Data/airbnb_dss.db`
 - **导入种子数据**：在 `backend/` 下运行 `python3 seed_data.py`（从 `Data/*.csv` 读取）
+- **地图离线缓存构建**：在 `backend/` 下运行 `python3 build_map_cache.py`（写入 `Data/map_cache/*.json`）

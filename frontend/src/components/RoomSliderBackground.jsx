@@ -57,6 +57,7 @@ export default function RoomSliderBackground({ className = '' }) {
           : Array.isArray(data?.listings)
             ? data.listings
             : []
+        // Homepage background: CSV cover only — never use gallery_urls (details page only).
         const urls = listings
           .map((l) => l.picture_url)
           .filter((u) => u && typeof u === 'string' && u.startsWith('http'))
