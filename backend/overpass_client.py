@@ -20,7 +20,7 @@ OVERPASS_FALLBACK_URLS = [
     ).split(",")
     if url.strip()
 ]
-OVERPASS_TIMEOUT_SEC = float(os.getenv("OVERPASS_TIMEOUT_SEC", "14"))
+OVERPASS_TIMEOUT_SEC = float(os.getenv("OVERPASS_TIMEOUT_SEC", "45"))
 OVERPASS_USER_AGENT = os.getenv(
     "OVERPASS_USER_AGENT",
     "4007UI/0.1 (+local-dev map feature)",
@@ -33,12 +33,43 @@ MAP_CACHE_DIR = Path(os.getenv("MAP_CACHE_DIR", str(_REPO_ROOT / "Data" / "map_c
 POIS_CACHE_FILE = MAP_CACHE_DIR / "pois_rochester.json"
 
 _CATEGORY_TAGS: dict[str, list[tuple[str, str]]] = {
-    "transport": [("public_transport", ""), ("railway", "station"), ("highway", "bus_stop")],
+    # Prefer fixed infrastructure so a single bbox is not flooded by hundreds of bus stops.
+    "transport": [
+        ("railway", "station"),
+        ("railway", "tram_stop"),
+        ("amenity", "bus_station"),
+        ("public_transport", "station"),
+        ("aerialway", "station"),
+        ("amenity", "ferry_terminal"),
+    ],
     "park": [("leisure", "park"), ("leisure", "garden")],
     "restaurant": [("amenity", "restaurant"), ("amenity", "cafe"), ("amenity", "bar")],
     "education": [("amenity", "school"), ("amenity", "university"), ("amenity", "college")],
     "hospital": [("amenity", "hospital"), ("amenity", "clinic"), ("amenity", "pharmacy")],
 }
+
+
+def _query_tags_for_bbox(
+    south: float,
+    west: float,
+    north: float,
+    east: float,
+    tag_pairs: list[tuple[str, str]],
+    *,
+    max_elements: int = 500,
+) -> str:
+    bbox = f"{south},{west},{north},{east}"
+    cap = max(1, min(int(max_elements), 2000))
+    lines = ["[out:json][timeout:25];", "("]
+    for key, val in tag_pairs:
+        if val:
+            lines.append(f'  node["{key}"="{val}"]({bbox});')
+            lines.append(f'  way["{key}"="{val}"]({bbox});')
+        else:
+            lines.append(f'  node["{key}"]({bbox});')
+            lines.append(f'  way["{key}"]({bbox});')
+    lines.extend([");", f"out center {cap};"])
+    return "\n".join(lines)
 
 
 def _query_for_bbox(
@@ -47,19 +78,13 @@ def _query_for_bbox(
     north: float,
     east: float,
     category: str,
+    *,
+    max_elements: int = 500,
 ) -> str:
     tags = _CATEGORY_TAGS.get(category, _CATEGORY_TAGS["transport"])
-    bbox = f"{south},{west},{north},{east}"
-    lines = ["[out:json][timeout:20];", "("]
-    for key, val in tags:
-        if val:
-            lines.append(f'  node["{key}"="{val}"]({bbox});')
-            lines.append(f'  way["{key}"="{val}"]({bbox});')
-        else:
-            lines.append(f'  node["{key}"]({bbox});')
-            lines.append(f'  way["{key}"]({bbox});')
-    lines.extend([");", "out center 120;"])
-    return "\n".join(lines)
+    return _query_tags_for_bbox(
+        south, west, north, east, tags, max_elements=max_elements
+    )
 
 
 def _request_overpass(url: str, payload: bytes) -> str:
@@ -137,9 +162,17 @@ def fetch_pois_bbox(
     north: float,
     east: float,
     category: str = "transport",
+    max_elements: int = 500,
 ) -> tuple[list[dict[str, Any]], str, bool]:
     """Fetch and normalize POIs with endpoint fallback metadata."""
-    query = _query_for_bbox(south=south, west=west, north=north, east=east, category=category)
+    query = _query_for_bbox(
+        south=south,
+        west=west,
+        north=north,
+        east=east,
+        category=category,
+        max_elements=max_elements,
+    )
     payload = urllib.parse.urlencode({"data": query}).encode("utf-8")
     endpoints = [OVERPASS_BASE_URL, *OVERPASS_FALLBACK_URLS]
     errors: list[str] = []
@@ -162,6 +195,78 @@ def fetch_pois_bbox(
             _endpoint_blocked_until[endpoint] = time.monotonic() + OVERPASS_FAILURE_COOLDOWN_SEC
             errors.append(f"{endpoint}: {e}")
         except Exception as e:  # noqa: BLE001 - normalize as RuntimeError for API layer.
+            _endpoint_blocked_until[endpoint] = time.monotonic() + OVERPASS_FAILURE_COOLDOWN_SEC
+            errors.append(f"{endpoint}: {e}")
+
+    if not selected_upstream:
+        raise RuntimeError(f"Overpass request failed on all endpoints: {' | '.join(errors)}")
+
+    data = json.loads(raw)
+    out: list[dict[str, Any]] = []
+    for el in data.get("elements", []):
+        lat = el.get("lat")
+        lon = el.get("lon")
+        if lat is None or lon is None:
+            center = el.get("center") or {}
+            lat = center.get("lat")
+            lon = center.get("lon")
+        if lat is None or lon is None:
+            continue
+        tags = el.get("tags") or {}
+        out.append(
+            {
+                "id": el.get("id"),
+                "type": el.get("type"),
+                "lat": float(lat),
+                "lon": float(lon),
+                "name": tags.get("name") or tags.get("operator") or tags.get("brand") or "Unnamed POI",
+                "category": category,
+            }
+        )
+    return out, selected_upstream, fallback_used
+
+
+def fetch_pois_by_tags(
+    *,
+    south: float,
+    west: float,
+    north: float,
+    east: float,
+    tag_pairs: list[tuple[str, str]],
+    category: str = "custom",
+    max_elements: int = 500,
+) -> tuple[list[dict[str, Any]], str, bool]:
+    """Same as fetch_pois_bbox but with an explicit OSM tag list (for cache builds / supplements)."""
+    query = _query_tags_for_bbox(
+        south=south,
+        west=west,
+        north=north,
+        east=east,
+        tag_pairs=tag_pairs,
+        max_elements=max_elements,
+    )
+    payload = urllib.parse.urlencode({"data": query}).encode("utf-8")
+    endpoints = [OVERPASS_BASE_URL, *OVERPASS_FALLBACK_URLS]
+    errors: list[str] = []
+    raw = ""
+    selected_upstream = ""
+    fallback_used = False
+
+    now = time.monotonic()
+    for idx, endpoint in enumerate(endpoints):
+        blocked_until = _endpoint_blocked_until.get(endpoint, 0.0)
+        if blocked_until > now:
+            errors.append(f"{endpoint} cooldown until {blocked_until:.1f}")
+            continue
+        try:
+            raw = _request_overpass(endpoint, payload)
+            selected_upstream = endpoint
+            fallback_used = idx > 0
+            break
+        except urllib.error.URLError as e:
+            _endpoint_blocked_until[endpoint] = time.monotonic() + OVERPASS_FAILURE_COOLDOWN_SEC
+            errors.append(f"{endpoint}: {e}")
+        except Exception as e:  # noqa: BLE001
             _endpoint_blocked_until[endpoint] = time.monotonic() + OVERPASS_FAILURE_COOLDOWN_SEC
             errors.append(f"{endpoint}: {e}")
 

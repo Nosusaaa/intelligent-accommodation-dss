@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "city": "rochester",
-  "generated_at": "2026-04-09T09:59:18Z",
+  "generated_at": "2026-04-11T08:55:08Z",
   "bbox": {
     "south": 43.05,
     "west": -77.78,
@@ -9,229 +9,2021 @@
     "east": -77.45
   },
   "category_counts": {
-    "transport": 6,
-    "park": 6,
-    "restaurant": 6,
-    "education": 4,
-    "hospital": 4
+    "transport": 50,
+    "park": 50,
+    "restaurant": 50,
+    "education": 50,
+    "hospital": 50
   },
   "coverage": 1.0,
   "categories": {
     "transport": [
       {
-        "id": 900002,
+        "id": 12117677752,
         "type": "node",
-        "lat": 43.1688,
-        "lon": -77.6202,
-        "name": "Amtrak Rochester Station",
+        "lat": 43.0918654,
+        "lon": -77.6645563,
+        "name": "175 Jefferson",
         "category": "transport"
       },
       {
-        "id": 900005,
+        "id": 11711857817,
         "type": "node",
-        "lat": 43.1423,
-        "lon": -77.6128,
-        "name": "Corn Hill Connector",
+        "lat": 43.1280652,
+        "lon": -77.6658849,
+        "name": "Airport - Lower Level",
         "category": "transport"
       },
       {
-        "id": 900004,
+        "id": 8787422467,
         "type": "node",
-        "lat": 43.1488,
-        "lon": -77.5799,
-        "name": "East Ave Stop",
+        "lat": 43.0830002,
+        "lon": -77.6582464,
+        "name": "Apex",
         "category": "transport"
       },
       {
-        "id": 900001,
+        "id": 11929448214,
         "type": "node",
-        "lat": 43.1569,
-        "lon": -77.6086,
-        "name": "RTS Transit Center",
+        "lat": 43.1869885,
+        "lon": -77.6387592,
+        "name": "Aquinas Institute",
         "category": "transport"
       },
       {
-        "id": 900003,
+        "id": 11929448213,
         "type": "node",
-        "lat": 43.1304,
-        "lon": -77.6261,
-        "name": "Strong Bus Stop",
+        "lat": 43.1873651,
+        "lon": -77.6390234,
+        "name": "Aquinas Institute",
         "category": "transport"
       },
       {
-        "id": 900006,
+        "id": 11933479366,
         "type": "node",
-        "lat": 43.1637,
-        "lon": -77.5901,
-        "name": "University Shuttle",
+        "lat": 43.1421582,
+        "lon": -77.6369093,
+        "name": "Arnett & Genesee",
+        "category": "transport"
+      },
+      {
+        "id": 11923033452,
+        "type": "node",
+        "lat": 43.0775685,
+        "lon": -77.4776582,
+        "name": "Ayrault & Route 31",
+        "category": "transport"
+      },
+      {
+        "id": 11923033453,
+        "type": "node",
+        "lat": 43.0775978,
+        "lon": -77.4768311,
+        "name": "Ayrault & Route 31",
+        "category": "transport"
+      },
+      {
+        "id": 12117677746,
+        "type": "node",
+        "lat": 43.0834943,
+        "lon": -77.6636831,
+        "name": "B Lot",
+        "category": "transport"
+      },
+      {
+        "id": 11927314402,
+        "type": "node",
+        "lat": 43.1714327,
+        "lon": -77.5621026,
+        "name": "Bay & Coverly",
+        "category": "transport"
+      },
+      {
+        "id": 8883115714,
+        "type": "node",
+        "lat": 43.1923748,
+        "lon": -77.4990146,
+        "name": "BayTowne Plaza Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 959919257,
+        "type": "way",
+        "lat": 43.1923817,
+        "lon": -77.4990123,
+        "name": "BayTowne Plaza Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 7288840879,
+        "type": "node",
+        "lat": 43.2621642,
+        "lon": -77.6145044,
+        "name": "Beach & 411 Beach",
+        "category": "transport"
+      },
+      {
+        "id": 7228235020,
+        "type": "node",
+        "lat": 43.259115,
+        "lon": -77.6094162,
+        "name": "Beach Avenue & Estes Street",
+        "category": "transport"
+      },
+      {
+        "id": 12115300903,
+        "type": "node",
+        "lat": 43.1225295,
+        "lon": -77.6215661,
+        "name": "Behind Goler House",
+        "category": "transport"
+      },
+      {
+        "id": 12115299897,
+        "type": "node",
+        "lat": 43.1225343,
+        "lon": -77.6213448,
+        "name": "Behind Goler House",
+        "category": "transport"
+      },
+      {
+        "id": 8889022985,
+        "type": "node",
+        "lat": 43.2015996,
+        "lon": -77.5780655,
+        "name": "Bishop Kearney High School",
+        "category": "transport"
+      },
+      {
+        "id": 12603097720,
+        "type": "node",
+        "lat": 43.1494571,
+        "lon": -77.5308288,
+        "name": "Blossom & Blossom Circle",
+        "category": "transport"
+      },
+      {
+        "id": 12603097704,
+        "type": "node",
+        "lat": 43.1491491,
+        "lon": -77.5353677,
+        "name": "Blossom & Clover",
+        "category": "transport"
+      },
+      {
+        "id": 12603097709,
+        "type": "node",
+        "lat": 43.1492863,
+        "lon": -77.5349651,
+        "name": "Blossom & Clover",
+        "category": "transport"
+      },
+      {
+        "id": 12603090998,
+        "type": "node",
+        "lat": 43.1492431,
+        "lon": -77.5428653,
+        "name": "Blossom & Gas Light",
+        "category": "transport"
+      },
+      {
+        "id": 12603090997,
+        "type": "node",
+        "lat": 43.149433,
+        "lon": -77.528782,
+        "name": "Blossom & Landing",
+        "category": "transport"
+      },
+      {
+        "id": 12603090995,
+        "type": "node",
+        "lat": 43.149195,
+        "lon": -77.537581,
+        "name": "Blossom & Mercy High",
+        "category": "transport"
+      },
+      {
+        "id": 12603090996,
+        "type": "node",
+        "lat": 43.1493066,
+        "lon": -77.537639,
+        "name": "Blossom & Mercy High",
+        "category": "transport"
+      },
+      {
+        "id": 12603090994,
+        "type": "node",
+        "lat": 43.1494951,
+        "lon": -77.5299617,
+        "name": "Blossom & Wyatt",
+        "category": "transport"
+      },
+      {
+        "id": 8883115716,
+        "type": "node",
+        "lat": 43.149134,
+        "lon": -77.5438619,
+        "name": "Blossom Loop Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 959919256,
+        "type": "way",
+        "lat": 43.1491806,
+        "lon": -77.5440115,
+        "name": "Blossom Loop Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 13196809864,
+        "type": "node",
+        "lat": 43.1308995,
+        "lon": -77.6656097,
+        "name": "Brooks & Buell",
+        "category": "transport"
+      },
+      {
+        "id": 11933939270,
+        "type": "node",
+        "lat": 43.1310252,
+        "lon": -77.6365414,
+        "name": "Brooks & Genesee",
+        "category": "transport"
+      },
+      {
+        "id": 11933939271,
+        "type": "node",
+        "lat": 43.1311541,
+        "lon": -77.6369057,
+        "name": "Brooks & Genesee",
+        "category": "transport"
+      },
+      {
+        "id": 12115300907,
+        "type": "node",
+        "lat": 43.1309963,
+        "lon": -77.6359288,
+        "name": "Brooks Crossing",
+        "category": "transport"
+      },
+      {
+        "id": 12115300908,
+        "type": "node",
+        "lat": 43.1311941,
+        "lon": -77.6361019,
+        "name": "Brooks Landing",
+        "category": "transport"
+      },
+      {
+        "id": 11930095127,
+        "type": "node",
+        "lat": 43.1503096,
+        "lon": -77.6635843,
+        "name": "Buffalo & Mount Read",
+        "category": "transport"
+      },
+      {
+        "id": 11930095126,
+        "type": "node",
+        "lat": 43.1503597,
+        "lon": -77.6638081,
+        "name": "Buffalo & Mount Read",
+        "category": "transport"
+      },
+      {
+        "id": 605774367,
+        "type": "way",
+        "lat": 43.1625664,
+        "lon": -77.6079232,
+        "name": "Bus Terminal",
+        "category": "transport"
+      },
+      {
+        "id": 8889022989,
+        "type": "node",
+        "lat": 43.09797,
+        "lon": -77.7500876,
+        "name": "Cedars of Chili",
+        "category": "transport"
+      },
+      {
+        "id": 11930095133,
+        "type": "node",
+        "lat": 43.1590856,
+        "lon": -77.638939,
+        "name": "Child & Jay",
+        "category": "transport"
+      },
+      {
+        "id": 10303608702,
+        "type": "node",
+        "lat": 43.1155732,
+        "lon": -77.7292931,
+        "name": "Chili & Chestnut Ridge",
+        "category": "transport"
+      },
+      {
+        "id": 11932155720,
+        "type": "node",
+        "lat": 43.1056819,
+        "lon": -77.7488961,
+        "name": "Chili & Paul",
+        "category": "transport"
+      },
+      {
+        "id": 11932155719,
+        "type": "node",
+        "lat": 43.1058333,
+        "lon": -77.7491157,
+        "name": "Chili & Paul",
+        "category": "transport"
+      },
+      {
+        "id": 12603090945,
+        "type": "node",
+        "lat": 43.0989703,
+        "lon": -77.4522612,
+        "name": "Church & Hulburt",
+        "category": "transport"
+      },
+      {
+        "id": 12603090944,
+        "type": "node",
+        "lat": 43.0990239,
+        "lon": -77.4520134,
+        "name": "Church & Nelson",
+        "category": "transport"
+      },
+      {
+        "id": 11614888387,
+        "type": "node",
+        "lat": 43.078833,
+        "lon": -77.6220755,
+        "name": "Clay Road & Walmart",
+        "category": "transport"
+      },
+      {
+        "id": 11943463241,
+        "type": "node",
+        "lat": 43.176309,
+        "lon": -77.5581541,
+        "name": "Clifford & Culver",
+        "category": "transport"
+      },
+      {
+        "id": 11943463240,
+        "type": "node",
+        "lat": 43.1764261,
+        "lon": -77.5581887,
+        "name": "Clifford & Culver",
+        "category": "transport"
+      },
+      {
+        "id": 11943463223,
+        "type": "node",
+        "lat": 43.1757427,
+        "lon": -77.5765257,
+        "name": "Clifford & Goodman",
+        "category": "transport"
+      },
+      {
+        "id": 11943463224,
+        "type": "node",
+        "lat": 43.1758923,
+        "lon": -77.5757935,
+        "name": "Clifford & Goodman",
+        "category": "transport"
+      },
+      {
+        "id": 11921704920,
+        "type": "node",
+        "lat": 43.1751766,
+        "lon": -77.6131921,
+        "name": "Clinton & Clifford",
+        "category": "transport"
+      },
+      {
+        "id": 11921704921,
+        "type": "node",
+        "lat": 43.1754125,
+        "lon": -77.6133849,
+        "name": "Clinton & Clifford",
+        "category": "transport"
+      },
+      {
+        "id": 10300729355,
+        "type": "node",
+        "lat": 43.1245368,
+        "lon": -77.5932835,
+        "name": "Clinton & Elmwood",
         "category": "transport"
       }
     ],
     "park": [
       {
-        "id": 910003,
-        "type": "node",
-        "lat": 43.1444,
-        "lon": -77.5749,
-        "name": "Cobbs Hill Park",
+        "id": 468681375,
+        "type": "way",
+        "lat": 43.1394593,
+        "lon": -77.6469383,
+        "name": "Aberdeen Square",
         "category": "park"
       },
       {
-        "id": 910005,
-        "type": "node",
-        "lat": 43.1398,
-        "lon": -77.6089,
-        "name": "Genesee Riverway Pocket Park",
+        "id": 631929288,
+        "type": "way",
+        "lat": 43.183876,
+        "lon": -77.5124532,
+        "name": "Abraham Lincoln Park",
         "category": "park"
       },
       {
-        "id": 910006,
-        "type": "node",
-        "lat": 43.1232,
-        "lon": -77.6209,
-        "name": "Highland Bowl Green",
+        "id": 1279918054,
+        "type": "way",
+        "lat": 43.2445294,
+        "lon": -77.6325209,
+        "name": "Adeline Park",
         "category": "park"
       },
       {
-        "id": 910001,
+        "id": 1954746088,
         "type": "node",
-        "lat": 43.1515,
-        "lon": -77.6152,
-        "name": "Highland Park",
+        "lat": 43.2086502,
+        "lon": -77.6216354,
+        "name": "Africa",
         "category": "park"
       },
       {
-        "id": 910004,
-        "type": "node",
-        "lat": 43.1715,
-        "lon": -77.6465,
-        "name": "Maplewood Park",
+        "id": 469614108,
+        "type": "way",
+        "lat": 43.2036934,
+        "lon": -77.4531465,
+        "name": "Ahepa Park",
         "category": "park"
       },
       {
-        "id": 910002,
+        "id": 1368810656,
+        "type": "way",
+        "lat": 43.07931,
+        "lon": -77.6164418,
+        "name": "Andrew's Park and Trail",
+        "category": "park"
+      },
+      {
+        "id": 108283290,
+        "type": "way",
+        "lat": 43.1541029,
+        "lon": -77.627211,
+        "name": "Anthony Square",
+        "category": "park"
+      },
+      {
+        "id": 264398037,
+        "type": "way",
+        "lat": 43.127566,
+        "lon": -77.5703376,
+        "name": "Antlers Pocket Park",
+        "category": "park"
+      },
+      {
+        "id": 108282603,
+        "type": "way",
+        "lat": 43.1555962,
+        "lon": -77.6107612,
+        "name": "Aqueduct Park",
+        "category": "park"
+      },
+      {
+        "id": 962666295,
+        "type": "way",
+        "lat": 43.0794061,
+        "lon": -77.4596025,
+        "name": "Ayrault Boat Launch",
+        "category": "park"
+      },
+      {
+        "id": 1954746089,
         "type": "node",
-        "lat": 43.1642,
-        "lon": -77.6113,
-        "name": "MLK Jr Memorial Park",
+        "lat": 43.2071881,
+        "lon": -77.6228306,
+        "name": "Backyard",
+        "category": "park"
+      },
+      {
+        "id": 468506914,
+        "type": "way",
+        "lat": 43.0935003,
+        "lon": -77.6834668,
+        "name": "Ballantyne Park",
+        "category": "park"
+      },
+      {
+        "id": 1170860945,
+        "type": "way",
+        "lat": 43.2248685,
+        "lon": -77.6534058,
+        "name": "Barnard Park",
+        "category": "park"
+      },
+      {
+        "id": 444982968,
+        "type": "way",
+        "lat": 43.2347522,
+        "lon": -77.6753313,
+        "name": "Basil Marella Park",
+        "category": "park"
+      },
+      {
+        "id": 494501749,
+        "type": "way",
+        "lat": 43.2522254,
+        "lon": -77.5950251,
+        "name": "Bateau Play Area",
+        "category": "park"
+      },
+      {
+        "id": 353906224,
+        "type": "way",
+        "lat": 43.132836,
+        "lon": -77.6237939,
+        "name": "Bausch & Lomb Riverside Park",
+        "category": "park"
+      },
+      {
+        "id": 853005980,
+        "type": "way",
+        "lat": 43.2769344,
+        "lon": -77.6844533,
+        "name": "Beatty Point",
+        "category": "park"
+      },
+      {
+        "id": 429550763,
+        "type": "way",
+        "lat": 43.0960045,
+        "lon": -77.6840713,
+        "name": "Black Creek Waterway Access",
+        "category": "park"
+      },
+      {
+        "id": 572778205,
+        "type": "way",
+        "lat": 43.1539219,
+        "lon": -77.610143,
+        "name": "Blue Cross Arena Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 667022570,
+        "type": "way",
+        "lat": 43.2228133,
+        "lon": -77.6206731,
+        "name": "Brewster Harding Park",
+        "category": "park"
+      },
+      {
+        "id": 139466310,
+        "type": "way",
+        "lat": 43.1128736,
+        "lon": -77.6029926,
+        "name": "Brighton Town Park",
+        "category": "park"
+      },
+      {
+        "id": 545607608,
+        "type": "way",
+        "lat": 43.2206013,
+        "lon": -77.5991633,
+        "name": "Bristol Play Area",
+        "category": "park"
+      },
+      {
+        "id": 108357481,
+        "type": "way",
+        "lat": 43.1606169,
+        "lon": -77.6234296,
+        "name": "Brown Square Park",
+        "category": "park"
+      },
+      {
+        "id": 468754632,
+        "type": "way",
+        "lat": 43.1576554,
+        "lon": -77.5443589,
+        "name": "Browncroft Rose Garden",
+        "category": "park"
+      },
+      {
+        "id": 60557741,
+        "type": "way",
+        "lat": 43.113261,
+        "lon": -77.5852818,
+        "name": "Buckland Park",
+        "category": "park"
+      },
+      {
+        "id": 591829509,
+        "type": "way",
+        "lat": 43.2387495,
+        "lon": -77.5801414,
+        "name": "Camp Eastman",
+        "category": "park"
+      },
+      {
+        "id": 297300955,
+        "type": "way",
+        "lat": 43.2086646,
+        "lon": -77.6975449,
+        "name": "Carter Park",
+        "category": "park"
+      },
+      {
+        "id": 471993554,
+        "type": "way",
+        "lat": 43.1568948,
+        "lon": -77.5871058,
+        "name": "Centennial Sculpture Park",
+        "category": "park"
+      },
+      {
+        "id": 612641457,
+        "type": "way",
+        "lat": 43.1019898,
+        "lon": -77.750546,
+        "name": "Chili Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 684366001,
+        "type": "way",
+        "lat": 43.2164652,
+        "lon": -77.6700875,
+        "name": "Christopher Fahy Memorial Park & Playground",
+        "category": "park"
+      },
+      {
+        "id": 51063588,
+        "type": "way",
+        "lat": 43.1394976,
+        "lon": -77.5705406,
+        "name": "Cobb's Hill Park",
+        "category": "park"
+      },
+      {
+        "id": 51425603,
+        "type": "way",
+        "lat": 43.142302,
+        "lon": -77.5720359,
+        "name": "Cobbs Hill",
+        "category": "park"
+      },
+      {
+        "id": 293211681,
+        "type": "way",
+        "lat": 43.052743,
+        "lon": -77.5927043,
+        "name": "Common Greenbelt",
+        "category": "park"
+      },
+      {
+        "id": 293212020,
+        "type": "way",
+        "lat": 43.053553,
+        "lon": -77.5891066,
+        "name": "Common Greenbelt",
+        "category": "park"
+      },
+      {
+        "id": 293211242,
+        "type": "way",
+        "lat": 43.0536922,
+        "lon": -77.5909123,
+        "name": "Common Greenbelt",
+        "category": "park"
+      },
+      {
+        "id": 293211680,
+        "type": "way",
+        "lat": 43.0538104,
+        "lon": -77.5925453,
+        "name": "Common Greenbelt",
+        "category": "park"
+      },
+      {
+        "id": 466188657,
+        "type": "way",
+        "lat": 43.1157316,
+        "lon": -77.4987519,
+        "name": "Concrest Park",
+        "category": "park"
+      },
+      {
+        "id": 443228604,
+        "type": "way",
+        "lat": 43.1750843,
+        "lon": -77.6192916,
+        "name": "Conkey Corner Park",
+        "category": "park"
+      },
+      {
+        "id": 758277550,
+        "type": "way",
+        "lat": 43.0907577,
+        "lon": -77.5144376,
+        "name": "Copper Beech Park",
+        "category": "park"
+      },
+      {
+        "id": 79173880,
+        "type": "way",
+        "lat": 43.1335638,
+        "lon": -77.5206288,
+        "name": "Corbett's Glen Nature Park",
+        "category": "park"
+      },
+      {
+        "id": 108359907,
+        "type": "way",
+        "lat": 43.1551475,
+        "lon": -77.6071428,
+        "name": "Cornerstone Park",
+        "category": "park"
+      },
+      {
+        "id": 617478776,
+        "type": "way",
+        "lat": 43.1052642,
+        "lon": -77.6490854,
+        "name": "Crittenden Road Ball Diamonds",
+        "category": "park"
+      },
+      {
+        "id": 475109014,
+        "type": "way",
+        "lat": 43.127934,
+        "lon": -77.6957471,
+        "name": "Day Care Park",
+        "category": "park"
+      },
+      {
+        "id": 512396224,
+        "type": "way",
+        "lat": 43.0849278,
+        "lon": -77.681232,
+        "name": "Destler and Johnson Quad",
+        "category": "park"
+      },
+      {
+        "id": 612759435,
+        "type": "way",
+        "lat": 43.1716135,
+        "lon": -77.6129334,
+        "name": "Don Samuel Torres Park",
+        "category": "park"
+      },
+      {
+        "id": 555038951,
+        "type": "way",
+        "lat": 43.1546736,
+        "lon": -77.6068963,
+        "name": "Dorris Carlson Reading Garden",
+        "category": "park"
+      },
+      {
+        "id": 274172123,
+        "type": "way",
+        "lat": 43.0846782,
+        "lon": -77.6761013,
+        "name": "Eastman Kodak Quad",
+        "category": "park"
+      },
+      {
+        "id": 741970728,
+        "type": "way",
+        "lat": 43.1173424,
+        "lon": -77.624206,
+        "name": "Eastmoreland Park",
+        "category": "park"
+      },
+      {
+        "id": 108526499,
+        "type": "way",
+        "lat": 43.1716873,
+        "lon": -77.6349028,
+        "name": "Edgerton Park",
+        "category": "park"
+      },
+      {
+        "id": 466186706,
+        "type": "way",
+        "lat": 43.1093544,
+        "lon": -77.4851743,
+        "name": "Edmund Lyon Park",
         "category": "park"
       }
     ],
     "restaurant": [
       {
-        "id": 920002,
-        "type": "node",
-        "lat": 43.1612,
-        "lon": -77.6004,
-        "name": "Downtown Kitchen",
+        "id": 126018967,
+        "type": "way",
+        "lat": 43.0877026,
+        "lon": -77.6177402,
+        "name": "110 Grill",
         "category": "restaurant"
       },
       {
-        "id": 920001,
+        "id": 6486616947,
         "type": "node",
-        "lat": 43.1546,
-        "lon": -77.6045,
-        "name": "East End Bistro",
+        "lat": 43.1528735,
+        "lon": -77.624294,
+        "name": "1872 Cafe",
         "category": "restaurant"
       },
       {
-        "id": 920005,
+        "id": 12104346819,
         "type": "node",
-        "lat": 43.1678,
-        "lon": -77.5678,
-        "name": "Neighborhood Grill",
+        "lat": 43.1494225,
+        "lon": -77.6106338,
+        "name": "809",
         "category": "restaurant"
       },
       {
-        "id": 920003,
+        "id": 6747233800,
         "type": "node",
-        "lat": 43.1482,
-        "lon": -77.5792,
-        "name": "Park Ave Diner",
+        "lat": 43.1178926,
+        "lon": -77.6215569,
+        "name": "Abyssinia",
         "category": "restaurant"
       },
       {
-        "id": 920006,
-        "type": "node",
-        "lat": 43.1432,
-        "lon": -77.5929,
-        "name": "Riverfront Cafe",
+        "id": 685104801,
+        "type": "way",
+        "lat": 43.1389577,
+        "lon": -77.5960855,
+        "name": "Addis Ababa",
         "category": "restaurant"
       },
       {
-        "id": 920004,
+        "id": 8785970741,
         "type": "node",
-        "lat": 43.1369,
-        "lon": -77.6241,
-        "name": "South Wedge Eats",
+        "lat": 43.1434335,
+        "lon": -77.732862,
+        "name": "Agatina's Restaurant",
+        "category": "restaurant"
+      },
+      {
+        "id": 6410562777,
+        "type": "node",
+        "lat": 43.14626,
+        "lon": -77.5934831,
+        "name": "Aguilera's",
+        "category": "restaurant"
+      },
+      {
+        "id": 540921502,
+        "type": "way",
+        "lat": 43.0922436,
+        "lon": -77.5133019,
+        "name": "Aladdin's Natural Eatery",
+        "category": "restaurant"
+      },
+      {
+        "id": 6410576587,
+        "type": "node",
+        "lat": 43.1447285,
+        "lon": -77.590298,
+        "name": "Aladdins Natural Eatery",
+        "category": "restaurant"
+      },
+      {
+        "id": 8786020728,
+        "type": "node",
+        "lat": 43.1342416,
+        "lon": -77.4935678,
+        "name": "All Star Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 11181932387,
+        "type": "node",
+        "lat": 43.1197938,
+        "lon": -77.5931303,
+        "name": "Amaya Indian Cuisine",
+        "category": "restaurant"
+      },
+      {
+        "id": 283485540,
+        "type": "way",
+        "lat": 43.1965401,
+        "lon": -77.5949653,
+        "name": "Amico Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 13228177906,
+        "type": "node",
+        "lat": 43.1418987,
+        "lon": -77.6044982,
+        "name": "Angelina's",
+        "category": "restaurant"
+      },
+      {
+        "id": 545636435,
+        "type": "way",
+        "lat": 43.1400313,
+        "lon": -77.5960611,
+        "name": "Angry Goat",
+        "category": "restaurant"
+      },
+      {
+        "id": 125920651,
+        "type": "way",
+        "lat": 43.085879,
+        "lon": -77.6364363,
+        "name": "Applebee's",
+        "category": "restaurant"
+      },
+      {
+        "id": 870590254,
+        "type": "way",
+        "lat": 43.1315118,
+        "lon": -77.6892131,
+        "name": "Applebee's",
+        "category": "restaurant"
+      },
+      {
+        "id": 306154591,
+        "type": "way",
+        "lat": 43.1933856,
+        "lon": -77.5027894,
+        "name": "Applebee's",
+        "category": "restaurant"
+      },
+      {
+        "id": 551735577,
+        "type": "way",
+        "lat": 43.1999819,
+        "lon": -77.5720827,
+        "name": "Applebee's",
+        "category": "restaurant"
+      },
+      {
+        "id": 572965724,
+        "type": "way",
+        "lat": 43.2056416,
+        "lon": -77.6733867,
+        "name": "Applebee's",
+        "category": "restaurant"
+      },
+      {
+        "id": 1511143223,
+        "type": "node",
+        "lat": 43.0971246,
+        "lon": -77.6307285,
+        "name": "Arigato",
+        "category": "restaurant"
+      },
+      {
+        "id": 8401061078,
+        "type": "node",
+        "lat": 43.0841625,
+        "lon": -77.6751566,
+        "name": "Artesano Bakery & Cafe",
+        "category": "restaurant"
+      },
+      {
+        "id": 12083857755,
+        "type": "node",
+        "lat": 43.1052641,
+        "lon": -77.7524973,
+        "name": "Asia Nation",
+        "category": "restaurant"
+      },
+      {
+        "id": 7813809672,
+        "type": "node",
+        "lat": 43.2015857,
+        "lon": -77.6128026,
+        "name": "Atlas Eats",
+        "category": "restaurant"
+      },
+      {
+        "id": 6506710489,
+        "type": "node",
+        "lat": 43.130895,
+        "lon": -77.487491,
+        "name": "Aurora",
+        "category": "restaurant"
+      },
+      {
+        "id": 12081911692,
+        "type": "node",
+        "lat": 43.0927187,
+        "lon": -77.6344152,
+        "name": "Aş Evi",
+        "category": "restaurant"
+      },
+      {
+        "id": 6492805472,
+        "type": "node",
+        "lat": 43.1501139,
+        "lon": -77.5890773,
+        "name": "Bacco's Ristorante",
+        "category": "restaurant"
+      },
+      {
+        "id": 640293521,
+        "type": "way",
+        "lat": 43.1463666,
+        "lon": -77.5930824,
+        "name": "Bachelor Forum",
+        "category": "restaurant"
+      },
+      {
+        "id": 13207821752,
+        "type": "node",
+        "lat": 43.1560331,
+        "lon": -77.584759,
+        "name": "Bachelor Forum",
+        "category": "restaurant"
+      },
+      {
+        "id": 5415652238,
+        "type": "node",
+        "lat": 43.208015,
+        "lon": -77.688128,
+        "name": "Bar Louie",
+        "category": "restaurant"
+      },
+      {
+        "id": 7341479082,
+        "type": "node",
+        "lat": 43.2034096,
+        "lon": -77.6434064,
+        "name": "Bathtub Billy's",
+        "category": "restaurant"
+      },
+      {
+        "id": 11663436681,
+        "type": "node",
+        "lat": 43.1465331,
+        "lon": -77.5934148,
+        "name": "bb.q Chicken",
+        "category": "restaurant"
+      },
+      {
+        "id": 1173725181,
+        "type": "node",
+        "lat": 43.083865,
+        "lon": -77.669035,
+        "name": "Beanz",
+        "category": "restaurant"
+      },
+      {
+        "id": 12885793411,
+        "type": "node",
+        "lat": 43.2228556,
+        "lon": -77.763254,
+        "name": "Bearshire Restaraunt",
+        "category": "restaurant"
+      },
+      {
+        "id": 858578021,
+        "type": "node",
+        "lat": 43.1881366,
+        "lon": -77.7005569,
+        "name": "Bella Pasta",
+        "category": "restaurant"
+      },
+      {
+        "id": 7228234985,
+        "type": "node",
+        "lat": 43.2575534,
+        "lon": -77.6088959,
+        "name": "Bella Vista Party House",
+        "category": "restaurant"
+      },
+      {
+        "id": 5415652241,
+        "type": "node",
+        "lat": 43.2077139,
+        "lon": -77.6880487,
+        "name": "Benucci's Italian Restaraunt",
+        "category": "restaurant"
+      },
+      {
+        "id": 13065750486,
+        "type": "node",
+        "lat": 43.0722567,
+        "lon": -77.6454976,
+        "name": "Berlin's Halal Doner Kebab",
+        "category": "restaurant"
+      },
+      {
+        "id": 8785772383,
+        "type": "node",
+        "lat": 43.1425964,
+        "lon": -77.6375614,
+        "name": "Bicycle Brothers Coffee",
+        "category": "restaurant"
+      },
+      {
+        "id": 684278126,
+        "type": "way",
+        "lat": 43.146733,
+        "lon": -77.5943826,
+        "name": "Big Deal Pizzeria & Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 1036430893,
+        "type": "node",
+        "lat": 43.0855762,
+        "lon": -77.6022747,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 2918048767,
+        "type": "node",
+        "lat": 43.1060333,
+        "lon": -77.7516975,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 692666976,
+        "type": "way",
+        "lat": 43.1331146,
+        "lon": -77.4911112,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 1328166246,
+        "type": "node",
+        "lat": 43.1432751,
+        "lon": -77.7333107,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 11957733318,
+        "type": "node",
+        "lat": 43.1527708,
+        "lon": -77.6008589,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 585742521,
+        "type": "way",
+        "lat": 43.1964227,
+        "lon": -77.5943218,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 317044964,
+        "type": "way",
+        "lat": 43.2101785,
+        "lon": -77.4618818,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 544673038,
+        "type": "way",
+        "lat": 43.2170788,
+        "lon": -77.7344207,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 219739991,
+        "type": "way",
+        "lat": 43.2342791,
+        "lon": -77.5396296,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 5872941917,
+        "type": "node",
+        "lat": 43.2536785,
+        "lon": -77.6664483,
+        "name": "Bill Gray's",
+        "category": "restaurant"
+      },
+      {
+        "id": 7223424651,
+        "type": "node",
+        "lat": 43.2560829,
+        "lon": -77.6067947,
+        "name": "Bill Gray's",
         "category": "restaurant"
       }
     ],
     "education": [
       {
-        "id": 930002,
-        "type": "node",
-        "lat": 43.1565,
-        "lon": -77.6089,
-        "name": "Downtown Learning Center",
+        "id": 321303769,
+        "type": "way",
+        "lat": 43.1946423,
+        "lon": -77.6352338,
+        "name": "All City High",
         "category": "education"
       },
       {
-        "id": 930004,
-        "type": "node",
-        "lat": 43.1913,
-        "lon": -77.6092,
-        "name": "RIT City Outpost",
+        "id": 1276726735,
+        "type": "way",
+        "lat": 43.1260441,
+        "lon": -77.5260327,
+        "name": "Allen Creek Elementary School",
         "category": "education"
       },
       {
-        "id": 930003,
-        "type": "node",
-        "lat": 43.1681,
-        "lon": -77.6123,
-        "name": "School of the Arts",
+        "id": 296092340,
+        "type": "way",
+        "lat": 43.1175284,
+        "lon": -77.5377246,
+        "name": "Allendale Columbia School",
         "category": "education"
       },
       {
-        "id": 930001,
+        "id": 785496144,
+        "type": "way",
+        "lat": 43.1875411,
+        "lon": -77.6440119,
+        "name": "Aquinas Institute",
+        "category": "education"
+      },
+      {
+        "id": 1104825923,
+        "type": "way",
+        "lat": 43.1292569,
+        "lon": -77.6977365,
+        "name": "Archangel School",
+        "category": "education"
+      },
+      {
+        "id": 317212670,
+        "type": "way",
+        "lat": 43.2216224,
+        "lon": -77.7055216,
+        "name": "Autumn Lane Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1084559983,
+        "type": "way",
+        "lat": 43.0572458,
+        "lon": -77.5256331,
+        "name": "Barker Road Middle School",
+        "category": "education"
+      },
+      {
+        "id": 545063979,
+        "type": "way",
+        "lat": 43.1104615,
+        "lon": -77.4842235,
+        "name": "Bird/Morgan School",
+        "category": "education"
+      },
+      {
+        "id": 629370856,
+        "type": "way",
+        "lat": 43.2019254,
+        "lon": -77.5791718,
+        "name": "Bishop Kearney Junior/Senior High School",
+        "category": "education"
+      },
+      {
+        "id": 357549409,
         "type": "node",
-        "lat": 43.1284,
-        "lon": -77.6292,
-        "name": "University of Rochester",
+        "lat": 43.1442291,
+        "lon": -77.5883334,
+        "name": "Blessed Sacrament School",
+        "category": "education"
+      },
+      {
+        "id": 970181123,
+        "type": "way",
+        "lat": 43.2147412,
+        "lon": -77.6053402,
+        "name": "Briarwood Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 91603509,
+        "type": "way",
+        "lat": 43.1230161,
+        "lon": -77.5651587,
+        "name": "Brighton Central Schools",
+        "category": "education"
+      },
+      {
+        "id": 357550936,
+        "type": "node",
+        "lat": 43.1128404,
+        "lon": -77.570277,
+        "name": "Brookside School",
+        "category": "education"
+      },
+      {
+        "id": 1205979087,
+        "type": "way",
+        "lat": 43.2180287,
+        "lon": -77.6928726,
+        "name": "Brookside School",
+        "category": "education"
+      },
+      {
+        "id": 970181126,
+        "type": "way",
+        "lat": 43.2040353,
+        "lon": -77.5937338,
+        "name": "Brookview Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 11836024446,
+        "type": "node",
+        "lat": 43.0843489,
+        "lon": -77.6024717,
+        "name": "Bryant & Stratton College Henrietta Campus",
+        "category": "education"
+      },
+      {
+        "id": 317212671,
+        "type": "way",
+        "lat": 43.2171627,
+        "lon": -77.6695515,
+        "name": "Buckman Heights Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 823172005,
+        "type": "way",
+        "lat": 43.0662596,
+        "lon": -77.5448023,
+        "name": "Calkins Road Middle School",
+        "category": "education"
+      },
+      {
+        "id": 1002657003,
+        "type": "way",
+        "lat": 43.1328534,
+        "lon": -77.4739944,
+        "name": "Charles Finney School",
+        "category": "education"
+      },
+      {
+        "id": 1279863241,
+        "type": "way",
+        "lat": 43.0944166,
+        "lon": -77.7804536,
+        "name": "Chestnut Ridge School",
+        "category": "education"
+      },
+      {
+        "id": 817015182,
+        "type": "way",
+        "lat": 43.1341695,
+        "lon": -77.4824778,
+        "name": "Cobbles Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 13712353702,
+        "type": "node",
+        "lat": 43.240472,
+        "lon": -77.5932766,
+        "name": "Colebrook Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1064505888,
+        "type": "way",
+        "lat": 43.1307391,
+        "lon": -77.5498061,
+        "name": "Council Rock School",
+        "category": "education"
+      },
+      {
+        "id": 297304563,
+        "type": "way",
+        "lat": 43.2068356,
+        "lon": -77.7189975,
+        "name": "Craig Hill School",
+        "category": "education"
+      },
+      {
+        "id": 1247251088,
+        "type": "node",
+        "lat": 43.1573244,
+        "lon": -77.5874157,
+        "name": "Creative WorkshopArt School",
+        "category": "education"
+      },
+      {
+        "id": 970181121,
+        "type": "way",
+        "lat": 43.2177217,
+        "lon": -77.5973241,
+        "name": "Dake Junior High School",
+        "category": "education"
+      },
+      {
+        "id": 1279758893,
+        "type": "way",
+        "lat": 43.2228379,
+        "lon": -77.643535,
+        "name": "Derech HaTorah",
+        "category": "education"
+      },
+      {
+        "id": 197826535,
+        "type": "way",
+        "lat": 43.2230488,
+        "lon": -77.5467537,
+        "name": "Durand Eastman Intermediate School",
+        "category": "education"
+      },
+      {
+        "id": 1100806715,
+        "type": "way",
+        "lat": 43.1336168,
+        "lon": -77.5385827,
+        "name": "East Avenue Campus",
+        "category": "education"
+      },
+      {
+        "id": 882176294,
+        "type": "way",
+        "lat": 43.1581529,
+        "lon": -77.5648294,
+        "name": "East High School",
+        "category": "education"
+      },
+      {
+        "id": 197826536,
+        "type": "way",
+        "lat": 43.1910094,
+        "lon": -77.5520872,
+        "name": "East Irondequoit Middle School",
+        "category": "education"
+      },
+      {
+        "id": 545063967,
+        "type": "way",
+        "lat": 43.107949,
+        "lon": -77.4953847,
+        "name": "East Rochester Union Free School",
+        "category": "education"
+      },
+      {
+        "id": 1277810009,
+        "type": "way",
+        "lat": 43.1778361,
+        "lon": -77.6724122,
+        "name": "Edison Tech High School",
+        "category": "education"
+      },
+      {
+        "id": 1279918056,
+        "type": "way",
+        "lat": 43.2408715,
+        "lon": -77.6529901,
+        "name": "English Village Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1069871203,
+        "type": "way",
+        "lat": 43.1001359,
+        "lon": -77.568671,
+        "name": "French Road Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1205962553,
+        "type": "way",
+        "lat": 43.0689044,
+        "lon": -77.6538826,
+        "name": "Fyle School",
+        "category": "education"
+      },
+      {
+        "id": 1104825917,
+        "type": "way",
+        "lat": 43.1551494,
+        "lon": -77.7066337,
+        "name": "Gates Chili High School",
+        "category": "education"
+      },
+      {
+        "id": 1104825918,
+        "type": "way",
+        "lat": 43.1509282,
+        "lon": -77.7030017,
+        "name": "Gates Chili Middle School",
+        "category": "education"
+      },
+      {
+        "id": 357554806,
+        "type": "node",
+        "lat": 43.1515077,
+        "lon": -77.5887009,
+        "name": "Genesee Community Charter School - River City Campus",
+        "category": "education"
+      },
+      {
+        "id": 962494168,
+        "type": "way",
+        "lat": 43.0780364,
+        "lon": -77.594066,
+        "name": "Gillette School",
+        "category": "education"
+      },
+      {
+        "id": 544671748,
+        "type": "way",
+        "lat": 43.2438997,
+        "lon": -77.6917441,
+        "name": "Greece Athena Middle School & High School Campus",
+        "category": "education"
+      },
+      {
+        "id": 1205979086,
+        "type": "way",
+        "lat": 43.2565831,
+        "lon": -77.6620963,
+        "name": "Greece Central School District",
+        "category": "education"
+      },
+      {
+        "id": 1088274267,
+        "type": "way",
+        "lat": 43.2399671,
+        "lon": -77.6757142,
+        "name": "Greece Community Early Learning Center",
+        "category": "education"
+      },
+      {
+        "id": 317212672,
+        "type": "way",
+        "lat": 43.2198542,
+        "lon": -77.6727262,
+        "name": "Greece Olympia High School",
+        "category": "education"
+      },
+      {
+        "id": 357562989,
+        "type": "node",
+        "lat": 43.0783959,
+        "lon": -77.6091669,
+        "name": "Guardian Angels School",
+        "category": "education"
+      },
+      {
+        "id": 198530814,
+        "type": "way",
+        "lat": 43.1204867,
+        "lon": -77.5496878,
+        "name": "Harley School",
+        "category": "education"
+      },
+      {
+        "id": 26332259,
+        "type": "way",
+        "lat": 43.1325338,
+        "lon": -77.4488104,
+        "name": "Harris Hill Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 591845315,
+        "type": "way",
+        "lat": 43.1743011,
+        "lon": -77.5431774,
+        "name": "Helendale Road Primary School",
+        "category": "education"
+      },
+      {
+        "id": 1279918057,
+        "type": "way",
+        "lat": 43.1218135,
+        "lon": -77.5856706,
+        "name": "Hillel Community Day School",
+        "category": "education"
+      },
+      {
+        "id": 357564553,
+        "type": "node",
+        "lat": 43.1425626,
+        "lon": -77.5577768,
+        "name": "Hiller School",
         "category": "education"
       }
     ],
     "hospital": [
       {
-        "id": 940003,
+        "id": 5864936779,
         "type": "node",
-        "lat": 43.1458,
-        "lon": -77.5941,
-        "name": "Downtown Urgent Care",
+        "lat": 43.1857815,
+        "lon": -77.7057732,
+        "name": "Borg & Ide Imaging",
         "category": "hospital"
       },
       {
-        "id": 940004,
-        "type": "node",
-        "lat": 43.1837,
-        "lon": -77.6345,
-        "name": "Northside Clinic",
+        "id": 549462621,
+        "type": "way",
+        "lat": 43.1125201,
+        "lon": -77.5943362,
+        "name": "Clinton Crossings",
         "category": "hospital"
       },
       {
-        "id": 940002,
-        "type": "node",
-        "lat": 43.1605,
-        "lon": -77.5494,
-        "name": "Rochester General Hospital",
+        "id": 1126557502,
+        "type": "way",
+        "lat": 43.1155245,
+        "lon": -77.7299427,
+        "name": "Cornerstone Urgent Care",
         "category": "hospital"
       },
       {
-        "id": 940001,
+        "id": 9443563569,
         "type": "node",
-        "lat": 43.1266,
-        "lon": -77.6243,
-        "name": "Strong Memorial Hospital",
+        "lat": 43.0692944,
+        "lon": -77.6066186,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 11992961408,
+        "type": "node",
+        "lat": 43.102192,
+        "lon": -77.4622177,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 12085363377,
+        "type": "node",
+        "lat": 43.1220773,
+        "lon": -77.6192748,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 9446001997,
+        "type": "node",
+        "lat": 43.1222809,
+        "lon": -77.708914,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 6022769220,
+        "type": "node",
+        "lat": 43.1238932,
+        "lon": -77.5608559,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 11992961404,
+        "type": "node",
+        "lat": 43.1477492,
+        "lon": -77.5773561,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 8285069126,
+        "type": "node",
+        "lat": 43.1489909,
+        "lon": -77.5543976,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 9446138762,
+        "type": "node",
+        "lat": 43.1695947,
+        "lon": -77.7052568,
+        "name": "CVS Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 11484433848,
+        "type": "node",
+        "lat": 43.1659097,
+        "lon": -77.6248107,
+        "name": "Evelyn Brandon Chemical Dependency Clinic",
+        "category": "hospital"
+      },
+      {
+        "id": 1236761327,
+        "type": "way",
+        "lat": 43.165899,
+        "lon": -77.6249927,
+        "name": "Evelyn Brandon Health Center",
+        "category": "hospital"
+      },
+      {
+        "id": 11484433849,
+        "type": "node",
+        "lat": 43.1661204,
+        "lon": -77.6254105,
+        "name": "Evelyn Brandon Health Center Personalized Recovery Oriented Services",
+        "category": "hospital"
+      },
+      {
+        "id": 13076508071,
+        "type": "node",
+        "lat": 43.1203655,
+        "lon": -77.5914717,
+        "name": "Family Foot Care Center",
+        "category": "hospital"
+      },
+      {
+        "id": 5872941918,
+        "type": "node",
+        "lat": 43.2536336,
+        "lon": -77.6666173,
+        "name": "Faris Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 5872810688,
+        "type": "node",
+        "lat": 43.1891882,
+        "lon": -77.7006374,
+        "name": "Fresenius Kidney Care",
+        "category": "hospital"
+      },
+      {
+        "id": 624847361,
+        "type": "way",
+        "lat": 43.1178218,
+        "lon": -77.656718,
+        "name": "Fresenius Medical Care Dialysis Center",
+        "category": "hospital"
+      },
+      {
+        "id": 5402768706,
+        "type": "node",
+        "lat": 43.1532871,
+        "lon": -77.743684,
+        "name": "Health Direct/Kinney Drugs",
+        "category": "hospital"
+      },
+      {
+        "id": 114437174,
+        "type": "way",
+        "lat": 43.1356582,
+        "lon": -77.6061254,
+        "name": "Highland Hospital",
+        "category": "hospital"
+      },
+      {
+        "id": 238359670,
+        "type": "way",
+        "lat": 43.1219124,
+        "lon": -77.6277826,
+        "name": "Mental Health & Wellness",
+        "category": "hospital"
+      },
+      {
+        "id": 5840179156,
+        "type": "node",
+        "lat": 43.1632699,
+        "lon": -77.6120093,
+        "name": "New Clinton Pharmacy",
+        "category": "hospital"
+      },
+      {
+        "id": 13134742353,
+        "type": "node",
+        "lat": 43.1210139,
+        "lon": -77.6260243,
+        "name": "Passport Health Rochester Travel Clinic",
+        "category": "hospital"
+      },
+      {
+        "id": 406882267,
+        "type": "way",
+        "lat": 43.1607609,
+        "lon": -77.5995755,
+        "name": "Planned Parenthood",
+        "category": "hospital"
+      },
+      {
+        "id": 141491524,
+        "type": "way",
+        "lat": 43.1859302,
+        "lon": -77.7057197,
+        "name": "Ridgeway Medical Campus",
+        "category": "hospital"
+      },
+      {
+        "id": 11932019370,
+        "type": "node",
+        "lat": 43.1770668,
+        "lon": -77.6128433,
+        "name": "Rite Aid",
+        "category": "hospital"
+      },
+      {
+        "id": 11932019371,
+        "type": "node",
+        "lat": 43.1883243,
+        "lon": -77.5756686,
+        "name": "Rite Aid",
+        "category": "hospital"
+      },
+      {
+        "id": 11932019369,
+        "type": "node",
+        "lat": 43.2099652,
+        "lon": -77.6003922,
+        "name": "Rite Aid",
+        "category": "hospital"
+      },
+      {
+        "id": 558922664,
+        "type": "way",
+        "lat": 43.1916588,
+        "lon": -77.5876892,
+        "name": "Rochester General Hospital Medical Office Building",
+        "category": "hospital"
+      },
+      {
+        "id": 438350420,
+        "type": "way",
+        "lat": 43.1221152,
+        "lon": -77.6100618,
+        "name": "Rochester Psychiatric Center",
+        "category": "hospital"
+      },
+      {
+        "id": 4784864165,
+        "type": "node",
+        "lat": 43.0857127,
+        "lon": -77.6826043,
+        "name": "Rochester Regional Family Health",
+        "category": "hospital"
+      },
+      {
+        "id": 653500043,
+        "type": "way",
+        "lat": 43.0672431,
+        "lon": -77.6090209,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 11963437193,
+        "type": "node",
+        "lat": 43.1082946,
+        "lon": -77.7462367,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 11963437186,
+        "type": "node",
+        "lat": 43.1268802,
+        "lon": -77.5659645,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 11963437221,
+        "type": "node",
+        "lat": 43.1492746,
+        "lon": -77.6374612,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 11963437226,
+        "type": "node",
+        "lat": 43.1925186,
+        "lon": -77.5916414,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 147709912,
+        "type": "way",
+        "lat": 43.2094104,
+        "lon": -77.4508101,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 387565132,
+        "type": "way",
+        "lat": 43.209532,
+        "lon": -77.7020554,
+        "name": "Rochester Regional Health Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 495603900,
+        "type": "way",
+        "lat": 43.1924473,
+        "lon": -77.5882652,
+        "name": "Rochester Regional Health: Rochester General Campus",
+        "category": "hospital"
+      },
+      {
+        "id": 558932598,
+        "type": "way",
+        "lat": 43.1486214,
+        "lon": -77.6371408,
+        "name": "Saint Mary's Campus",
+        "category": "hospital"
+      },
+      {
+        "id": 296198671,
+        "type": "way",
+        "lat": 43.1124978,
+        "lon": -77.4784646,
+        "name": "SpecialtyRx",
+        "category": "hospital"
+      },
+      {
+        "id": 3122951454,
+        "type": "node",
+        "lat": 43.1170166,
+        "lon": -77.5117209,
+        "name": "St. John Fisher University Health and Wellness Center",
+        "category": "hospital"
+      },
+      {
+        "id": 768982488,
+        "type": "way",
+        "lat": 43.1476964,
+        "lon": -77.6062016,
+        "name": "St. Joseph's Neighborhood Center",
+        "category": "hospital"
+      },
+      {
+        "id": 8786035607,
+        "type": "node",
+        "lat": 43.0999443,
+        "lon": -77.6324363,
+        "name": "Strong Ties Community Support Clinic",
+        "category": "hospital"
+      },
+      {
+        "id": 560441269,
+        "type": "way",
+        "lat": 43.1194685,
+        "lon": -77.5947659,
+        "name": "The Center for Menstrual Disorders & Reproductive Choice",
+        "category": "hospital"
+      },
+      {
+        "id": 125920686,
+        "type": "way",
+        "lat": 43.0822236,
+        "lon": -77.6332663,
+        "name": "The Saunders Center for Orthopaedics and Physical Performance",
+        "category": "hospital"
+      },
+      {
+        "id": 8786030078,
+        "type": "node",
+        "lat": 43.1494828,
+        "lon": -77.5995863,
+        "name": "Trillium Health",
+        "category": "hospital"
+      },
+      {
+        "id": 545581543,
+        "type": "way",
+        "lat": 43.1920814,
+        "lon": -77.7057655,
+        "name": "Unity Hospital",
+        "category": "hospital"
+      },
+      {
+        "id": 558949198,
+        "type": "way",
+        "lat": 43.1229386,
+        "lon": -77.625386,
+        "name": "University of Rochester Medical Center Main Campus",
+        "category": "hospital"
+      },
+      {
+        "id": 5864777945,
+        "type": "node",
+        "lat": 43.1219944,
+        "lon": -77.6258452,
+        "name": "UR Medicine Employee Pharmacy",
         "category": "hospital"
       }
     ]

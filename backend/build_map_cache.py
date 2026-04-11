@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,7 @@ from typing import Any
 from sqlalchemy import select
 
 from models import Listing, SessionLocal
-from overpass_client import fetch_pois_bbox
+from overpass_client import fetch_pois_bbox, fetch_pois_by_tags
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MAP_CACHE_DIR = REPO_ROOT / "Data" / "map_cache"
@@ -19,8 +21,13 @@ CITY = "rochester"
 BBOX = {"south": 43.05, "west": -77.78, "north": 43.28, "east": -77.45}
 CATEGORIES = ["transport", "park", "restaurant", "education", "hospital"]
 SCHEMA_VERSION = 1
-RESTAURANT_TARGET_MIN = 200
-RESTAURANT_TARGET_MAX = 400
+# ~50 named POIs per category after merge/dedupe (Overpass is capped per tile).
+PER_CATEGORY_CAP = int(os.getenv("MAP_CACHE_PER_CATEGORY_CAP", "50"))
+# One full-Rochester bbox per category by default (fewer requests -> less 429 from public Overpass).
+SHARD_ROWS = int(os.getenv("MAP_CACHE_SHARD_ROWS", "1"))
+SHARD_COLS = int(os.getenv("MAP_CACHE_SHARD_COLS", "1"))
+OVERPASS_TILE_MAX = int(os.getenv("MAP_CACHE_OVERPASS_TILE_MAX", "900"))
+OVERPASS_PAUSE_SEC = float(os.getenv("OVERPASS_BUILD_PAUSE_SEC", "12"))
 
 
 def _iso_now() -> str:
@@ -97,36 +104,51 @@ def _dedupe_pois(items: list[dict[str, Any]], default_category: str) -> list[dic
     return merged
 
 
-def _fetch_restaurant_sharded() -> tuple[list[dict[str, Any]], list[str]]:
-    failures: list[str] = []
-    collected: list[dict[str, Any]] = []
+def _fetch_category_sharded(category: str) -> tuple[list[dict[str, Any]], list[str]]:
     tiles = _bbox_tiles(
         south=BBOX["south"],
         west=BBOX["west"],
         north=BBOX["north"],
         east=BBOX["east"],
-        rows=4,
-        cols=4,
+        rows=SHARD_ROWS,
+        cols=SHARD_COLS,
     )
-    for i, tile in enumerate(tiles):
-        try:
-            pois, upstream, fallback_used = fetch_pois_bbox(
-                south=tile["south"],
-                west=tile["west"],
-                north=tile["north"],
-                east=tile["east"],
-                category="restaurant",
-            )
-            collected.extend(pois)
-            print(
-                f"[restaurant-tile {i+1}/{len(tiles)}] +{len(pois)} "
-                f"(upstream={upstream}, fallback_used={fallback_used})"
-            )
-        except Exception as exc:  # noqa: BLE001
-            failures.append(f"tile_{i+1}: {exc}")
-            print(f"[restaurant-tile {i+1}/{len(tiles)}] failed -> {exc}")
-    deduped = _dedupe_pois(collected, "restaurant")
-    return deduped, failures
+    last_failures: list[str] = []
+    last_capped: list[dict[str, Any]] = []
+
+    for attempt in range(2):
+        failures: list[str] = []
+        collected: list[dict[str, Any]] = []
+        for i, tile in enumerate(tiles):
+            try:
+                pois, upstream, fallback_used = fetch_pois_bbox(
+                    south=tile["south"],
+                    west=tile["west"],
+                    north=tile["north"],
+                    east=tile["east"],
+                    category=category,
+                    max_elements=OVERPASS_TILE_MAX,
+                )
+                collected.extend(pois)
+                print(
+                    f"[{category}-tile {i + 1}/{len(tiles)}] +{len(pois)} "
+                    f"(upstream={upstream}, fallback_used={fallback_used})"
+                )
+            except Exception as exc:  # noqa: BLE001
+                failures.append(f"tile_{i + 1}: {exc}")
+                print(f"[{category}-tile {i + 1}/{len(tiles)}] failed -> {exc}")
+            if i + 1 < len(tiles):
+                time.sleep(OVERPASS_PAUSE_SEC)
+        deduped = _dedupe_pois(collected, category)
+        capped = deduped[:PER_CATEGORY_CAP]
+        last_failures = failures
+        last_capped = capped
+        if not failures or attempt == 1:
+            return capped, failures
+        print(f"[{category}] retrying after errors (sleep 75s)...")
+        time.sleep(75.0)
+
+    return last_capped, last_failures
 
 
 def _build_pois(generated_at: str) -> dict[str, Any]:
@@ -150,61 +172,61 @@ def _build_pois(generated_at: str) -> dict[str, Any]:
     failures: list[str] = []
     restaurant_under_target = False
 
-    for category in CATEGORIES:
-        if category == "restaurant":
-            try:
-                sharded, tile_failures = _fetch_restaurant_sharded()
-                fetched = sharded
-                if tile_failures:
-                    failures.extend([f"restaurant {x}" for x in tile_failures])
-                existing_rest = existing_categories.get("restaurant", [])
-                if len(fetched) < RESTAURANT_TARGET_MIN and existing_rest:
-                    merged = _dedupe_pois([*fetched, *existing_rest], "restaurant")
-                    fetched = merged
-                if len(fetched) < RESTAURANT_TARGET_MIN:
-                    restaurant_under_target = True
-                    failures.append(
-                        f"restaurant under target: {len(fetched)} < {RESTAURANT_TARGET_MIN}"
-                    )
-                if len(fetched) > RESTAURANT_TARGET_MAX:
-                    fetched = fetched[:RESTAURANT_TARGET_MAX]
-                categories["restaurant"] = fetched
-                category_counts["restaurant"] = len(fetched)
-                print(f"[pois] restaurant: {len(fetched)} (target {RESTAURANT_TARGET_MIN}-{RESTAURANT_TARGET_MAX})")
-                continue
-            except Exception as exc:  # noqa: BLE001
-                fallback_items = _dedupe_pois(existing_categories.get("restaurant", []), "restaurant")
-                categories["restaurant"] = fallback_items
-                category_counts["restaurant"] = len(fallback_items)
-                restaurant_under_target = len(fallback_items) < RESTAURANT_TARGET_MIN
-                fallback_note = (
-                    f"fallback={len(fallback_items)} from existing cache"
-                    if fallback_items
-                    else "fallback=empty"
-                )
-                failures.append(f"restaurant: {exc} ({fallback_note})")
-                print(f"[pois] restaurant: failed -> {exc}; {fallback_note}")
-                continue
-
+    for idx, category in enumerate(CATEGORIES):
+        if idx > 0:
+            time.sleep(OVERPASS_PAUSE_SEC)
         try:
-            pois, upstream, fallback_used = fetch_pois_bbox(
-                south=BBOX["south"],
-                west=BBOX["west"],
-                north=BBOX["north"],
-                east=BBOX["east"],
-                category=category,
-            )
-            deduped = _dedupe_pois(pois, category)
-            categories[category] = deduped
-            category_counts[category] = len(deduped)
+            fetched, tile_failures = _fetch_category_sharded(category)
+            if tile_failures:
+                failures.extend([f"{category} {x}" for x in tile_failures])
+            if (
+                category == "transport"
+                and len(fetched) < PER_CATEGORY_CAP
+                and PER_CATEGORY_CAP > 0
+            ):
+                time.sleep(OVERPASS_PAUSE_SEC)
+                try:
+                    extra, _up, _fb = fetch_pois_by_tags(
+                        south=BBOX["south"],
+                        west=BBOX["west"],
+                        north=BBOX["north"],
+                        east=BBOX["east"],
+                        tag_pairs=[("highway", "bus_stop")],
+                        category="transport",
+                        max_elements=min(800, OVERPASS_TILE_MAX + 200),
+                    )
+                    fetched = _dedupe_pois([*fetched, *extra], "transport")[
+                        :PER_CATEGORY_CAP
+                    ]
+                    print(
+                        f"[pois] transport: after bus_stop supplement -> {len(fetched)}"
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    failures.append(f"transport bus_stop supplement: {exc}")
+                    print(f"[pois] transport bus_stop supplement failed -> {exc}")
+            existing_cat = existing_categories.get(category, [])
+            if len(fetched) < PER_CATEGORY_CAP and existing_cat:
+                merged = _dedupe_pois([*fetched, *existing_cat], category)
+                fetched = merged[:PER_CATEGORY_CAP]
+            categories[category] = fetched
+            category_counts[category] = len(fetched)
+            if category == "restaurant" and len(fetched) < PER_CATEGORY_CAP:
+                restaurant_under_target = True
+                failures.append(
+                    f"restaurant under cap: {len(fetched)} < {PER_CATEGORY_CAP} (after merge)"
+                )
             print(
-                f"[pois] {category}: {len(deduped)} "
-                f"(upstream={upstream}, fallback_used={fallback_used})"
+                f"[pois] {category}: {len(fetched)} "
+                f"(cap={PER_CATEGORY_CAP}, shards={SHARD_ROWS}x{SHARD_COLS})"
             )
         except Exception as exc:  # noqa: BLE001
-            fallback_items = _dedupe_pois(existing_categories.get(category, []), category)
+            fallback_items = _dedupe_pois(existing_categories.get(category, []), category)[
+                :PER_CATEGORY_CAP
+            ]
             categories[category] = fallback_items
             category_counts[category] = len(fallback_items)
+            if category == "restaurant" and len(fallback_items) < PER_CATEGORY_CAP:
+                restaurant_under_target = True
             fallback_note = (
                 f"fallback={len(fallback_items)} from existing cache"
                 if fallback_items

@@ -130,11 +130,43 @@ def _ensure_user_stay_review_table() -> None:
             )
 
 
+def _migrate_user_stay_review_sqlite_columns() -> None:
+    """Rename legacy SQLite columns to match ``UserStayReview`` ORM attributes.
+
+    Older schemas used ``airbnb_review_authenticity_rating`` and
+    ``checkin_experience_rating``; without this, any query on ``user_stay_reviews``
+    raises ``OperationalError`` and the stay-reviews API returns 500.
+    """
+    with engine.begin() as conn:
+        try:
+            rows = conn.exec_driver_sql("PRAGMA table_info(user_stay_reviews)").fetchall()
+        except Exception:
+            return
+        if not rows:
+            return
+        columns = {row[1] for row in rows}
+        pairs = []
+        if (
+            "airbnb_review_authenticity_rating" in columns
+            and "airbnb_review_accuracy_rating" not in columns
+        ):
+            pairs.append(
+                ("airbnb_review_authenticity_rating", "airbnb_review_accuracy_rating")
+            )
+        if "checkin_experience_rating" in columns and "check_in_rating" not in columns:
+            pairs.append(("checkin_experience_rating", "check_in_rating"))
+        for old, new in pairs:
+            conn.execute(
+                text(f'ALTER TABLE user_stay_reviews RENAME COLUMN "{old}" TO "{new}"')
+            )
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _ensure_user_profile_columns()
     _ensure_user_stay_review_table()
+    _migrate_user_stay_review_sqlite_columns()
     yield
 
 
