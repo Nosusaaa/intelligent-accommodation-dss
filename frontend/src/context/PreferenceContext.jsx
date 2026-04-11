@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
 
 const PreferenceContext = createContext(null)
 
@@ -12,7 +12,7 @@ export function PreferenceProvider({ children }) {
     }
   })
 
-  const saveTopVibeTag = (tag) => {
+  const saveTopVibeTag = useCallback((tag) => {
     setTopVibeTag(tag)
     try {
       if (tag) sessionStorage.setItem('top_vibe_tag', tag)
@@ -20,7 +20,7 @@ export function PreferenceProvider({ children }) {
     } catch {
       // ignore
     }
-  }
+  }, [])
 
   return (
     <PreferenceContext.Provider value={{ topVibeTag, saveTopVibeTag }}>

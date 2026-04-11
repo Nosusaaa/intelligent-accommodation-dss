@@ -486,9 +486,9 @@ function IntegerStepper({
 
 export default function SmartSearch() {
   const navigate = useNavigate()
-  const { userId } = useUser()
+  const { userId, profile } = useUser()
   const { items, toggleCompare, isInCompare } = useCompare()
-  const { topVibeTag } = usePreference()
+  const { topVibeTag, saveTopVibeTag } = usePreference()
   const {
     isFavorite,
     isStayed,
@@ -533,16 +533,15 @@ export default function SmartSearch() {
   })
 
   const [selectedTags, setSelectedTags] = useState(() => new Set())
+  /** Avoid re-adding the same auto-picked vibe when `resolvedVibeTag` is stable; reset when `userId` changes. */
+  const lastAutoAppliedVibeRef = useRef(null)
   /** Multiple tags → backend `vibe_tags_mode`: match any (or) vs match all (and). */
   const [tagMatchMode, setTagMatchMode] = useState('or')
   /** Search box: name = listing name / neighbourhood (`q`); tags = parse tags from input + chips below. */
   const [searchFieldMode, setSearchFieldMode] = useState('tags')
   /** When false, listing requests omit map bbox; map and POIs still follow the viewport. */
   const [mapBoundsFilterEnabled, setMapBoundsFilterEnabled] = useState(true)
-  const [suggestedTagsOpen, setSuggestedTagsOpen] = useState(true)
-  // track whether we've already applied the onboarding preference tag
-  const preferenceApplied = useRef(false)
-
+  const [suggestedTagsOpen, setSuggestedTagsOpen] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 12
   const [viewport, setViewport] = useState(null)
@@ -558,6 +557,23 @@ export default function SmartSearch() {
   const [stayIntentUnmarking, setStayIntentUnmarking] = useState(false)
   const poiCount = mapPois.length
   const hasPoiData = poiCount > 0
+
+  /**
+   * Default vibe for filters: guests use session/onboarding tag; signed-in users use
+   * `GET /profile` `top_vibe_tag` once `profile.user_id` matches (avoid stale cache before fetch).
+   */
+  const resolvedVibeTag = useMemo(() => {
+    const fromSession =
+      topVibeTag != null && String(topVibeTag).trim() ? String(topVibeTag).trim() : ''
+    if (!userId) return fromSession || null
+    const pid = profile?.user_id != null ? Number(profile.user_id) : null
+    const profileMatches = pid === Number(userId)
+    if (!profileMatches) return null
+    const fromProfile =
+      profile?.top_vibe_tag != null ? String(profile.top_vibe_tag).trim() : ''
+    if (fromProfile) return fromProfile
+    return fromSession || null
+  }, [userId, profile?.user_id, profile?.top_vibe_tag, topVibeTag])
 
   // Derive tags from search query
   const queryExtractedTags = useMemo(
@@ -683,17 +699,29 @@ export default function SmartSearch() {
     syncPriceRange(priceMin, v)
   }
 
-  // Auto-select the top vibe tag from onboarding (fires once on mount when tag is available)
+  // Keep session preference aligned with server after login / profile refresh
   useEffect(() => {
-    if (topVibeTag && !preferenceApplied.current) {
-      preferenceApplied.current = true
-      setSelectedTags((prev) => {
-        const next = new Set(prev)
-        next.add(topVibeTag)
-        return next
-      })
-    }
-  }, [topVibeTag])
+    if (!userId || !profile?.user_id || Number(profile.user_id) !== Number(userId)) return
+    const p = profile.top_vibe_tag != null ? String(profile.top_vibe_tag).trim() : ''
+    if (p) saveTopVibeTag(p)
+  }, [userId, profile?.user_id, profile?.top_vibe_tag, saveTopVibeTag])
+
+  useEffect(() => {
+    lastAutoAppliedVibeRef.current = null
+  }, [userId])
+
+  // Auto-add the user's vibe tag when it becomes available (login/profile load or guest session)
+  useEffect(() => {
+    const tag = resolvedVibeTag?.trim()
+    if (!tag) return
+    if (lastAutoAppliedVibeRef.current === tag) return
+    lastAutoAppliedVibeRef.current = tag
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      next.add(tag)
+      return next
+    })
+  }, [resolvedVibeTag])
 
   useEffect(() => {
     return () => {
