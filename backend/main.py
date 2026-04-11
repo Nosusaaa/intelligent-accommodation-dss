@@ -18,6 +18,7 @@ from collections.abc import Generator
 from contextlib import asynccontextmanager
 from datetime import date, datetime
 import logging
+import os
 import time
 from typing import Annotated, Any, List, Optional
 
@@ -147,14 +148,33 @@ OVERPASS_FAILURE_WINDOW_SEC = 25.0
 _overpass_breaker_until = 0.0
 logger = logging.getLogger("map-api")
 
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+
+def _cors_allow_origins() -> list[str]:
+    """Merge localhost dev origins with optional ``CORS_ORIGINS`` (comma-separated)."""
+    extra = [
+        o.strip()
+        for o in os.environ.get("CORS_ORIGINS", "").split(",")
+        if o.strip()
+    ]
+    seen: set[str] = set()
+    out: list[str] = []
+    for o in _DEFAULT_CORS_ORIGINS + extra:
+        if o not in seen:
+            seen.add(o)
+            out.append(o)
+    return out
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_cors_allow_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

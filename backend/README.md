@@ -74,6 +74,22 @@ python3 build_map_cache.py
 
 **演示数据（可选）**：在 `backend/` 下执行 `python3 seed_post_stay_reviews.py`，从 [`../Data/post_stay_reviews_seed.json`](../Data/post_stay_reviews_seed.json) 导入示例用户（若不存在）、`user_stays` 与 `user_stay_reviews`（已存在则跳过）。请先完成 `python3 seed_data.py` 以生成房源数据。
 
+### 团队共用一套数据（住后评价等）
+
+`*.db` 不会进 Git，每人本机各有一份 SQLite 时，**互相看不到**对方写入的数据。要让全队看到同一份评价，需要 **一台机器跑唯一后端 + 唯一 `Data/airbnb_dss.db`**，其他人只连这台 API。
+
+1. **宿主机器**（跑数据库与 API）在 `backend/` 执行：
+   ```bash
+   export CORS_ORIGINS=http://<你的局域网IP>:5173
+   python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   若多名队友各自用本机 `npm run dev` 打开前端，把每个人的 `http://<队友IP>:5173` 都写进 `CORS_ORIGINS`，**逗号分隔**（见 [`.env.example`](.env.example)）。
+2. **其他队友**在前端仓库复制 [`../frontend/.env.example`](../frontend/.env.example) 为 `frontend/.env`，设置：
+   `VITE_API_BASE_URL=http://<宿主局域网IP>:8000/api`，然后重启 `npm run dev`。
+3. 宿主也可不设 `VITE_API_BASE_URL`，仍用本机代理；**远端队友必须设** `VITE_API_BASE_URL` 指向宿主，否则会打到自己的 `127.0.0.1:8000`。
+
+后端通过环境变量 **`CORS_ORIGINS`** 扩展允许的来源（与默认的 `localhost` / `127.0.0.1` 合并），逻辑见 `main.py` 中 `_cors_allow_origins()`。
+
 相关 API：
 
 - `GET /api/listings?map_mode=true&north=...&south=...&east=...&west=...`：按视口 bbox 过滤房源
