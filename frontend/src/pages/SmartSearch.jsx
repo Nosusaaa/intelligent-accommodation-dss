@@ -24,30 +24,13 @@ import StayReviewIntentSheet from '../components/StayReviewIntentSheet.jsx'
 import StayReviewModal from '../components/StayReviewModal.jsx'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
+import { rankListings } from '../utils/strategyRank.js'
+import { SUGGESTED_VIBE_TAGS } from '../constants/suggestedVibeTags.js'
 
-/** Canonical segments from `Data/room_tags.csv` → `listing_tags.vibe_tags` (pipe-separated). */
-const SUGGESTED_TAGS = [
-  'Above & Beyond',
-  'Artistic & Curated',
-  'Climate Comfort',
-  'Cozy & Homey',
-  'Exceptional Host',
-  'Fully Equipped',
-  'General Stay',
-  'Highly Walkable',
-  'Historic Charm',
-  'Modern & Updated',
-  'Outdoor Oasis',
-  'Pet Friendly',
-  'Prime Location',
-  'Responsive & Clear',
-  'Safe & Quiet',
-  'Spacious & Bright',
-  'Spotless & Pristine',
-  'Transit Friendly',
-  'Value for Money',
-  'Work-Friendly',
-]
+const POI_MERGE_CATEGORIES = ['transport', 'park', 'restaurant', 'education', 'hospital']
+
+/** Same list as `SUGGESTED_VIBE_TAGS` (suggested tag picker + listing `vibe_tags` vocabulary). */
+const SUGGESTED_TAGS = SUGGESTED_VIBE_TAGS
 
 const ROOM_TYPE_KEYS = [
   { id: 'entire', label: 'Entire home/apt' },
@@ -551,12 +534,30 @@ export default function SmartSearch() {
   const [mapMeta, setMapMeta] = useState(null)
   const [mapDisabled, setMapDisabled] = useState(false)
   const [mapRenderNonce, setMapRenderNonce] = useState(0)
+  const [strategyConfig, setStrategyConfig] = useState(null)
+  const [mergedPois, setMergedPois] = useState([])
+  const [userTagScores, setUserTagScores] = useState(null)
   const [reviewModalListing, setReviewModalListing] = useState(null)
   const [stayIntentListing, setStayIntentListing] = useState(null)
   const [stayIntentConfirming, setStayIntentConfirming] = useState(false)
   const [stayIntentUnmarking, setStayIntentUnmarking] = useState(false)
   const poiCount = mapPois.length
   const hasPoiData = poiCount > 0
+
+  const effectiveTagWeights = useMemo(() => {
+    if (userTagScores && typeof userTagScores === 'object' && Object.keys(userTagScores).length > 0) {
+      return userTagScores
+    }
+    const d = strategyConfig?.default_preference_tags
+    if (d && typeof d === 'object') return d
+    return {}
+  }, [userTagScores, strategyConfig])
+
+  const useStrategyRanking = Boolean(
+    strategyConfig &&
+      typeof strategyConfig.scenic_weight === 'number' &&
+      typeof strategyConfig.cost_weight === 'number',
+  )
 
   /**
    * Default vibe for filters: guests use session/onboarding tag; signed-in users use
@@ -847,24 +848,117 @@ export default function SmartSearch() {
     }
   }, [viewport, poiCategory])
 
-  const rankedListings = useMemo(
-    () => {
-      const enriched = listings.map((listing) => ({
-        ...listing,
-        map_intent_score: mapIntentScore(listing, mapPois, poiCategory),
-      }))
-      if (!hasPoiData) {
-        return enriched.sort((a, b) => a.id - b.id)
-      }
-      return enriched.sort((a, b) => {
-        if (b.map_intent_score !== a.map_intent_score) {
-          return b.map_intent_score - a.map_intent_score
-        }
-        return a.id - b.id
+  useEffect(() => {
+    let cancelled = false
+    api
+      .getPublicStrategy()
+      .then((d) => {
+        if (!cancelled) setStrategyConfig(d)
       })
-    },
-    [listings, mapPois, poiCategory, hasPoiData],
-  )
+      .catch(() => {
+        if (!cancelled) setStrategyConfig(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!userId) {
+      setUserTagScores(null)
+      return
+    }
+    let cancelled = false
+    api
+      .getPreferences(userId)
+      .then((d) => {
+        if (cancelled) return
+        setUserTagScores(d?.tag_scores && typeof d.tag_scores === 'object' ? d.tag_scores : {})
+      })
+      .catch(() => {
+        if (!cancelled) setUserTagScores(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!viewport) {
+      setMergedPois([])
+      return
+    }
+    let cancelled = false
+    async function loadMerged() {
+      try {
+        const results = await Promise.all(
+          POI_MERGE_CATEGORIES.map((category) =>
+            api.getMapPois({
+              north: viewport.north,
+              south: viewport.south,
+              east: viewport.east,
+              west: viewport.west,
+              category,
+            }),
+          ),
+        )
+        if (cancelled) return
+        const byId = new Map()
+        for (const data of results) {
+          for (const p of data?.pois || []) {
+            const id = p?.id
+            if (id != null && !byId.has(id)) byId.set(id, p)
+          }
+        }
+        setMergedPois([...byId.values()])
+      } catch {
+        if (!cancelled) setMergedPois([])
+      }
+    }
+    loadMerged()
+    return () => {
+      cancelled = true
+    }
+  }, [viewport])
+
+  const rankedListings = useMemo(() => {
+    if (useStrategyRanking && listings.length > 0) {
+      const ranked = rankListings(listings, {
+        pois: mergedPois,
+        tagWeights: effectiveTagWeights,
+        wPoi: strategyConfig.scenic_weight,
+        wCost: strategyConfig.cost_weight,
+        wSent: strategyConfig.sentiment_weight,
+        wPref: strategyConfig.preference_weight,
+      })
+      return ranked.map(({ listing, score }) => ({
+        ...listing,
+        strategy_rank_score: score,
+      }))
+    }
+    const enriched = listings.map((listing) => ({
+      ...listing,
+      map_intent_score: mapIntentScore(listing, mapPois, poiCategory),
+    }))
+    if (!hasPoiData) {
+      return enriched.sort((a, b) => a.id - b.id)
+    }
+    return enriched.sort((a, b) => {
+      if (b.map_intent_score !== a.map_intent_score) {
+        return b.map_intent_score - a.map_intent_score
+      }
+      return a.id - b.id
+    })
+  }, [
+    useStrategyRanking,
+    listings,
+    mergedPois,
+    effectiveTagWeights,
+    strategyConfig,
+    mapPois,
+    poiCategory,
+    hasPoiData,
+  ])
 
   const listingIdsSyncKey = useMemo(
     () => rankedListings.map((l) => l.id).join(','),
@@ -1292,9 +1386,13 @@ export default function SmartSearch() {
                 {isLoading ? '…' : `${totalCount} results`}
               </span>
               <p className="text-[11px] text-slate-400">
-                {hasPoiData
-                  ? `Sorted by ${poiCategory} proximity`
-                  : 'Default order (no POI data)'}
+                {useStrategyRanking
+                  ? userTagScores && Object.keys(userTagScores).length > 0
+                    ? 'Sorted by match score (your vibe preferences + merged area POIs + price + reviews)'
+                    : 'Sorted by match score (default vibe profile + merged area POIs + price + reviews)'
+                  : hasPoiData
+                    ? `Sorted by ${poiCategory} proximity`
+                    : 'Default order (no POI data)'}
               </p>
             </div>
           </div>

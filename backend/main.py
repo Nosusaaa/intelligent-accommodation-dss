@@ -48,6 +48,12 @@ from models import (
     UserStayReview,
 )
 from overpass_client import fetch_pois_bbox, load_offline_pois
+from strategy_ranking import (
+    load_merged_pois_from_cache,
+    parse_default_preference_json,
+    rank_listings_payload,
+    serialize_default_preference,
+)
 
 
 def _hash_password(plain: str) -> str:
@@ -85,6 +91,19 @@ def _ensure_sync_log_columns() -> None:
         }
         if "affected_ids" not in columns:
             conn.execute(text("ALTER TABLE sync_logs ADD COLUMN affected_ids TEXT"))
+
+
+def _ensure_strategy_config_columns() -> None:
+    with engine.begin() as conn:
+        try:
+            rows = conn.exec_driver_sql("PRAGMA table_info(strategy_configs)").fetchall()
+        except Exception:
+            return
+        if not rows:
+            return
+        columns = {row[1] for row in rows}
+        if "default_preference_json" not in columns:
+            conn.execute(text("ALTER TABLE strategy_configs ADD COLUMN default_preference_json TEXT"))
 
 
 def _ensure_user_stay_review_table() -> None:
@@ -178,6 +197,7 @@ async def lifespan(_app: FastAPI):
     _ensure_user_stay_review_table()
     _migrate_user_stay_review_sqlite_columns()
     _ensure_sync_log_columns()
+    _ensure_strategy_config_columns()
     yield
 
 
@@ -1397,6 +1417,44 @@ class StrategyConfigUpdate(BaseModel):
     cost_weight: int = Field(..., ge=0, le=100)
     sentiment_weight: int = Field(..., ge=0, le=100)
     preference_weight: int = Field(..., ge=0, le=100)
+    default_preference_tags: Optional[dict[str, int]] = Field(
+        default=None,
+        description="Vibe tag → score for Admin preview and guest fallback. Omit to leave unchanged.",
+    )
+
+
+def _strategy_config_dict(config: StrategyConfig | None) -> dict[str, Any]:
+    if config is None:
+        tags = parse_default_preference_json(None)
+        return {
+            "config_key": "default",
+            "scenic_weight": 28,
+            "cost_weight": 24,
+            "sentiment_weight": 26,
+            "preference_weight": 22,
+            "default_preference_tags": tags,
+            "updated_at": None,
+        }
+    tags = parse_default_preference_json(config.default_preference_json)
+    return {
+        "config_key": config.config_key,
+        "scenic_weight": config.scenic_weight,
+        "cost_weight": config.cost_weight,
+        "sentiment_weight": config.sentiment_weight,
+        "preference_weight": config.preference_weight,
+        "default_preference_tags": tags,
+        "updated_at": config.updated_at,
+    }
+
+
+@app.get("/api/strategy")
+def get_public_strategy(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    """Public strategy weights + default vibe preferences (for client-side ranking)."""
+    config = db.scalars(
+        select(StrategyConfig).where(StrategyConfig.config_key == "default")
+    ).first()
+    d = _strategy_config_dict(config)
+    return {k: v for k, v in d.items() if k in ("scenic_weight", "cost_weight", "sentiment_weight", "preference_weight", "default_preference_tags")}
 
 
 @app.get("/api/admin/strategy")
@@ -1404,23 +1462,7 @@ def get_strategy(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     config = db.scalars(
         select(StrategyConfig).where(StrategyConfig.config_key == "default")
     ).first()
-    if config is None:
-        return {
-            "config_key": "default",
-            "scenic_weight": 28,
-            "cost_weight": 24,
-            "sentiment_weight": 26,
-            "preference_weight": 22,
-            "updated_at": None,
-        }
-    return {
-        "config_key": config.config_key,
-        "scenic_weight": config.scenic_weight,
-        "cost_weight": config.cost_weight,
-        "sentiment_weight": config.sentiment_weight,
-        "preference_weight": config.preference_weight,
-        "updated_at": config.updated_at,
-    }
+    return _strategy_config_dict(config)
 
 
 @app.put("/api/admin/strategy")
@@ -1432,12 +1474,14 @@ def update_strategy(
         select(StrategyConfig).where(StrategyConfig.config_key == "default")
     ).first()
     if config is None:
+        pref_json = serialize_default_preference(body.default_preference_tags)
         config = StrategyConfig(
             config_key="default",
             scenic_weight=body.scenic_weight,
             cost_weight=body.cost_weight,
             sentiment_weight=body.sentiment_weight,
             preference_weight=body.preference_weight,
+            default_preference_json=pref_json,
             updated_at=_now_iso(),
         )
         db.add(config)
@@ -1446,16 +1490,65 @@ def update_strategy(
         config.cost_weight = body.cost_weight
         config.sentiment_weight = body.sentiment_weight
         config.preference_weight = body.preference_weight
+        if body.default_preference_tags is not None:
+            config.default_preference_json = serialize_default_preference(body.default_preference_tags)
         config.updated_at = _now_iso()
     db.commit()
     db.refresh(config)
+    return _strategy_config_dict(config)
+
+
+@app.get("/api/admin/strategy/preview-ranking")
+def admin_strategy_preview_ranking(
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(6, ge=1, le=60),
+) -> dict[str, Any]:
+    """Rank real listings using saved weights, Admin default vibe tags, and merged offline POIs."""
+    config = db.scalars(
+        select(StrategyConfig).where(StrategyConfig.config_key == "default")
+    ).first()
+    d = _strategy_config_dict(config)
+    tag_weights = d["default_preference_tags"]
+    if not isinstance(tag_weights, dict):
+        tag_weights = parse_default_preference_json(None)
+
+    pois = load_merged_pois_from_cache()
+    stmt = (
+        select(Listing)
+        .options(selectinload(Listing.listing_tags))
+        .where(Listing.latitude.isnot(None), Listing.longitude.isnot(None))
+        .order_by(Listing.id)
+        .limit(limit)
+    )
+    rows = db.scalars(stmt).all()
+    listings = [_listing_full(x) for x in rows]
+    ranked = rank_listings_payload(
+        listings,
+        pois=pois,
+        tag_weights=tag_weights,
+        w_poi=int(d["scenic_weight"]),
+        w_cost=int(d["cost_weight"]),
+        w_sentiment=int(d["sentiment_weight"]),
+        w_pref=int(d["preference_weight"]),
+        include_breakdown=True,
+    )
+    rankings: list[dict[str, Any]] = []
+    for item in ranked:
+        li = item["listing"]
+        rankings.append(
+            {
+                "id": li.get("id"),
+                "name": li.get("name"),
+                "neighbourhood_cleansed": li.get("neighbourhood_cleansed"),
+                "score": item["score"],
+                "breakdown": item.get("breakdown"),
+            }
+        )
     return {
-        "config_key": config.config_key,
-        "scenic_weight": config.scenic_weight,
-        "cost_weight": config.cost_weight,
-        "sentiment_weight": config.sentiment_weight,
-        "preference_weight": config.preference_weight,
-        "updated_at": config.updated_at,
+        "rankings": rankings,
+        "preference_source": "admin_default",
+        "poi_count": len(pois),
+        "listing_count": len(listings),
     }
 
 

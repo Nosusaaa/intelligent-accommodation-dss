@@ -37,6 +37,18 @@ const isDev = Boolean(import.meta.env.DEV);
 
 /** Centralized API client for the FastAPI backend (`/api` routes). */
 export const api = {
+  /** Public strategy weights + default vibe tag scores (no auth). */
+  async getPublicStrategy() {
+    const { data } = await client.get("/strategy");
+    return data;
+  },
+
+  /** Admin: ranked listings preview using saved strategy + merged POI cache. */
+  async getStrategyPreviewRanking(params = {}) {
+    const { data } = await client.get("/admin/strategy/preview-ranking", { params });
+    return data;
+  },
+
   async getListings(params) {
     if (isDev && params?.map_mode) {
       console.debug("[api:listings:map_mode:request]", params);

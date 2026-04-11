@@ -281,6 +281,8 @@ class StrategyConfig(Base):
     cost_weight: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
     sentiment_weight: Mapped[int] = mapped_column(Integer, default=26, nullable=False)
     preference_weight: Mapped[int] = mapped_column(Integer, default=22, nullable=False)
+    # JSON object: { "Tag Name": score, ... } for Admin preview & guest fallback ranking.
+    default_preference_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     updated_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
 
 
