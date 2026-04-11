@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, useMap,
 } from 'react-leaflet'
@@ -202,9 +203,13 @@ function POIPopup({ poi, distM }) {
 function ListingPopupContent({ listing }) {
   return (
     <div className="text-sm min-w-[180px]">
-      <p className="font-bold text-slate-900 leading-tight">
+      <Link
+        to={`/details/${listing.id}`}
+        className="block font-bold text-teal-700 leading-tight underline-offset-2 hover:text-teal-900 hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
         {listing.name || 'Untitled'}
-      </p>
+      </Link>
       <p className="mt-1 font-semibold text-teal-600">
         {listing.price_clean != null
           ? `$${Number(listing.price_clean).toFixed(0)} / night`

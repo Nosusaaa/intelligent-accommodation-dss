@@ -276,7 +276,13 @@ function MapPanel({
               <Marker key={`listing-${listing.id}`} position={ll} icon={listingMarkerIcon}>
                 <Popup>
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold">{listing.name || `Listing ${listing.id}`}</p>
+                    <Link
+                      to={`/details/${listing.id}`}
+                      className="block text-sm font-semibold text-teal-700 underline-offset-2 hover:text-teal-900 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {listing.name || `Listing ${listing.id}`}
+                    </Link>
                     <p className="text-xs text-slate-600">
                       {formatListingPriceDisplay(listing.price_clean)}
                     </p>
