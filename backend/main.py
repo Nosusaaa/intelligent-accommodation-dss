@@ -969,6 +969,10 @@ def list_listings(
         None,
         description="Repeat query param for vibe tag filtering (case-insensitive partial match on pipe-separated tags)",
     ),
+    vibe_tags_mode: str = Query(
+        "or",
+        description="How multiple vibe_tags combine: `or` = match any tag; `and` = listing must match every tag (substring on vibe_tags).",
+    ),
     q: Optional[str] = Query(
         None,
         description="Free-text search: whitespace-separated tokens; each token must match listing name or neighbourhood (case-insensitive).",
@@ -1066,7 +1070,18 @@ def list_listings(
                 )
         if tag_filters:
             stmt = stmt.join(ListingTag, Listing.id == ListingTag.listing_id)
-            stmt = stmt.where(or_(*tag_filters)).distinct()
+            mode = (vibe_tags_mode or "or").strip().lower()
+            if mode not in ("and", "or"):
+                raise HTTPException(
+                    status_code=422,
+                    detail="vibe_tags_mode must be 'and' or 'or'",
+                )
+            if mode == "and":
+                for cond in tag_filters:
+                    stmt = stmt.where(cond)
+                stmt = stmt.distinct()
+            else:
+                stmt = stmt.where(or_(*tag_filters)).distinct()
 
     # Count total before pagination
     from sqlalchemy import func

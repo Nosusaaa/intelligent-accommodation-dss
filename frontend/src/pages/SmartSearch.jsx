@@ -97,7 +97,7 @@ class MapErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className="flex h-[320px] items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 text-sm text-red-700 sm:h-[380px]">
-          地图加载失败，已自动降级为列表模式。请刷新页面后重试，并查看控制台首条地图错误。
+          Map failed to load and the page fell back to list-only mode. Refresh and check the first map error in the browser console.
         </div>
       )
     }
@@ -197,13 +197,30 @@ function MapPanel({
   mapMeta,
   poiCount,
   hasPoiData,
+  mapBoundsFilterEnabled,
+  onMapBoundsFilterEnabledChange,
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          <MapPin className="h-4 w-4 text-teal-600" aria-hidden />
-          <span>Drag/zoom map to update listings in viewport</span>
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <MapPin className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
+            <span>
+              {mapBoundsFilterEnabled
+                ? 'Drag or zoom the map: the list is filtered to the current viewport.'
+                : 'Viewport filtering is off; you can still explore the map, but the list is not limited by map bounds.'}
+            </span>
+          </div>
+          <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              checked={mapBoundsFilterEnabled}
+              onChange={(e) => onMapBoundsFilterEnabledChange(e.target.checked)}
+            />
+            Filter list by viewport
+          </label>
         </div>
         <div className="flex items-center gap-1 rounded-lg bg-white p-1 ring-1 ring-slate-200">
           {POI_CATEGORIES.map((c) => (
@@ -304,7 +321,7 @@ function MapPanel({
       )}
       {!mapError && !hasPoiData && (
         <div className="border-t border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-          当前分类暂无点位数据，列表已自动降级为默认排序。
+          No POI data for this category; the list uses default sort order.
         </div>
       )}
     </div>
@@ -361,7 +378,9 @@ function buildListingParams({
   priceMax,
   roomTypes,
   amenities,
-  selectedTags,
+  vibeTags,
+  vibeTagsMode,
+  q,
   viewport,
   page,
   limit,
@@ -395,8 +414,13 @@ function buildListingParams({
   if (amenities.parking) params.has_parking = true
   if (amenities.tv) params.has_tv = true
   if (amenities.balcony) params.has_balcony = true
-  if (selectedTags && selectedTags.size > 0) {
-    params.vibe_tags = Array.from(selectedTags)
+  const qTrim = typeof q === 'string' ? q.trim() : ''
+  if (qTrim) {
+    params.q = qTrim
+  }
+  if (vibeTags && vibeTags.length > 0) {
+    params.vibe_tags = vibeTags
+    params.vibe_tags_mode = vibeTagsMode === 'and' ? 'and' : 'or'
   }
   return params
 }
@@ -491,6 +515,12 @@ export default function SmartSearch() {
   })
 
   const [selectedTags, setSelectedTags] = useState(() => new Set())
+  /** Multiple tags → backend `vibe_tags_mode`: match any (or) vs match all (and). */
+  const [tagMatchMode, setTagMatchMode] = useState('or')
+  /** Search box: name = listing name / neighbourhood (`q`); tags = parse tags from input + chips below. */
+  const [searchFieldMode, setSearchFieldMode] = useState('tags')
+  /** When false, listing requests omit map bbox; map and POIs still follow the viewport. */
+  const [mapBoundsFilterEnabled, setMapBoundsFilterEnabled] = useState(true)
   // track whether we've already applied the onboarding preference tag
   const preferenceApplied = useRef(false)
 
@@ -516,10 +546,24 @@ export default function SmartSearch() {
     [searchQuery],
   )
 
-  // Merge manually selected tags + query-extracted tags
+  // Merge manual tag selection + query-derived tags (tags search mode only for API + chip state).
   const allActiveTags = useMemo(() => {
     return new Set([...selectedTags, ...queryExtractedTags])
   }, [selectedTags, queryExtractedTags])
+
+  const vibeTagsForApi = useMemo(() => {
+    if (searchFieldMode === 'name') {
+      return [...selectedTags]
+    }
+    return [...allActiveTags]
+  }, [searchFieldMode, selectedTags, allActiveTags])
+
+  const effectiveViewportForListings = useMemo(
+    () => (mapBoundsFilterEnabled ? viewport : null),
+    [mapBoundsFilterEnabled, viewport],
+  )
+
+  const qForApi = searchFieldMode === 'name' ? searchQuery.trim() : ''
 
   const filterKey = useMemo(
     () =>
@@ -532,8 +576,12 @@ export default function SmartSearch() {
         priceMax,
         roomTypes,
         amenities,
-        vibeTags: [...allActiveTags].sort(),
-        viewport,
+        vibeTags: [...vibeTagsForApi].sort(),
+        vibeTagsMode: tagMatchMode,
+        q: qForApi,
+        searchFieldMode,
+        viewport: effectiveViewportForListings,
+        mapBoundsFilterEnabled,
       }),
     [
       guests,
@@ -544,8 +592,12 @@ export default function SmartSearch() {
       priceMax,
       roomTypes,
       amenities,
-      allActiveTags,
-      viewport,
+      vibeTagsForApi,
+      tagMatchMode,
+      qForApi,
+      searchFieldMode,
+      effectiveViewportForListings,
+      mapBoundsFilterEnabled,
     ],
   )
 
@@ -657,8 +709,10 @@ export default function SmartSearch() {
           priceMax,
           roomTypes,
           amenities,
-          selectedTags: allActiveTags,
-          viewport,
+          vibeTags: vibeTagsForApi,
+          vibeTagsMode: tagMatchMode,
+          q: qForApi,
+          viewport: effectiveViewportForListings,
           page: requestPage,
           limit: PAGE_SIZE,
         })
@@ -688,7 +742,7 @@ export default function SmartSearch() {
           setError(
             fromServer ||
               (isNetwork
-                ? '无法连接 API。请先在 backend 目录启动服务：python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000，并确保前端使用 npm run dev（走 Vite 代理）。'
+                ? 'Cannot reach the API. Start the backend from the backend folder: python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000, and run the frontend with npm run dev (Vite proxy).'
                 : err?.message || 'Failed to load listings'),
           )
           setListings([])
@@ -966,33 +1020,71 @@ export default function SmartSearch() {
           <label htmlFor="command-search" className="sr-only">
             Search
           </label>
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
-              aria-hidden
-            />
-            <input
-              id="command-search"
-              type="search"
-              placeholder="Search neighborhoods, vibes, transit…"
-              value={inputValue}
-              onChange={handleSearchChange}
-              className="w-full rounded-2xl border border-slate-100 bg-white py-3.5 pl-12 pr-10 text-sm text-slate-900 shadow-sm outline-none ring-teal-600/20 transition-all placeholder:text-slate-400 focus:border-teal-200 focus:ring-4"
-            />
-            {inputValue && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                aria-label="Clear search"
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <input
+                id="command-search"
+                type="search"
+                placeholder={
+                  searchFieldMode === 'name'
+                    ? 'Search listing name or neighbourhood (space-separated words must all match)…'
+                    : 'Type to match vibe tags, or pick suggested tags below…'
+                }
+                value={inputValue}
+                onChange={handleSearchChange}
+                className="w-full rounded-2xl border border-slate-100 bg-white py-3.5 pl-12 pr-10 text-sm text-slate-900 shadow-sm outline-none ring-teal-600/20 transition-all placeholder:text-slate-400 focus:border-teal-200 focus:ring-4"
+              />
+              {inputValue && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center lg:self-center">
+              <div
+                className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] font-semibold shadow-sm"
+                role="group"
+                aria-label="Search mode"
               >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            )}
+                <button
+                  type="button"
+                  onClick={() => setSearchFieldMode('name')}
+                  className={[
+                    'rounded-md px-2 py-1 transition-colors',
+                    searchFieldMode === 'name'
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100',
+                  ].join(' ')}
+                >
+                  Name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchFieldMode('tags')}
+                  className={[
+                    'rounded-md px-2 py-1 transition-colors',
+                    searchFieldMode === 'tags'
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100',
+                  ].join(' ')}
+                >
+                  Tags
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Active tags from search query */}
-          {queryExtractedTags.length > 0 && (
+          {searchFieldMode === 'tags' && queryExtractedTags.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Tag className="h-3.5 w-3.5 shrink-0 text-teal-600" aria-hidden />
               <span className="text-xs text-slate-500">Matched tags:</span>
@@ -1011,12 +1103,43 @@ export default function SmartSearch() {
           )}
 
           <div className="mt-3">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-              Suggested tags
-            </p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Suggested tags
+              </p>
+              <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] font-semibold shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setTagMatchMode('or')}
+                  className={[
+                    'rounded-md px-2 py-1 transition-colors',
+                    tagMatchMode === 'or'
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100',
+                  ].join(' ')}
+                >
+                  Any (OR)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTagMatchMode('and')}
+                  className={[
+                    'rounded-md px-2 py-1 transition-colors',
+                    tagMatchMode === 'and'
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100',
+                  ].join(' ')}
+                >
+                  All (AND)
+                </button>
+              </div>
+            </div>
             <div className="-mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1 pt-0.5">
               {SUGGESTED_TAGS.map((tag) => {
-                const isSelected = allActiveTags.has(tag)
+                const isSelected =
+                  searchFieldMode === 'tags'
+                    ? allActiveTags.has(tag)
+                    : selectedTags.has(tag)
                 return (
                   <button
                     key={tag}
@@ -1040,7 +1163,7 @@ export default function SmartSearch() {
         {mapDisabled ? (
           <div className="flex h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 text-center sm:h-[380px]">
             <p className="text-sm text-amber-800">
-              地图已降级为列表模式。你仍可使用所有筛选与房源浏览。
+              Map is disabled; you are in list-only mode. Filters and listings still work.
             </p>
             <button
               type="button"
@@ -1050,7 +1173,7 @@ export default function SmartSearch() {
               }}
               className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
             >
-              重试地图加载
+              Retry loading map
             </button>
           </div>
         ) : (
@@ -1071,6 +1194,8 @@ export default function SmartSearch() {
               mapMeta={mapMeta}
               poiCount={poiCount}
               hasPoiData={hasPoiData}
+              mapBoundsFilterEnabled={mapBoundsFilterEnabled}
+              onMapBoundsFilterEnabledChange={setMapBoundsFilterEnabled}
             />
           </MapErrorBoundary>
         )}
