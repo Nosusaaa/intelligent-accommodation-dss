@@ -155,7 +155,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="presentation" onClick={() => onClose?.()}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="presentation" onClick={() => onClose?.()}>
       <div role="dialog" aria-modal="true" aria-labelledby="stay-review-title" className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#0f766e_0%,#115e59_100%)] px-6 py-5 text-white sm:px-7">
           <div className="flex items-start justify-between gap-4">
