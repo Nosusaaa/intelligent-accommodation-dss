@@ -1483,6 +1483,55 @@ def list_sync_logs(db: Annotated[Session, Depends(get_db)]) -> list[dict[str, An
     ]
 
 
+@app.delete("/api/admin/sync-logs/{log_id}")
+def delete_sync_log(
+    log_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    """Delete a sync log and its associated data from the database."""
+    log = db.scalars(
+        select(SyncLog).where(SyncLog.id == log_id)
+    ).first()
+    
+    if not log:
+        raise HTTPException(status_code=404, detail="Sync log not found")
+    
+    deleted_count = 0
+    conn = db.connection()
+    
+    # Delete associated data based on file_type
+    if log.file_type == "listings":
+        # Get listing IDs that were affected by this sync
+        if log.affected_ids:
+            import json
+            try:
+                listing_ids = json.loads(log.affected_ids)
+                if listing_ids:
+                    placeholders = ", ".join([f":{i}" for i in range(len(listing_ids))])
+                    conn.exec_driver_sql(
+                        f"DELETE FROM listings WHERE id IN ({placeholders})",
+                        {str(i): lid for i, lid in enumerate(listing_ids)}
+                    )
+                    deleted_count = len(listing_ids)
+            except:
+                pass
+    elif log.file_type == "calendar":
+        conn.exec_driver_sql("DELETE FROM calendar")
+        deleted_count = db.execute(text("SELECT COUNT(*) FROM calendar")).scalar() or 0
+    elif log.file_type == "reviews":
+        conn.exec_driver_sql("DELETE FROM reviews")
+        deleted_count = db.execute(text("SELECT COUNT(*) FROM reviews")).scalar() or 0
+    elif log.file_type == "listing_tags":
+        conn.exec_driver_sql("DELETE FROM listing_tags")
+        deleted_count = db.execute(text("SELECT COUNT(*) FROM listing_tags")).scalar() or 0
+    
+    # Delete the sync log entry
+    db.delete(log)
+    db.commit()
+    
+    return {"message": "Sync log deleted successfully", "id": log_id, "deleted_count": deleted_count}
+
+
 @app.post("/api/admin/sync-logs")
 def create_sync_log(
     body: SyncLogCreate,
@@ -1668,10 +1717,13 @@ async def sync_upload_file(
 
             cols_str = ", ".join(columns)
             placeholders = ", ".join([f":{c}" for c in columns])
+            affected_ids = []
 
             for _, row in df[columns].iterrows():
                 values = {c: (None if pd.isna(row[c]) else (bool(row[c]) if c in bool_cols and isinstance(row[c], bool) else row[c])) for c in columns}
                 try:
+                    if "id" in values and values["id"]:
+                        affected_ids.append(int(values["id"]))
                     conn.exec_driver_sql(
                         f"INSERT OR REPLACE INTO listings ({cols_str}) VALUES ({placeholders})",
                         values
@@ -1681,6 +1733,11 @@ async def sync_upload_file(
                     pass
 
             db.commit()
+            
+            # Store affected IDs for potential deletion
+            if affected_ids:
+                import json
+                log_data["affected_ids"] = json.dumps(affected_ids)
 
         elif file_type == "calendar":
             required_cols = ["listing_id", "date", "available", "price"]

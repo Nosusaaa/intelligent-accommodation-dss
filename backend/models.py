@@ -300,3 +300,4 @@ class SyncLog(Base):
     error_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     sync_date: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
     created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    affected_ids: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array of IDs affected by this sync

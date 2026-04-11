@@ -267,6 +267,11 @@ export const api = {
     return data;
   },
 
+  async deleteSyncLog(logId) {
+    const { data } = await client.delete(`/admin/sync-logs/${logId}`);
+    return data;
+  },
+
   // --- Sync Status & Upload ---
   async getSyncStatus() {
     const { data } = await client.get("/admin/sync/status");

@@ -126,6 +126,7 @@ export default function DataSync() {
   const [importResult, setImportResult] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [clearConfirm, setClearConfirm] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // { id, filename }
   const fileInputRef = useRef(null)
 
   const loadData = useCallback(async () => {
@@ -266,6 +267,22 @@ export default function DataSync() {
       setClearConfirm(false)
     } catch (err) {
       console.error('Failed to clear data:', err)
+    }
+  }
+
+  const handleDeleteLog = async (log) => {
+    if (!deleteConfirm || deleteConfirm.id !== log.id) {
+      setDeleteConfirm({ id: log.id, filename: log.filename })
+      setTimeout(() => setDeleteConfirm(null), 5000)
+      return
+    }
+
+    try {
+      await api.deleteSyncLog(log.id)
+      await loadData()
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Failed to delete sync log:', err)
     }
   }
 
@@ -421,6 +438,7 @@ export default function DataSync() {
                   <th className="px-5 py-3 text-right">Inserted</th>
                   <th className="px-5 py-3 text-right">Duplicates</th>
                   <th className="px-5 py-3 text-right">Invalid</th>
+                  <th className="px-5 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -455,6 +473,19 @@ export default function DataSync() {
                     <td className="whitespace-nowrap px-5 py-3.5 text-right tabular-nums text-red-700">
                       {(row.invalid || 0).toLocaleString()}
                     </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <button
+                        onClick={() => handleDeleteLog(row)}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          deleteConfirm?.id === row.id
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                            : 'text-slate-400 hover:bg-red-50 hover:text-red-600'
+                        }`}
+                        title={deleteConfirm?.id === row.id ? 'Click again to confirm' : 'Delete this sync log and its data'}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -462,6 +493,31 @@ export default function DataSync() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Notice */}
+      {deleteConfirm && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-amber-900">Confirm Deletion</h4>
+              <p className="mt-1 text-sm text-amber-700">
+                You are about to delete the sync log for <strong>"{deleteConfirm.filename}"</strong> and its associated data from the database.
+                This action cannot be undone.
+              </p>
+              <p className="mt-1 text-xs text-amber-600">
+                Click the delete button again to confirm.
+              </p>
+            </div>
+            <button
+              onClick={() => setDeleteConfirm(null)}
+              className="p-1 hover:bg-amber-100 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4 text-amber-600" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="rounded-xl border border-red-200 bg-white p-6">
