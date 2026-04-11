@@ -39,8 +39,6 @@ class Listing(Base):
 
     neighbourhood_cleansed: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     neighborhood_overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     review_scores_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     number_of_reviews: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

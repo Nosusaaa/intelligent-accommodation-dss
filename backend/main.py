@@ -77,6 +77,16 @@ def _ensure_user_profile_columns() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN top_vibe_tag VARCHAR(256)"))
 
 
+def _ensure_sync_log_columns() -> None:
+    """Ensure sync_logs table has the affected_ids column."""
+    with engine.begin() as conn:
+        columns = {
+            row[1] for row in conn.exec_driver_sql("PRAGMA table_info(sync_logs)").fetchall()
+        }
+        if "affected_ids" not in columns:
+            conn.execute(text("ALTER TABLE sync_logs ADD COLUMN affected_ids TEXT"))
+
+
 def _ensure_user_stay_review_table() -> None:
     with engine.begin() as conn:
         tables = {
@@ -167,6 +177,7 @@ async def lifespan(_app: FastAPI):
     _ensure_user_profile_columns()
     _ensure_user_stay_review_table()
     _migrate_user_stay_review_sqlite_columns()
+    _ensure_sync_log_columns()
     yield
 
 
@@ -1499,8 +1510,9 @@ def delete_sync_log(
     deleted_count = 0
     conn = db.connection()
     
-    # Delete associated data based on file_type
-    if log.file_type == "listings":
+    # Delete associated data based on file_type (case-insensitive)
+    file_type_lower = log.file_type.lower() if log.file_type else ""
+    if "listings" in file_type_lower:
         # Get listing IDs that were affected by this sync
         if log.affected_ids:
             import json
@@ -1515,13 +1527,13 @@ def delete_sync_log(
                     deleted_count = len(listing_ids)
             except:
                 pass
-    elif log.file_type == "calendar":
+    elif "calendar" in file_type_lower:
         conn.exec_driver_sql("DELETE FROM calendar")
         deleted_count = db.execute(text("SELECT COUNT(*) FROM calendar")).scalar() or 0
-    elif log.file_type == "reviews":
+    elif "reviews" in file_type_lower:
         conn.exec_driver_sql("DELETE FROM reviews")
         deleted_count = db.execute(text("SELECT COUNT(*) FROM reviews")).scalar() or 0
-    elif log.file_type == "listing_tags":
+    elif "tags" in file_type_lower:
         conn.exec_driver_sql("DELETE FROM listing_tags")
         deleted_count = db.execute(text("SELECT COUNT(*) FROM listing_tags")).scalar() or 0
     
@@ -1733,11 +1745,6 @@ async def sync_upload_file(
                     pass
 
             db.commit()
-            
-            # Store affected IDs for potential deletion
-            if affected_ids:
-                import json
-                log_data["affected_ids"] = json.dumps(affected_ids)
 
         elif file_type == "calendar":
             required_cols = ["listing_id", "date", "available", "price"]
@@ -1877,23 +1884,29 @@ async def sync_upload_file(
                     pass
 
             db.commit()
-        
-        # Create sync log entry
-        log = SyncLog(
-            filename=file.filename,
-            file_type=file_type.upper() + (" (XLSX)" if is_xlsx else " (CSV)"),
-            status="success",
-            total_rows=len(df),
-            records_updated=rows_processed,
-            duplicates=0,
-            invalid=0,
-            sync_date=_now_iso(),
-            created_at=_now_iso(),
-        )
+
+            # Create sync log entry
+        import json
+        sync_log_kwargs = {
+            "filename": file.filename,
+            "file_type": file_type.upper() + (" (XLSX)" if is_xlsx else " (CSV)"),
+            "status": "success",
+            "total_rows": len(df),
+            "records_updated": rows_processed,
+            "duplicates": 0,
+            "invalid": 0,
+            "sync_date": _now_iso(),
+            "created_at": _now_iso(),
+        }
+        # Store affected listing IDs for listings type
+        if file_type == "listings" and affected_ids:
+            sync_log_kwargs["affected_ids"] = json.dumps(affected_ids)
+
+        log = SyncLog(**sync_log_kwargs)
         db.add(log)
         db.commit()
         db.refresh(log)
-        
+
         return {
             "message": f"Successfully synced {file_type} data",
             "file_type": file_type.upper() + (" (XLSX)" if is_xlsx else " (CSV)"),
