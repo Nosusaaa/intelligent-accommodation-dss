@@ -8,6 +8,7 @@ import { usePreference } from '../context/PreferenceContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
 import ListingMap from '../components/ListingMap.jsx'
+import StayReviewIntentSheet from '../components/StayReviewIntentSheet.jsx'
 import StayReviewModal from '../components/StayReviewModal.jsx'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
@@ -453,6 +454,7 @@ export default function SmartSearch() {
     toggleStayed,
     syncListingFlags,
     refreshStaysFromServer,
+    bumpStayDataEpoch,
   } = useCollection()
 
   const [listings, setListings] = useState([])
@@ -501,6 +503,9 @@ export default function SmartSearch() {
   const [mapDisabled, setMapDisabled] = useState(false)
   const [mapRenderNonce, setMapRenderNonce] = useState(0)
   const [reviewModalListing, setReviewModalListing] = useState(null)
+  const [stayIntentListing, setStayIntentListing] = useState(null)
+  const [stayIntentConfirming, setStayIntentConfirming] = useState(false)
+  const [stayIntentUnmarking, setStayIntentUnmarking] = useState(false)
   const poiCount = mapPois.length
   const hasPoiData = poiCount > 0
 
@@ -1236,16 +1241,7 @@ export default function SmartSearch() {
                             navigate('/guest-login')
                             return
                           }
-                          if (isStayed(listing.id)) {
-                            setReviewModalListing(listing)
-                            return
-                          }
-                          toggleStayed(listing.id)
-                            .then(() => {
-                              setReviewModalListing(listing)
-                              refreshStaysFromServer().catch(() => {})
-                            })
-                            .catch(() => {})
+                          setStayIntentListing(listing)
                         }}
                       >
                         <CheckSquare className="h-4 w-4" aria-hidden />
@@ -1322,6 +1318,50 @@ export default function SmartSearch() {
         </div>
       </div>
 
+      <StayReviewIntentSheet
+        isOpen={Boolean(stayIntentListing)}
+        onClose={() => {
+          if (!stayIntentConfirming && !stayIntentUnmarking) setStayIntentListing(null)
+        }}
+        listing={stayIntentListing}
+        isStayed={Boolean(stayIntentListing && isStayed(stayIntentListing.id))}
+        confirming={stayIntentConfirming}
+        unmarking={stayIntentUnmarking}
+        onConfirmReview={async () => {
+          const l = stayIntentListing
+          if (!l || !userId) return
+          setStayIntentConfirming(true)
+          try {
+            if (!isStayed(l.id)) {
+              await toggleStayed(l.id)
+              bumpStayDataEpoch()
+              await refreshStaysFromServer()
+            }
+            setStayIntentListing(null)
+            setReviewModalListing(l)
+          } catch {
+            // keep sheet open on failure
+          } finally {
+            setStayIntentConfirming(false)
+          }
+        }}
+        onUnmarkStayed={async () => {
+          const l = stayIntentListing
+          if (!l || !userId || !isStayed(l.id)) return
+          setStayIntentUnmarking(true)
+          try {
+            await toggleStayed(l.id)
+            bumpStayDataEpoch()
+            await refreshStaysFromServer()
+            setStayIntentListing(null)
+          } catch {
+            // keep sheet open on failure
+          } finally {
+            setStayIntentUnmarking(false)
+          }
+        }}
+      />
+
       <StayReviewModal
         isOpen={Boolean(reviewModalListing)}
         onClose={() => setReviewModalListing(null)}
@@ -1330,6 +1370,7 @@ export default function SmartSearch() {
         existingReview={null}
         onSaved={() => {
           setReviewModalListing(null)
+          bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
         }}
       />

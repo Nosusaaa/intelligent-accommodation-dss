@@ -15,6 +15,11 @@ export function CollectionProvider({ children }) {
   const { userId } = useUser()
   const [favoriteIds, setFavoriteIds] = useState(() => new Set())
   const [stayedIds, setStayedIds] = useState(() => new Set())
+  const [stayDataEpoch, setStayDataEpoch] = useState(0)
+
+  const bumpStayDataEpoch = useCallback(() => {
+    setStayDataEpoch((n) => n + 1)
+  }, [])
 
   useEffect(() => {
     if (!userId) {
@@ -126,6 +131,8 @@ export function CollectionProvider({ children }) {
     () => ({
       favoriteIds,
       stayedIds,
+      stayDataEpoch,
+      bumpStayDataEpoch,
       isFavorite: (id) => favoriteIds.has(id),
       isStayed: (id) => stayedIds.has(id),
       syncListingFlags,
@@ -137,6 +144,8 @@ export function CollectionProvider({ children }) {
     [
       favoriteIds,
       stayedIds,
+      stayDataEpoch,
+      bumpStayDataEpoch,
       syncListingFlags,
       toggleFavorite,
       toggleStayed,

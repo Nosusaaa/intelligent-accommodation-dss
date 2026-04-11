@@ -49,7 +49,7 @@ function renderStars(value) {
 
 export default function Profile() {
   const { userId, profile, loadingProfile, fetchProfile, updateProfile } = useUser()
-  const { refreshStaysFromServer } = useCollection()
+  const { refreshStaysFromServer, stayDataEpoch } = useCollection()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
@@ -81,7 +81,7 @@ export default function Profile() {
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [userId, stayDataEpoch])
 
   useEffect(() => {
     if (!userId) return void setPreferences(null)

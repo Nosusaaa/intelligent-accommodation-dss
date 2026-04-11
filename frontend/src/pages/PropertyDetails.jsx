@@ -130,7 +130,7 @@ export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { userId } = useUser()
-  const { isStayed, toggleStayed, refreshStaysFromServer } = useCollection()
+  const { isStayed, toggleStayed, refreshStaysFromServer, bumpStayDataEpoch } = useCollection()
   const propertyId = id ?? '123'
   const numericListingId = useMemo(() => {
     const n = parseInt(String(id ?? ''), 10)
@@ -746,7 +746,7 @@ export default function PropertyDetails() {
         userId={userId}
         listing={listing}
         existingReview={existingUserStayReview}
-        onSaved={(savedReview) => {
+        onSaved={async (savedReview) => {
           if (!savedReview) {
             setStayReviews((prev) => prev.filter((item) => Number(item.user_id) !== Number(userId)))
           } else {
@@ -755,7 +755,16 @@ export default function PropertyDetails() {
               return [{ ...savedReview, reviewer_name: 'You' }, ...others]
             })
           }
+          bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
+          if (Number.isFinite(numericListingId)) {
+            try {
+              const data = await api.getListingStayReviews(numericListingId)
+              setStayReviews(Array.isArray(data?.reviews) ? data.reviews : [])
+            } catch {
+              // keep optimistic local state from above
+            }
+          }
         }}
       />
 

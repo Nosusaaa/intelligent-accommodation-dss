@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CheckSquare, GitCompare, Star } from 'lucide-react'
+import StayReviewIntentSheet from '../components/StayReviewIntentSheet.jsx'
 import StayReviewModal from '../components/StayReviewModal.jsx'
 import { useCompare } from '../context/CompareContext.jsx'
 import { useCollection } from '../context/CollectionContext.jsx'
@@ -30,12 +31,16 @@ export default function Favorites() {
     refreshFavoritesFromServer,
     refreshStaysFromServer,
     syncListingFlags,
+    bumpStayDataEpoch,
   } = useCollection()
 
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [reviewModalListing, setReviewModalListing] = useState(null)
+  const [stayIntentListing, setStayIntentListing] = useState(null)
+  const [stayIntentConfirming, setStayIntentConfirming] = useState(false)
+  const [stayIntentUnmarking, setStayIntentUnmarking] = useState(false)
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -75,24 +80,14 @@ export default function Favorites() {
     }
   }
 
-  const onToggleStayed = async (listing, e) => {
+  const onToggleStayed = (listing, e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!userId) {
       navigate('/guest-login')
       return
     }
-    if (isStayed(listing.id)) {
-      setReviewModalListing(listing)
-      return
-    }
-    try {
-      await toggleStayed(listing.id)
-      await refreshStaysFromServer()
-      setReviewModalListing(listing)
-    } catch {
-      // ignore
-    }
+    setStayIntentListing(listing)
   }
 
   if (!userId) {
@@ -262,6 +257,51 @@ export default function Favorites() {
         </button>
       )}
 
+      <StayReviewIntentSheet
+        isOpen={Boolean(stayIntentListing)}
+        onClose={() => {
+          if (!stayIntentConfirming && !stayIntentUnmarking) setStayIntentListing(null)
+        }}
+        listing={stayIntentListing}
+        isStayed={Boolean(stayIntentListing && isStayed(stayIntentListing.id))}
+        confirming={stayIntentConfirming}
+        unmarking={stayIntentUnmarking}
+        onConfirmReview={async () => {
+          const l = stayIntentListing
+          if (!l || !userId) return
+          setStayIntentConfirming(true)
+          try {
+            if (!isStayed(l.id)) {
+              await toggleStayed(l.id)
+              bumpStayDataEpoch()
+              await refreshStaysFromServer()
+            }
+            setStayIntentListing(null)
+            setReviewModalListing(l)
+          } catch {
+            // keep sheet open on failure
+          } finally {
+            setStayIntentConfirming(false)
+          }
+        }}
+        onUnmarkStayed={async () => {
+          const l = stayIntentListing
+          if (!l || !userId || !isStayed(l.id)) return
+          setStayIntentUnmarking(true)
+          try {
+            await toggleStayed(l.id)
+            bumpStayDataEpoch()
+            await refreshStaysFromServer()
+            setStayIntentListing(null)
+            await load()
+          } catch {
+            // keep sheet open on failure
+          } finally {
+            setStayIntentUnmarking(false)
+          }
+        }}
+      />
+
       <StayReviewModal
         isOpen={Boolean(reviewModalListing)}
         onClose={() => setReviewModalListing(null)}
@@ -270,6 +310,7 @@ export default function Favorites() {
         existingReview={reviewModalListing?.user_stay_review || null}
         onSaved={() => {
           setReviewModalListing(null)
+          bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
           load().catch(() => {})
         }}

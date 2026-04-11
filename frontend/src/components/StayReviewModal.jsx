@@ -16,7 +16,7 @@ function StarRating({ label, value, onChange, hint }) {
           <p className="text-sm font-semibold text-slate-900">{label}</p>
           {hint ? <p className="mt-1 text-xs leading-5 text-slate-500">{hint}</p> : null}
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-amber-600 ring-1 ring-amber-200">{Number.isFinite(value) ? `${value}/5` : '未评分'}</span>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-amber-600 ring-1 ring-amber-200">{Number.isFinite(value) ? `${value}/5` : 'Not rated'}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {[1, 2, 3, 4, 5].map((score) => {
@@ -71,7 +71,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
         if (!cancelled) setConfig(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.response?.data?.detail || err?.message || 'Failed to load review form.')
+        if (!cancelled) setError(err?.response?.data?.detail || err?.message || 'Failed to load review form')
       })
       .finally(() => {
         if (!cancelled) setLoadingConfig(false)
@@ -120,7 +120,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
     e.preventDefault()
     if (!userId || !Number.isFinite(listingId) || activeExistingReview) return
     if (!canSubmitReview) {
-      setError('请手动完成所有评分项后再保存评价。')
+      setError('Complete every rating before submitting your review.')
       return
     }
     setSaving(true)
@@ -156,8 +156,14 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="presentation" onClick={() => onClose?.()}>
-      <div role="dialog" aria-modal="true" aria-labelledby="stay-review-title" className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#0f766e_0%,#115e59_100%)] px-6 py-5 text-white sm:px-7">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stay-review-title"
+        className="flex max-h-[90vh] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 border-b border-slate-100 bg-[linear-gradient(135deg,#0f766e_0%,#115e59_100%)] px-6 py-5 text-white sm:px-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/70">Post-stay review</p>
@@ -171,50 +177,62 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
           </div>
         </div>
 
-        <form onSubmit={submitReview} className="max-h-[calc(90vh-108px)] overflow-y-auto px-6 py-6 sm:px-7">
-          <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4 text-sm text-teal-900">
-            <p className="font-semibold">{listing?.name || `Listing ${listing?.id || ''}`}</p>
-            <p className="mt-1 text-teal-800/80">{activeExistingReview ? 'You already submitted a review. If you continue, your existing review will be removed.' : 'Your review will appear on the listing details page and in your profile under stayed listings.'}</p>
+        <form onSubmit={submitReview} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 sm:px-7">
+            <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4 text-sm text-teal-900">
+              <p className="font-semibold">{listing?.name || `Listing ${listing?.id || ''}`}</p>
+              <p className="mt-1 text-teal-800/80">{activeExistingReview ? 'You already submitted a review. If you continue, your existing review will be removed.' : 'Your review will appear on the listing details page and in your profile under stayed listings.'}</p>
+            </div>
+
+            {loadingConfig || loadingExistingReview ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                Loading review form…
+              </div>
+            ) : activeExistingReview ? (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                <p className="font-semibold">You have already submitted a review for this listing.</p>
+                <p className="mt-1">Do you want to cancel this review? This action cannot be undone.</p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <StarRating label="Overall stay satisfaction" hint="A quick summary score for the whole stay." value={overallRating} onChange={setOverallRating} />
+                {dimensions.map((dim) => (
+                  <StarRating key={dim.key} label={dim.label} hint={dim.description} value={ratings[dim.key] ?? null} onChange={(value) => setRatings((prev) => ({ ...prev, [dim.key]: value }))} />
+                ))}
+                <label className="block rounded-2xl border border-slate-100 bg-white p-4">
+                  <div className="flex items-center gap-2 text-slate-900">
+                    <MessageSquareMore className="h-4 w-4 text-teal-700" />
+                    <span className="text-sm font-semibold">Additional comments</span>
+                    <span className="text-xs font-medium text-slate-400">Optional</span>
+                  </div>
+                  <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={5} maxLength={1200} placeholder="Please write your review in English. Share what future guests should know." className="mt-3 w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-200 focus:ring-4 focus:ring-teal-600/10" />
+                  <p className="mt-2 text-right text-xs text-slate-400">{comment.length}/1200</p>
+                </label>
+              </div>
+            )}
+
+            {error ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+            {!activeExistingReview && !(loadingConfig || loadingExistingReview) && dimensions.length > 0 ? (
+              <p className="mt-4 pb-2 text-center text-xs text-slate-500">
+                After you submit, your review syncs to the listing page and your profile (stayed listings).
+              </p>
+            ) : null}
           </div>
 
-          {loadingConfig || loadingExistingReview ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">Loading review form?</div>
-          ) : activeExistingReview ? (
-            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-              <p className="font-semibold">You have already submitted a review for this listing.</p>
-              <p className="mt-1">Do you want to cancel this review? This action cannot be undone.</p>
+          <div className="shrink-0 border-t border-slate-100 px-6 pb-6 pt-5 sm:px-7">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => onClose?.()} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Maybe later</button>
+              {activeExistingReview ? (
+                <button type="button" onClick={cancelReview} disabled={saving || loadingConfig || loadingExistingReview} className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? 'Cancelling…' : 'Cancel review'}
+                </button>
+              ) : (
+                <button type="submit" disabled={saving || loadingConfig || loadingExistingReview || !dimensions.length || !canSubmitReview} className="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? 'Submitting…' : 'Submit review'}
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="mt-5 space-y-4">
-              <StarRating label="Overall stay satisfaction" hint="A quick summary score for the whole stay." value={overallRating} onChange={setOverallRating} />
-              {dimensions.map((dim) => (
-                <StarRating key={dim.key} label={dim.label} hint={dim.description} value={ratings[dim.key] ?? null} onChange={(value) => setRatings((prev) => ({ ...prev, [dim.key]: value }))} />
-              ))}
-              <label className="block rounded-2xl border border-slate-100 bg-white p-4">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <MessageSquareMore className="h-4 w-4 text-teal-700" />
-                  <span className="text-sm font-semibold">Additional comments</span>
-                  <span className="text-xs font-medium text-slate-400">Optional</span>
-                </div>
-                <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={5} maxLength={1200} placeholder="Please write your review in English. Share what future guests should know." className="mt-3 w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-200 focus:ring-4 focus:ring-teal-600/10" />
-                <p className="mt-2 text-right text-xs text-slate-400">{comment.length}/1200</p>
-              </label>
-            </div>
-          )}
-
-          {error ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-
-          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button type="button" onClick={() => onClose?.()} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Maybe later</button>
-            {activeExistingReview ? (
-              <button type="button" onClick={cancelReview} disabled={saving || loadingConfig || loadingExistingReview} className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
-                {saving ? 'Cancelling review?' : 'Cancel review'}
-              </button>
-            ) : (
-              <button type="submit" disabled={saving || loadingConfig || loadingExistingReview || !dimensions.length || !canSubmitReview} className="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60">
-                {saving ? 'Saving review?' : 'Save review'}
-              </button>
-            )}
           </div>
         </form>
       </div>
