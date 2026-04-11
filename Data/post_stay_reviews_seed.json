@@ -1,0 +1,42 @@
+{
+  "ensure_users": [
+    {
+      "email": "poststay.demo1@example.com",
+      "password": "demo123456",
+      "full_name": "Demo Reviewer One"
+    },
+    {
+      "email": "poststay.demo2@example.com",
+      "password": "demo123456",
+      "full_name": "Demo Reviewer Two"
+    }
+  ],
+  "reviews": [
+    {
+      "user_email": "poststay.demo1@example.com",
+      "listing_id": null,
+      "overall_rating": 5,
+      "listing_accuracy_rating": 5,
+      "airbnb_review_accuracy_rating": 4,
+      "cleanliness_rating": 5,
+      "host_communication_rating": 5,
+      "check_in_rating": 5,
+      "location_convenience_rating": 4,
+      "value_for_money_rating": 5,
+      "comment": "Excellent stay. The listing matched the photos and we would book again."
+    },
+    {
+      "user_email": "poststay.demo2@example.com",
+      "listing_id": null,
+      "overall_rating": 4,
+      "listing_accuracy_rating": 4,
+      "airbnb_review_accuracy_rating": 5,
+      "cleanliness_rating": 4,
+      "host_communication_rating": 5,
+      "check_in_rating": 4,
+      "location_convenience_rating": 5,
+      "value_for_money_rating": 4,
+      "comment": "Great location and host. Minor cleanliness notes but overall very good."
+    }
+  ]
+}

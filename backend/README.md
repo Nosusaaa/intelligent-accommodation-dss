@@ -65,6 +65,15 @@ python3 build_map_cache.py
 - `OVERPASS_FAILURE_COOLDOWN_SEC`：单实例失败后冷却窗口（默认 `25` 秒）
 - `MAP_CACHE_DIR`：离线 POI 缓存目录（默认 `Data/map_cache`）
 
+## Post-stay reviews（住后评价）
+
+- **存储文件**：与全库相同，均为仓库根目录 **`Data/airbnb_dss.db`**（由 `database.py` 指定路径；`*.db` 通常在 `.gitignore` 中，不会提交到 Git）。
+- **相关表**：`user_stays`（用户标记「已住」）、`user_stay_reviews`（每条住后评价，与 `stay_id` / `listing_id` 关联）。应用启动时会确保 `user_stay_reviews` 表存在（见 `main.py` 中 `_ensure_user_stay_review_table`）。
+- **写入**：`POST /api/users/{user_id}/stays/{listing_id}/review`（需先存在对应 `user_stays` 记录）。
+- **读取（所有访客可见）**：`GET /api/listings/{listing_id}/stay-reviews` 返回该房源下全部住后评价（含 `reviewer_name`）。多用户只要连接**同一后端、同一 `airbnb_dss.db`**，即可互相看到评价。
+
+**演示数据（可选）**：在 `backend/` 下执行 `python3 seed_post_stay_reviews.py`，从 [`../Data/post_stay_reviews_seed.json`](../Data/post_stay_reviews_seed.json) 导入示例用户（若不存在）、`user_stays` 与 `user_stay_reviews`（已存在则跳过）。请先完成 `python3 seed_data.py` 以生成房源数据。
+
 相关 API：
 
 - `GET /api/listings?map_mode=true&north=...&south=...&east=...&west=...`：按视口 bbox 过滤房源

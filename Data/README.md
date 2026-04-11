@@ -4,7 +4,8 @@
 
 | 文件 | 说明 |
 |------|------|
-| `airbnb_dss.db` | 由 `backend/seed_data.py` 生成的 SQLite 数据库（`*.db` 通常被 `.gitignore` 忽略） |
+| `airbnb_dss.db` | 由 `backend/seed_data.py` 生成的 SQLite 数据库（`*.db` 通常被 `.gitignore` 忽略）。用户在前端标记「已住」、提交住后评价后，数据写入此库中的 **`user_stays`**、**`user_stay_reviews`** 表（与房源、用户表关联）。 |
+| `post_stay_reviews_seed.json` | （可选）住后评价演示种子；由 `backend/seed_post_stay_reviews.py` 读入，向 `airbnb_dss.db` 插入示例用户/已住/评价（幂等跳过已存在记录）。条目中 `listing_id` 可为 `null`，表示使用数据库中按 `id` 排序的第一条房源。 |
 | `cleaned_listings.csv` | 房源主表 |
 | `listings_intelligent_profile.csv` | 房源智能画像（与 listings 合并） |
 | `listings_scores.csv` | 备用/评分相关 CSV（按需使用） |

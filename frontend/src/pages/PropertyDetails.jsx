@@ -130,7 +130,8 @@ export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { userId } = useUser()
-  const { isStayed, toggleStayed, refreshStaysFromServer, bumpStayDataEpoch } = useCollection()
+  const { isStayed, toggleStayed, refreshStaysFromServer, bumpStayDataEpoch, stayDataEpoch } =
+    useCollection()
   const propertyId = id ?? '123'
   const numericListingId = useMemo(() => {
     const n = parseInt(String(id ?? ''), 10)
@@ -368,6 +369,28 @@ export default function PropertyDetails() {
     return () => {
       cancelled = true
     }
+  }, [numericListingId, stayDataEpoch])
+
+  useEffect(() => {
+    if (!Number.isFinite(numericListingId)) return
+
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return
+      api
+        .getListingStayReviews(numericListingId)
+        .then((data) => {
+          setStayReviews(Array.isArray(data?.reviews) ? data.reviews : [])
+          setStayReviewError(null)
+        })
+        .catch((err) => {
+          setStayReviewError(
+            err?.response?.data?.detail || err?.message || 'Failed to load guest reviews',
+          )
+        })
+    }
+
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
   }, [numericListingId])
 
   useEffect(() => {
