@@ -1629,32 +1629,29 @@ async def sync_upload_file(
                     status_code=400,
                     detail=f"Missing required columns: {', '.join(missing)}"
                 )
-            
+
             # Clean and prepare data
             df["id"] = pd.to_numeric(df["id"], errors="coerce").fillna(0).astype("int64")
             df = df.dropna(subset=["id"])
             df["id"] = df["id"].astype("int64")
-            
+
             # Clean boolean columns
             bool_cols = ["has_wifi", "has_parking", "has_kitchen", "has_air_conditioning", "has_tv", "has_balcony"]
             for col in bool_cols:
                 if col in df.columns:
                     df[col] = df[col].map(
-                        lambda x: True if str(x).lower() in ["true", "t", "1", "yes", "y"] 
+                        lambda x: True if str(x).lower() in ["true", "t", "1", "yes", "y"]
                         else False if str(x).lower() in ["false", "f", "0", "no", "n"]
                         else x
                     ).fillna(False).astype(bool)
-            
+
             # Numeric columns
-            num_cols = ["accommodates", "bedrooms", "beds", "price_clean", "review_scores_rating", 
+            num_cols = ["accommodates", "bedrooms", "beds", "price_clean", "review_scores_rating",
                        "number_of_reviews", "average_sentiment_score", "intelligent_score"]
             for col in num_cols:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors="coerce")
-            
-            # Truncate existing data and insert new
-            conn.exec_driver_sql("DELETE FROM listings")
-            
+
             columns = [c for c in df.columns if c in [
                 "id", "name", "description", "picture_url", "listing_url", "gallery_urls",
                 "property_type", "room_type", "accommodates", "price_clean", "bedrooms", "beds",
@@ -1665,24 +1662,26 @@ async def sync_upload_file(
                 "sentiment_neutral_ratio", "sentiment_negative_ratio", "sentiment_positive_count",
                 "sentiment_neutral_count", "sentiment_negative_count"
             ]]
-            
-            # Build INSERT statement
+
+            if not columns:
+                raise HTTPException(status_code=400, detail="No valid columns to import")
+
             cols_str = ", ".join(columns)
             placeholders = ", ".join([f":{c}" for c in columns])
-            
+
             for _, row in df[columns].iterrows():
-                values = {c: (None if pd.isna(row[c]) else (bool(row[c]) if columns[columns.index(c)] in bool_cols and isinstance(row[c], bool) else row[c])) for c in columns}
+                values = {c: (None if pd.isna(row[c]) else (bool(row[c]) if c in bool_cols and isinstance(row[c], bool) else row[c])) for c in columns}
                 try:
                     conn.exec_driver_sql(
-                        f"INSERT INTO listings ({cols_str}) VALUES ({placeholders})",
+                        f"INSERT OR REPLACE INTO listings ({cols_str}) VALUES ({placeholders})",
                         values
                     )
                     rows_processed += 1
                 except Exception:
                     pass
-            
+
             db.commit()
-            
+
         elif file_type == "calendar":
             required_cols = ["listing_id", "date", "available", "price"]
             missing = [c for c in required_cols if c not in df.columns]
@@ -1691,32 +1690,51 @@ async def sync_upload_file(
                     status_code=400,
                     detail=f"Missing required columns: {', '.join(missing)}"
                 )
-            
-            conn.exec_driver_sql("DELETE FROM calendar")
-            
+
             # Parse available column
             if "available" in df.columns:
                 df["available"] = df["available"].map(
                     lambda x: True if str(x).lower() in ["true", "t", "1", "yes", "y"]
                     else False
                 ).fillna(False).astype(bool)
-            
+
             columns = ["listing_id", "date", "available", "price", "adjusted_price"]
             cols_available = [c for c in columns if c in df.columns]
-            cols_str = ", ".join(cols_available)
-            placeholders = ", ".join([f":{c}" for c in cols_available])
-            
+
+            if not cols_available:
+                raise HTTPException(status_code=400, detail="No valid columns to import")
+
             for _, row in df[cols_available].iterrows():
                 values = {c: (None if pd.isna(row[c]) else row[c]) for c in cols_available}
                 try:
-                    conn.exec_driver_sql(
-                        f"INSERT INTO calendar ({cols_str}) VALUES ({placeholders})",
+                    # Check if record exists
+                    existing = conn.exec_driver_sql(
+                        "SELECT id FROM calendar WHERE listing_id=:listing_id AND date=:date",
                         values
-                    )
+                    ).fetchone()
+
+                    if existing:
+                        # Update existing
+                        set_clause = ", ".join([f"{c}=:update_{c}" for c in cols_available])
+                        update_values = {f"update_{c}": values[c] for c in cols_available}
+                        update_values["listing_id"] = values["listing_id"]
+                        update_values["date"] = values["date"]
+                        conn.exec_driver_sql(
+                            f"UPDATE calendar SET {set_clause} WHERE listing_id=:listing_id AND date=:date",
+                            update_values
+                        )
+                    else:
+                        # Insert new
+                        cols_str = ", ".join(cols_available)
+                        placeholders = ", ".join([f":{c}" for c in cols_available])
+                        conn.exec_driver_sql(
+                            f"INSERT INTO calendar ({cols_str}) VALUES ({placeholders})",
+                            values
+                        )
                     rows_processed += 1
                 except Exception:
                     pass
-            
+
             db.commit()
             
         elif file_type == "reviews":
@@ -1727,28 +1745,45 @@ async def sync_upload_file(
                     status_code=400,
                     detail=f"Missing required columns: {', '.join(missing)}"
                 )
-            
-            conn.exec_driver_sql("DELETE FROM reviews")
-            
-            columns = ["listing_id", "reviewer_name", "review_date", "review_text_cleaned", 
+
+            columns = ["listing_id", "reviewer_name", "review_date", "review_text_cleaned",
                       "vibe_tags_detail", "sentiment_label"]
             cols_available = [c for c in columns if c in df.columns]
-            cols_str = ", ".join(cols_available)
-            placeholders = ", ".join([f":{c}" for c in cols_available])
-            
+
+            if not cols_available:
+                raise HTTPException(status_code=400, detail="No valid columns to import")
+
             for _, row in df[cols_available].iterrows():
                 values = {c: (None if pd.isna(row[c]) else str(row[c])) for c in cols_available}
                 try:
-                    conn.exec_driver_sql(
-                        f"INSERT INTO reviews ({cols_str}) VALUES ({placeholders})",
+                    # Check if same listing_id+review_date exists
+                    existing = conn.exec_driver_sql(
+                        "SELECT id FROM reviews WHERE listing_id=:listing_id AND review_date=:review_date",
                         values
-                    )
+                    ).fetchone()
+
+                    if existing:
+                        set_clause = ", ".join([f"{c}=:update_{c}" for c in cols_available])
+                        update_values = {f"update_{c}": values[c] for c in cols_available}
+                        update_values["listing_id"] = values["listing_id"]
+                        update_values["review_date"] = values.get("review_date")
+                        conn.exec_driver_sql(
+                            f"UPDATE reviews SET {set_clause} WHERE listing_id=:listing_id AND review_date=:review_date",
+                            update_values
+                        )
+                    else:
+                        cols_str = ", ".join(cols_available)
+                        placeholders = ", ".join([f":{c}" for c in cols_available])
+                        conn.exec_driver_sql(
+                            f"INSERT INTO reviews ({cols_str}) VALUES ({placeholders})",
+                            values
+                        )
                     rows_processed += 1
                 except Exception:
                     pass
-            
+
             db.commit()
-            
+
         elif file_type == "listing_tags":
             required_cols = ["listing_id", "vibe_tags"]
             missing = [c for c in required_cols if c not in df.columns]
@@ -1757,24 +1792,33 @@ async def sync_upload_file(
                     status_code=400,
                     detail=f"Missing required columns: {', '.join(missing)}"
                 )
-            
-            conn.exec_driver_sql("DELETE FROM listing_tags")
-            
+
             columns = ["listing_id", "vibe_tags"]
-            cols_str = ", ".join(columns)
-            placeholders = ", ".join([f":{c}" for c in columns])
-            
+
             for _, row in df[columns].iterrows():
                 values = {c: (None if pd.isna(row[c]) else str(row[c])) for c in columns}
                 try:
-                    conn.exec_driver_sql(
-                        f"INSERT INTO listing_tags ({cols_str}) VALUES ({placeholders})",
+                    existing = conn.exec_driver_sql(
+                        "SELECT id FROM listing_tags WHERE listing_id=:listing_id",
                         values
-                    )
+                    ).fetchone()
+
+                    if existing:
+                        conn.exec_driver_sql(
+                            "UPDATE listing_tags SET vibe_tags=:vibe_tags WHERE listing_id=:listing_id",
+                            values
+                        )
+                    else:
+                        cols_str = ", ".join(columns)
+                        placeholders = ", ".join([f":{c}" for c in columns])
+                        conn.exec_driver_sql(
+                            f"INSERT INTO listing_tags ({cols_str}) VALUES ({placeholders})",
+                            values
+                        )
                     rows_processed += 1
                 except Exception:
                     pass
-            
+
             db.commit()
         
         # Create sync log entry
