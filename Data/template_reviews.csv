@@ -1,0 +1,8 @@
+listing_id,reviewer_name,review_date,review_text_cleaned,vibe_tags_detail,sentiment_label
+1,John D.,2026-01-15,Great location and very clean apartment. The host was super helpful and responsive.,Cozy|Near Transit|Modern,Positive
+1,Sarah M.,2026-02-20,Perfect for our weekend getaway. The apartment had everything we needed.,Modern|Clean|Central,Positive
+1,Michael K.,2026-03-05,Good value for money. The neighborhood is safe and convenient.,Value|Central|Quiet,Positive
+2,Jennifer L.,2026-01-10,Absolutely stunning ocean views! The villa exceeded our expectations.,Luxury|Ocean View|Large,Positive
+2,David R.,2026-02-28,Perfect beach getaway. The private beach was amazing.,Beachfront|Relaxing|Luxury,Positive
+3,Emily W.,2026-01-25,Peaceful retreat in nature. The cabin was cozy and well-equipped.,Nature|Quiet|Cozy,Positive
+3,Robert T.,2026-03-10,Great hiking spot nearby. Loved the outdoor space.,Outdoor|Nature|Family-Friendly,Positive

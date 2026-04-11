@@ -23,7 +23,7 @@ import time
 from typing import Annotated, Any, List, Optional
 
 import bcrypt
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select, text
@@ -1245,7 +1245,7 @@ def get_listing_reviews(
 # =============================================================================
 
 def _now_iso() -> str:
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 # --- Admin Login ---
@@ -1451,9 +1451,14 @@ def update_strategy(
 # --- Sync Logs ---
 
 class SyncLogCreate(BaseModel):
+    filename: Optional[str] = Field(default=None, max_length=256)
     file_type: str = Field(default="CSV", max_length=32)
     status: str = Field(default="success", max_length=16)
+    total_rows: int = Field(default=0, ge=0)
     records_updated: int = Field(default=0, ge=0)
+    duplicates: int = Field(default=0, ge=0)
+    invalid: int = Field(default=0, ge=0)
+    error_summary: Optional[str] = None
 
 
 @app.get("/api/admin/sync-logs")
@@ -1465,9 +1470,14 @@ def list_sync_logs(db: Annotated[Session, Depends(get_db)]) -> list[dict[str, An
         {
             "id": r.id,
             "date": r.sync_date,
+            "filename": r.filename,
             "file_type": r.file_type,
             "status": r.status,
+            "total_rows": r.total_rows,
             "records_updated": r.records_updated,
+            "inserted": r.records_updated,
+            "duplicates": r.duplicates,
+            "invalid": r.invalid,
         }
         for r in rows
     ]
@@ -1479,9 +1489,14 @@ def create_sync_log(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     log = SyncLog(
+        filename=body.filename,
         file_type=body.file_type,
         status=body.status,
+        total_rows=body.total_rows,
         records_updated=body.records_updated,
+        duplicates=body.duplicates,
+        invalid=body.invalid,
+        error_summary=body.error_summary,
         sync_date=_now_iso(),
         created_at=_now_iso(),
     )
@@ -1491,7 +1506,343 @@ def create_sync_log(
     return {
         "id": log.id,
         "date": log.sync_date,
+        "filename": log.filename,
         "file_type": log.file_type,
         "status": log.status,
+        "total_rows": log.total_rows,
         "records_updated": log.records_updated,
+        "inserted": log.records_updated,
+        "duplicates": log.duplicates,
+        "invalid": log.invalid,
+    }
+
+
+# --- Sync Status ---
+
+@app.get("/api/admin/sync/status")
+def get_sync_status(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    """Return current record counts for each sync-related table."""
+    from sqlalchemy import text as sql_text
+    conn = db.connection()
+    
+    tables = ["listings", "calendar", "monthly_metrics", "reviews", "listing_tags"]
+    counts = {}
+    for table in tables:
+        try:
+            result = conn.exec_driver_sql(f"SELECT COUNT(*) FROM {table}").scalar_one_or_none()
+            counts[table] = result or 0
+        except Exception:
+            counts[table] = 0
+    
+    return {"tables": counts}
+
+
+# --- Sync Upload (Real CSV/XLSX Upload) ---
+
+@app.post("/api/admin/sync/upload-file")
+async def sync_upload_file(
+    db: Annotated[Session, Depends(get_db)],
+    file: Annotated[UploadFile, File(description="CSV or XLSX file to upload")],
+) -> dict[str, Any]:
+    """
+    Upload a single CSV or XLSX file for data synchronization.
+    Supported file types: listings, calendar, reviews, listing_tags
+    """
+    import pandas as pd
+    from io import BytesIO
+    from sqlalchemy import text as sql_text
+    
+    if file is None:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Detect file type based on extension
+    filename_lower = file.filename.lower() if file.filename else ""
+    is_xlsx = filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')
+    is_csv = filename_lower.endswith('.csv')
+    
+    if not is_csv and not is_xlsx:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format. Please upload a .csv or .xlsx file."
+        )
+    
+    # Validate file type based on filename keywords
+    allowed_types = {
+        "listings": ["listings", "cleaned_listings", "listing"],
+        "calendar": ["calendar", "calendars", "calendar_cleaned"],
+        "reviews": ["reviews", "review"],
+        "listing_tags": ["listing_tags", "room_tags", "tags"],
+    }
+    
+    file_type = None
+    for ft, keywords in allowed_types.items():
+        if any(kw in filename_lower for kw in keywords):
+            file_type = ft
+            break
+    
+    if file_type is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed keywords: {', '.join(allowed_types.keys())}"
+        )
+    
+    # Read and parse file
+    content = await file.read()
+    
+    try:
+        if len(content) > 5 * 1024 * 1024:  # 5MB limit
+            raise HTTPException(status_code=413, detail="File too large (max 5MB)")
+        
+        # Parse based on file format
+        if is_xlsx:
+            import openpyxl
+            df = pd.read_excel(BytesIO(content), engine='openpyxl')
+        else:
+            try:
+                csv_text = content.decode("utf-8")
+            except UnicodeDecodeError:
+                csv_text = content.decode("latin-1")
+            df = pd.read_csv(BytesIO(csv_text.encode('utf-8')))
+        
+        if df.empty:
+            raise HTTPException(status_code=400, detail="File is empty")
+        
+    except pd.errors.ParserError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid file format: {str(e)}")
+    except ImportError as e:
+        raise HTTPException(status_code=400, detail=f"Missing library for Excel files: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse file: {str(e)}")
+    
+    conn = db.connection()
+    rows_processed = 0
+    
+    try:
+        if file_type == "listings":
+            # Validate required columns
+            required_cols = ["id", "name", "price_clean", "latitude", "longitude"]
+            missing = [c for c in required_cols if c not in df.columns]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required columns: {', '.join(missing)}"
+                )
+            
+            # Clean and prepare data
+            df["id"] = pd.to_numeric(df["id"], errors="coerce").fillna(0).astype("int64")
+            df = df.dropna(subset=["id"])
+            df["id"] = df["id"].astype("int64")
+            
+            # Clean boolean columns
+            bool_cols = ["has_wifi", "has_parking", "has_kitchen", "has_air_conditioning", "has_tv", "has_balcony"]
+            for col in bool_cols:
+                if col in df.columns:
+                    df[col] = df[col].map(
+                        lambda x: True if str(x).lower() in ["true", "t", "1", "yes", "y"] 
+                        else False if str(x).lower() in ["false", "f", "0", "no", "n"]
+                        else x
+                    ).fillna(False).astype(bool)
+            
+            # Numeric columns
+            num_cols = ["accommodates", "bedrooms", "beds", "price_clean", "review_scores_rating", 
+                       "number_of_reviews", "average_sentiment_score", "intelligent_score"]
+            for col in num_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
+            
+            # Truncate existing data and insert new
+            conn.exec_driver_sql("DELETE FROM listings")
+            
+            columns = [c for c in df.columns if c in [
+                "id", "name", "description", "picture_url", "listing_url", "gallery_urls",
+                "property_type", "room_type", "accommodates", "price_clean", "bedrooms", "beds",
+                "bathrooms_num", "bathrooms_text", "latitude", "longitude", "neighbourhood_cleansed",
+                "neighborhood_overview", "review_scores_rating", "number_of_reviews",
+                "has_wifi", "has_parking", "has_kitchen", "has_air_conditioning", "has_tv", "has_balcony",
+                "average_sentiment_score", "intelligent_score", "sentiment_positive_ratio",
+                "sentiment_neutral_ratio", "sentiment_negative_ratio", "sentiment_positive_count",
+                "sentiment_neutral_count", "sentiment_negative_count"
+            ]]
+            
+            # Build INSERT statement
+            cols_str = ", ".join(columns)
+            placeholders = ", ".join([f":{c}" for c in columns])
+            
+            for _, row in df[columns].iterrows():
+                values = {c: (None if pd.isna(row[c]) else (bool(row[c]) if columns[columns.index(c)] in bool_cols and isinstance(row[c], bool) else row[c])) for c in columns}
+                try:
+                    conn.exec_driver_sql(
+                        f"INSERT INTO listings ({cols_str}) VALUES ({placeholders})",
+                        values
+                    )
+                    rows_processed += 1
+                except Exception:
+                    pass
+            
+            db.commit()
+            
+        elif file_type == "calendar":
+            required_cols = ["listing_id", "date", "available", "price"]
+            missing = [c for c in required_cols if c not in df.columns]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required columns: {', '.join(missing)}"
+                )
+            
+            conn.exec_driver_sql("DELETE FROM calendar")
+            
+            # Parse available column
+            if "available" in df.columns:
+                df["available"] = df["available"].map(
+                    lambda x: True if str(x).lower() in ["true", "t", "1", "yes", "y"]
+                    else False
+                ).fillna(False).astype(bool)
+            
+            columns = ["listing_id", "date", "available", "price", "adjusted_price"]
+            cols_available = [c for c in columns if c in df.columns]
+            cols_str = ", ".join(cols_available)
+            placeholders = ", ".join([f":{c}" for c in cols_available])
+            
+            for _, row in df[cols_available].iterrows():
+                values = {c: (None if pd.isna(row[c]) else row[c]) for c in cols_available}
+                try:
+                    conn.exec_driver_sql(
+                        f"INSERT INTO calendar ({cols_str}) VALUES ({placeholders})",
+                        values
+                    )
+                    rows_processed += 1
+                except Exception:
+                    pass
+            
+            db.commit()
+            
+        elif file_type == "reviews":
+            required_cols = ["listing_id", "review_text_cleaned"]
+            missing = [c for c in required_cols if c not in df.columns]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required columns: {', '.join(missing)}"
+                )
+            
+            conn.exec_driver_sql("DELETE FROM reviews")
+            
+            columns = ["listing_id", "reviewer_name", "review_date", "review_text_cleaned", 
+                      "vibe_tags_detail", "sentiment_label"]
+            cols_available = [c for c in columns if c in df.columns]
+            cols_str = ", ".join(cols_available)
+            placeholders = ", ".join([f":{c}" for c in cols_available])
+            
+            for _, row in df[cols_available].iterrows():
+                values = {c: (None if pd.isna(row[c]) else str(row[c])) for c in cols_available}
+                try:
+                    conn.exec_driver_sql(
+                        f"INSERT INTO reviews ({cols_str}) VALUES ({placeholders})",
+                        values
+                    )
+                    rows_processed += 1
+                except Exception:
+                    pass
+            
+            db.commit()
+            
+        elif file_type == "listing_tags":
+            required_cols = ["listing_id", "vibe_tags"]
+            missing = [c for c in required_cols if c not in df.columns]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required columns: {', '.join(missing)}"
+                )
+            
+            conn.exec_driver_sql("DELETE FROM listing_tags")
+            
+            columns = ["listing_id", "vibe_tags"]
+            cols_str = ", ".join(columns)
+            placeholders = ", ".join([f":{c}" for c in columns])
+            
+            for _, row in df[columns].iterrows():
+                values = {c: (None if pd.isna(row[c]) else str(row[c])) for c in columns}
+                try:
+                    conn.exec_driver_sql(
+                        f"INSERT INTO listing_tags ({cols_str}) VALUES ({placeholders})",
+                        values
+                    )
+                    rows_processed += 1
+                except Exception:
+                    pass
+            
+            db.commit()
+        
+        # Create sync log entry
+        log = SyncLog(
+            filename=file.filename,
+            file_type=file_type.upper() + (" (XLSX)" if is_xlsx else " (CSV)"),
+            status="success",
+            total_rows=len(df),
+            records_updated=rows_processed,
+            duplicates=0,
+            invalid=0,
+            sync_date=_now_iso(),
+            created_at=_now_iso(),
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+        
+        return {
+            "message": f"Successfully synced {file_type} data",
+            "file_type": file_type.upper() + (" (XLSX)" if is_xlsx else " (CSV)"),
+            "status": "success",
+            "total_rows": len(df),
+            "records_updated": rows_processed,
+            "inserted": rows_processed,
+            "duplicates": 0,
+            "invalid": 0,
+            "errors": [],
+            "sync_log_id": log.id,
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log error
+        log = SyncLog(
+            file_type=file_type.upper() if file_type else "UNKNOWN",
+            status="error",
+            records_updated=0,
+            sync_date=_now_iso(),
+            created_at=_now_iso(),
+        )
+        db.add(log)
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+
+
+@app.delete("/api/admin/listings")
+def clear_listings_data(
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    """Clear all listing-related data (for full sync reset)."""
+    from sqlalchemy import text as sql_text
+    
+    conn = db.connection()
+    tables = ["listings", "calendar", "monthly_metrics", "reviews", "listing_tags"]
+    deleted_counts = {}
+    
+    for table in tables:
+        try:
+            result = conn.exec_driver_sql(f"DELETE FROM {table}").row_count
+            deleted_counts[table] = result
+        except Exception:
+            deleted_counts[table] = 0
+    
+    db.commit()
+    
+    return {
+        "message": "All listing data cleared",
+        "deleted": deleted_counts,
     }

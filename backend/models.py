@@ -290,8 +290,13 @@ class SyncLog(Base):
     __tablename__ = "sync_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    filename: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     file_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     status: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    total_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     records_updated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    duplicates: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    invalid: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     sync_date: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
     created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)

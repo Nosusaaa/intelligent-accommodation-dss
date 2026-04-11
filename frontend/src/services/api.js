@@ -266,4 +266,33 @@ export const api = {
     const { data } = await client.post("/admin/sync-logs", log);
     return data;
   },
+
+  // --- Sync Status & Upload ---
+  async getSyncStatus() {
+    const { data } = await client.get("/admin/sync/status");
+    return data;
+  },
+
+  async uploadSyncFile(file, onProgress) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const { data } = await client.post("/admin/sync/upload-file", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percent);
+        }
+      },
+    });
+    return data;
+  },
+
+  async clearAllData() {
+    const { data } = await client.delete("/admin/listings");
+    return data;
+  },
 };
