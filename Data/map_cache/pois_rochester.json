@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "city": "rochester",
-  "generated_at": "2026-04-11T08:55:08Z",
+  "generated_at": "2026-04-11T08:58:20Z",
   "bbox": {
     "south": 43.05,
     "west": -77.78,
@@ -1283,7 +1283,7 @@
       {
         "id": 545063979,
         "type": "way",
-        "lat": 43.1104615,
+        "lat": 43.110462,
         "lon": -77.4842235,
         "name": "Bird/Morgan School",
         "category": "education"
@@ -1393,14 +1393,6 @@
         "category": "education"
       },
       {
-        "id": 13712353702,
-        "type": "node",
-        "lat": 43.240472,
-        "lon": -77.5932766,
-        "name": "Colebrook Elementary School",
-        "category": "education"
-      },
-      {
         "id": 1064505888,
         "type": "way",
         "lat": 43.1307391,
@@ -1478,6 +1470,14 @@
         "lat": 43.107949,
         "lon": -77.4953847,
         "name": "East Rochester Union Free School",
+        "category": "education"
+      },
+      {
+        "id": 1244516757,
+        "type": "node",
+        "lat": 43.157092,
+        "lon": -77.6015958,
+        "name": "Eastman Community Music School (Messinger Hall)",
         "category": "education"
       },
       {
@@ -1795,6 +1795,22 @@
         "category": "hospital"
       },
       {
+        "id": 3146675534,
+        "type": "node",
+        "lat": 43.1137063,
+        "lon": -77.6208403,
+        "name": "Monroe County Immunization Clinic",
+        "category": "hospital"
+      },
+      {
+        "id": 3146675535,
+        "type": "node",
+        "lat": 43.1136145,
+        "lon": -77.6208419,
+        "name": "Monroe County Tuberculosis Clinic",
+        "category": "hospital"
+      },
+      {
         "id": 5840179156,
         "type": "node",
         "lat": 43.1632699,
@@ -2008,22 +2024,6 @@
         "lat": 43.1920814,
         "lon": -77.7057655,
         "name": "Unity Hospital",
-        "category": "hospital"
-      },
-      {
-        "id": 558949198,
-        "type": "way",
-        "lat": 43.1229386,
-        "lon": -77.625386,
-        "name": "University of Rochester Medical Center Main Campus",
-        "category": "hospital"
-      },
-      {
-        "id": 5864777945,
-        "type": "node",
-        "lat": 43.1219944,
-        "lon": -77.6258452,
-        "name": "UR Medicine Employee Pharmacy",
         "category": "hospital"
       }
     ]

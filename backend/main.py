@@ -819,11 +819,19 @@ def get_user_listing_flags(
         )
     ).all()
     stay_set = set(stay_rows)
+    review_rows = db.scalars(
+        select(UserStayReview.listing_id).where(
+            UserStayReview.user_id == user_id,
+            UserStayReview.listing_id.in_(ids),
+        )
+    ).all()
+    review_set = set(review_rows)
     flags: dict[str, dict[str, bool]] = {}
     for lid in ids:
         flags[str(lid)] = {
             "favorited": lid in fav_set,
             "stayed": lid in stay_set,
+            "reviewed": lid in review_set,
         }
     return {"flags": flags}
 

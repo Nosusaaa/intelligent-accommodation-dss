@@ -15,6 +15,7 @@ export function CollectionProvider({ children }) {
   const { userId } = useUser()
   const [favoriteIds, setFavoriteIds] = useState(() => new Set())
   const [stayedIds, setStayedIds] = useState(() => new Set())
+  const [reviewedListingIds, setReviewedListingIds] = useState(() => new Set())
   const [stayDataEpoch, setStayDataEpoch] = useState(0)
 
   const bumpStayDataEpoch = useCallback(() => {
@@ -25,6 +26,7 @@ export function CollectionProvider({ children }) {
     if (!userId) {
       setFavoriteIds(new Set())
       setStayedIds(new Set())
+      setReviewedListingIds(new Set())
     }
   }, [userId])
 
@@ -47,6 +49,18 @@ export function CollectionProvider({ children }) {
         if (!Number.isFinite(id)) continue
         if (v?.stayed) next.add(id)
         else next.delete(id)
+      }
+      return next
+    })
+    setReviewedListingIds((prev) => {
+      const next = new Set(prev)
+      for (const [k, v] of Object.entries(flags)) {
+        const id = Number(k)
+        if (!Number.isFinite(id)) continue
+        if (typeof v?.reviewed === 'boolean') {
+          if (v.reviewed) next.add(id)
+          else next.delete(id)
+        }
       }
       return next
     })
@@ -84,6 +98,18 @@ export function CollectionProvider({ children }) {
       const data = await api.getUserStays(userId)
       const list = Array.isArray(data?.listings) ? data.listings : []
       setStayedIds(new Set(list.map((x) => x.id).filter(Boolean)))
+      setReviewedListingIds(() => {
+        const next = new Set()
+        for (const x of list) {
+          const lid = Number(x.id)
+          if (!Number.isFinite(lid)) continue
+          const rev = x?.user_stay_review
+          if (rev != null && typeof rev === 'object' && Number.isFinite(Number(rev.id))) {
+            next.add(lid)
+          }
+        }
+        return next
+      })
     } catch {
       // ignore
     }
@@ -131,10 +157,15 @@ export function CollectionProvider({ children }) {
     () => ({
       favoriteIds,
       stayedIds,
+      reviewedListingIds,
       stayDataEpoch,
       bumpStayDataEpoch,
       isFavorite: (id) => favoriteIds.has(id),
       isStayed: (id) => stayedIds.has(id),
+      isStayReviewed: (id) => {
+        const n = Number(id)
+        return Number.isFinite(n) && reviewedListingIds.has(n)
+      },
       syncListingFlags,
       toggleFavorite,
       toggleStayed,
@@ -144,6 +175,7 @@ export function CollectionProvider({ children }) {
     [
       favoriteIds,
       stayedIds,
+      reviewedListingIds,
       stayDataEpoch,
       bumpStayDataEpoch,
       syncListingFlags,

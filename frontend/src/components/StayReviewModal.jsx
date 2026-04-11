@@ -8,6 +8,13 @@ function buildInitialRatings(dimensions) {
   return { overall_rating: null, ratings, comment: '' }
 }
 
+/** Treat as an existing DB review only when the payload has a numeric id. */
+function normalizePersistedReview(raw) {
+  if (raw == null || typeof raw !== 'object') return null
+  if (!Number.isFinite(Number(raw.id))) return null
+  return raw
+}
+
 function StarRating({ label, value, onChange, hint }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
@@ -41,9 +48,9 @@ function StarRating({ label, value, onChange, hint }) {
   )
 }
 
-export default function StayReviewModal({ isOpen, onClose, userId, listing, existingReview, onSaved }) {
+export default function StayReviewModal({ isOpen, onClose, userId, listing, onSaved }) {
   const [config, setConfig] = useState(null)
-  const [remoteExistingReview, setRemoteExistingReview] = useState(existingReview || null)
+  const [remoteExistingReview, setRemoteExistingReview] = useState(null)
   const [loadingConfig, setLoadingConfig] = useState(false)
   const [loadingExistingReview, setLoadingExistingReview] = useState(false)
   const [overallRating, setOverallRating] = useState(null)
@@ -53,14 +60,16 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
   const [error, setError] = useState('')
 
   const dimensions = useMemo(() => config?.dimensions || [], [config])
-  const activeExistingReview = remoteExistingReview || existingReview || null
+  const activeExistingReview = useMemo(() => normalizePersistedReview(remoteExistingReview), [remoteExistingReview])
   const listingId = Number(listing?.id)
   const canSubmitReview = Number.isFinite(overallRating) && dimensions.length > 0 && dimensions.every((dim) => Number.isFinite(ratings[dim.key]))
 
   useEffect(() => {
-    if (!isOpen) return
-    setRemoteExistingReview(existingReview || null)
-  }, [isOpen, existingReview])
+    if (!isOpen) {
+      setRemoteExistingReview(null)
+      setError('')
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen || !userId) return
@@ -82,12 +91,13 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
   }, [isOpen, userId])
 
   useEffect(() => {
-    if (!isOpen || !userId || !Number.isFinite(listingId) || existingReview) return
+    if (!isOpen || !userId || !Number.isFinite(listingId)) return
     let cancelled = false
     setLoadingExistingReview(true)
+    setRemoteExistingReview(null)
     api.getUserStayReview(userId, listingId)
       .then((data) => {
-        if (!cancelled) setRemoteExistingReview(data || null)
+        if (!cancelled) setRemoteExistingReview(normalizePersistedReview(data))
       })
       .catch((err) => {
         if (cancelled) return
@@ -103,7 +113,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
     return () => {
       cancelled = true
     }
-  }, [isOpen, userId, listingId, existingReview])
+  }, [isOpen, userId, listingId])
 
   useEffect(() => {
     if (!dimensions.length) return
@@ -129,6 +139,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
       const payload = { overall_rating: overallRating, comment }
       for (const dim of dimensions) payload[dim.key] = ratings[dim.key]
       const saved = await api.saveUserReview(userId, listingId, payload)
+      setRemoteExistingReview(normalizePersistedReview(saved))
       onSaved?.(saved)
       onClose?.()
     } catch (err) {
@@ -181,7 +192,11 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 sm:px-7">
             <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4 text-sm text-teal-900">
               <p className="font-semibold">{listing?.name || `Listing ${listing?.id || ''}`}</p>
-              <p className="mt-1 text-teal-800/80">{activeExistingReview ? 'You already submitted a review. If you continue, your existing review will be removed.' : 'Your review will appear on the listing details page and in your profile under stayed listings.'}</p>
+              <p className="mt-1 text-teal-800/80">
+                {activeExistingReview
+                  ? 'You have already submitted your one-time review for this listing. You can remove it below if you need to start over.'
+                  : 'Your review will appear on the listing details page and in your profile under stayed listings.'}
+              </p>
             </div>
 
             {loadingConfig || loadingExistingReview ? (
@@ -191,7 +206,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
             ) : activeExistingReview ? (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
                 <p className="font-semibold">You have already submitted a review for this listing.</p>
-                <p className="mt-1">Do you want to cancel this review? This action cannot be undone.</p>
+                <p className="mt-1">To change ratings, remove this review first. This action cannot be undone.</p>
               </div>
             ) : (
               <div className="mt-5 space-y-4">
@@ -225,7 +240,7 @@ export default function StayReviewModal({ isOpen, onClose, userId, listing, exis
               <button type="button" onClick={() => onClose?.()} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Maybe later</button>
               {activeExistingReview ? (
                 <button type="button" onClick={cancelReview} disabled={saving || loadingConfig || loadingExistingReview} className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
-                  {saving ? 'Cancelling…' : 'Cancel review'}
+                  {saving ? 'Removing…' : 'Remove review'}
                 </button>
               ) : (
                 <button type="submit" disabled={saving || loadingConfig || loadingExistingReview || !dimensions.length || !canSubmitReview} className="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60">

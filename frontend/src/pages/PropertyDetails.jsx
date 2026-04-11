@@ -130,8 +130,15 @@ export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { userId } = useUser()
-  const { isStayed, toggleStayed, refreshStaysFromServer, bumpStayDataEpoch, stayDataEpoch } =
-    useCollection()
+  const {
+    isStayed,
+    isStayReviewed,
+    toggleStayed,
+    refreshStaysFromServer,
+    syncListingFlags,
+    bumpStayDataEpoch,
+    stayDataEpoch,
+  } = useCollection()
   const propertyId = id ?? '123'
   const numericListingId = useMemo(() => {
     const n = parseInt(String(id ?? ''), 10)
@@ -372,6 +379,11 @@ export default function PropertyDetails() {
   }, [numericListingId, stayDataEpoch])
 
   useEffect(() => {
+    if (!userId || !Number.isFinite(numericListingId)) return
+    syncListingFlags([numericListingId]).catch(() => {})
+  }, [userId, numericListingId, syncListingFlags])
+
+  useEffect(() => {
     if (!Number.isFinite(numericListingId)) return
 
     const handler = () => {
@@ -561,7 +573,7 @@ export default function PropertyDetails() {
                   onClick={() => setStayReviewModalOpen(true)}
                   className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-800 transition hover:border-teal-300 hover:bg-teal-100"
                 >
-                  {existingUserStayReview ? 'Manage review' : 'Leave a review'}
+                  {existingUserStayReview || isStayReviewed(numericListingId) ? 'Manage review' : 'Leave a review'}
                 </button>
               ) : null}
             </div>
@@ -768,7 +780,6 @@ export default function PropertyDetails() {
         onClose={() => setStayReviewModalOpen(false)}
         userId={userId}
         listing={listing}
-        existingReview={existingUserStayReview}
         onSaved={async (savedReview) => {
           if (!savedReview) {
             setStayReviews((prev) => prev.filter((item) => Number(item.user_id) !== Number(userId)))
@@ -781,6 +792,7 @@ export default function PropertyDetails() {
           bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
           if (Number.isFinite(numericListingId)) {
+            syncListingFlags([numericListingId]).catch(() => {})
             try {
               const data = await api.getListingStayReviews(numericListingId)
               setStayReviews(Array.isArray(data?.reviews) ? data.reviews : [])

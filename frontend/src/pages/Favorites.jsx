@@ -26,6 +26,7 @@ export default function Favorites() {
   const { items, toggleCompare, isInCompare } = useCompare()
   const {
     isStayed,
+    isStayReviewed,
     toggleFavorite,
     toggleStayed,
     refreshFavoritesFromServer,
@@ -264,6 +265,7 @@ export default function Favorites() {
         }}
         listing={stayIntentListing}
         isStayed={Boolean(stayIntentListing && isStayed(stayIntentListing.id))}
+        hasStayReview={Boolean(stayIntentListing && isStayReviewed(stayIntentListing.id))}
         confirming={stayIntentConfirming}
         unmarking={stayIntentUnmarking}
         onConfirmReview={async () => {
@@ -307,11 +309,12 @@ export default function Favorites() {
         onClose={() => setReviewModalListing(null)}
         userId={userId}
         listing={reviewModalListing}
-        existingReview={reviewModalListing?.user_stay_review || null}
         onSaved={() => {
+          const lid = reviewModalListing?.id
           setReviewModalListing(null)
           bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
+          if (lid != null) syncListingFlags([lid]).catch(() => {})
           load().catch(() => {})
         }}
       />

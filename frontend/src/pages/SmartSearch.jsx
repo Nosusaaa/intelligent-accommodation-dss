@@ -450,6 +450,7 @@ export default function SmartSearch() {
   const {
     isFavorite,
     isStayed,
+    isStayReviewed,
     toggleFavorite,
     toggleStayed,
     syncListingFlags,
@@ -1325,6 +1326,7 @@ export default function SmartSearch() {
         }}
         listing={stayIntentListing}
         isStayed={Boolean(stayIntentListing && isStayed(stayIntentListing.id))}
+        hasStayReview={Boolean(stayIntentListing && isStayReviewed(stayIntentListing.id))}
         confirming={stayIntentConfirming}
         unmarking={stayIntentUnmarking}
         onConfirmReview={async () => {
@@ -1367,11 +1369,12 @@ export default function SmartSearch() {
         onClose={() => setReviewModalListing(null)}
         userId={userId}
         listing={reviewModalListing}
-        existingReview={null}
         onSaved={() => {
+          const lid = reviewModalListing?.id
           setReviewModalListing(null)
           bumpStayDataEpoch()
           refreshStaysFromServer().catch(() => {})
+          if (lid != null) syncListingFlags([lid]).catch(() => {})
         }}
       />
 

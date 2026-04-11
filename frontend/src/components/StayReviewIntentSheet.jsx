@@ -9,6 +9,7 @@ export default function StayReviewIntentSheet({
   onClose,
   listing,
   isStayed,
+  hasStayReview = false,
   onConfirmReview,
   onUnmarkStayed,
   confirming = false,
@@ -18,6 +19,11 @@ export default function StayReviewIntentSheet({
 
   const title = listing?.name || `Listing ${listing?.id ?? ''}`
   const busy = confirming || unmarking
+  const primaryLabel = (() => {
+    if (!isStayed) return confirming ? 'Working…' : 'Write review'
+    if (hasStayReview) return confirming ? 'Working…' : 'Manage stay review'
+    return confirming ? 'Working…' : 'Write stay review'
+  })()
 
   return (
     <div
@@ -40,7 +46,9 @@ export default function StayReviewIntentSheet({
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               {isStayed
-                ? 'Open the review form, unmark this listing as stayed, or close.'
+                ? hasStayReview
+                  ? 'You already left a review for this listing. Open to view options, unmark stayed, or close.'
+                  : 'Open the review form, unmark this listing as stayed, or close.'
                 : 'Write review marks this listing as stayed and opens the form. Close (X) to leave without saving.'}
             </p>
           </div>
@@ -62,7 +70,7 @@ export default function StayReviewIntentSheet({
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <MessageSquare className="h-4 w-4" aria-hidden />
-            {confirming ? 'Working…' : 'Write review'}
+            {primaryLabel}
           </button>
           {isStayed ? (
             <button
