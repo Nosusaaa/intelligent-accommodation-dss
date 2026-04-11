@@ -598,7 +598,7 @@ export default function SmartSearch() {
     [mapBoundsFilterEnabled, viewport],
   )
 
-  const qForApi = searchFieldMode === 'name' ? searchQuery.trim() : ''
+  const qForApi = searchQuery.trim()
 
   const filterKey = useMemo(
     () =>
