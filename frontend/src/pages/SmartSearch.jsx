@@ -8,6 +8,7 @@ import { usePreference } from '../context/PreferenceContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
 import ListingMap from '../components/ListingMap.jsx'
+import StayReviewModal from '../components/StayReviewModal.jsx'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
 
@@ -451,6 +452,7 @@ export default function SmartSearch() {
     toggleFavorite,
     toggleStayed,
     syncListingFlags,
+    refreshStaysFromServer,
   } = useCollection()
 
   const [listings, setListings] = useState([])
@@ -498,6 +500,7 @@ export default function SmartSearch() {
   const [mapMeta, setMapMeta] = useState(null)
   const [mapDisabled, setMapDisabled] = useState(false)
   const [mapRenderNonce, setMapRenderNonce] = useState(0)
+  const [reviewModalListing, setReviewModalListing] = useState(null)
   const poiCount = mapPois.length
   const hasPoiData = poiCount > 0
 
@@ -1216,7 +1219,7 @@ export default function SmartSearch() {
                         title={
                           userId
                             ? isStayed(listing.id)
-                              ? 'Unmark as stayed'
+                              ? 'Manage stay review'
                               : 'Mark as stayed'
                             : 'Sign in to record stays'
                         }
@@ -1233,7 +1236,16 @@ export default function SmartSearch() {
                             navigate('/guest-login')
                             return
                           }
-                          toggleStayed(listing.id).catch(() => {})
+                          if (isStayed(listing.id)) {
+                            setReviewModalListing(listing)
+                            return
+                          }
+                          toggleStayed(listing.id)
+                            .then(() => {
+                              setReviewModalListing(listing)
+                              refreshStaysFromServer().catch(() => {})
+                            })
+                            .catch(() => {})
                         }}
                       >
                         <CheckSquare className="h-4 w-4" aria-hidden />
@@ -1309,6 +1321,18 @@ export default function SmartSearch() {
           )}
         </div>
       </div>
+
+      <StayReviewModal
+        isOpen={Boolean(reviewModalListing)}
+        onClose={() => setReviewModalListing(null)}
+        userId={userId}
+        listing={reviewModalListing}
+        existingReview={null}
+        onSaved={() => {
+          setReviewModalListing(null)
+          refreshStaysFromServer().catch(() => {})
+        }}
+      />
 
       {items.length > 0 && (
         <button

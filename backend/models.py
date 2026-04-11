@@ -152,6 +152,9 @@ class User(Base):
     stays: Mapped[List["UserStay"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    stay_reviews: Mapped[List["UserStayReview"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserFavorite(Base):
@@ -193,6 +196,45 @@ class UserStay(Base):
 
     user: Mapped["User"] = relationship(back_populates="stays")
     listing: Mapped["Listing"] = relationship()
+    review: Mapped[Optional["UserStayReview"]] = relationship(
+        back_populates="stay", cascade="all, delete-orphan", uselist=False
+    )
+
+
+class UserStayReview(Base):
+    """Post-stay review authored by a user for a stayed listing."""
+
+    __tablename__ = "user_stay_reviews"
+    __table_args__ = (
+        UniqueConstraint("user_id", "listing_id", name="uq_user_stay_review_listing"),
+        UniqueConstraint("stay_id", name="uq_user_stay_review_stay"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    listing_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    stay_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user_stays.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    overall_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    listing_accuracy_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    airbnb_review_accuracy_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    cleanliness_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    host_communication_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    check_in_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    location_convenience_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    value_for_money_rating: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    updated_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="stay_reviews")
+    listing: Mapped["Listing"] = relationship()
+    stay: Mapped["UserStay"] = relationship(back_populates="review")
 
 
 class UserPreference(Base):

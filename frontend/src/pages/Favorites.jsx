@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CheckSquare, GitCompare, Star } from 'lucide-react'
+import StayReviewModal from '../components/StayReviewModal.jsx'
 import { useCompare } from '../context/CompareContext.jsx'
 import { useCollection } from '../context/CollectionContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
@@ -34,6 +35,7 @@ export default function Favorites() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [reviewModalListing, setReviewModalListing] = useState(null)
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -73,16 +75,21 @@ export default function Favorites() {
     }
   }
 
-  const onToggleStayed = async (listingId, e) => {
+  const onToggleStayed = async (listing, e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!userId) {
       navigate('/guest-login')
       return
     }
+    if (isStayed(listing.id)) {
+      setReviewModalListing(listing)
+      return
+    }
     try {
-      await toggleStayed(listingId)
+      await toggleStayed(listing.id)
       await refreshStaysFromServer()
+      setReviewModalListing(listing)
     } catch {
       // ignore
     }
@@ -196,14 +203,14 @@ export default function Favorites() {
                   </button>
                   <button
                     type="button"
-                    title={isStayed(listing.id) ? 'Unmark stayed' : 'Mark as stayed'}
+                    title={isStayed(listing.id) ? 'Manage stay review' : 'Mark as stayed'}
                     className={[
                       'flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur transition-all',
                       isStayed(listing.id)
                         ? 'border-teal-400 bg-teal-600 text-white'
                         : 'border-white/80 bg-white/95 text-slate-600 hover:border-teal-200',
                     ].join(' ')}
-                    onClick={(e) => onToggleStayed(listing.id, e)}
+                    onClick={(e) => onToggleStayed(listing, e)}
                   >
                     <CheckSquare className="h-4 w-4" aria-hidden />
                   </button>
@@ -254,6 +261,19 @@ export default function Favorites() {
           Compare ({items.length})
         </button>
       )}
+
+      <StayReviewModal
+        isOpen={Boolean(reviewModalListing)}
+        onClose={() => setReviewModalListing(null)}
+        userId={userId}
+        listing={reviewModalListing}
+        existingReview={reviewModalListing?.user_stay_review || null}
+        onSaved={() => {
+          setReviewModalListing(null)
+          refreshStaysFromServer().catch(() => {})
+          load().catch(() => {})
+        }}
+      />
     </div>
   )
 }

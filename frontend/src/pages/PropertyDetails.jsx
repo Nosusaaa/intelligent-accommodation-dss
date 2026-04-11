@@ -10,6 +10,9 @@ import {
   Star,
   X,
 } from 'lucide-react'
+import StayReviewModal from '../components/StayReviewModal.jsx'
+import { useCollection } from '../context/CollectionContext.jsx'
+import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
 import {
@@ -70,6 +73,33 @@ function formatReviewDate(iso) {
   })
 }
 
+function formatDimensionLabel(key) {
+  const mapping = {
+    listing_accuracy_rating: 'Listing Accuracy',
+    airbnb_review_accuracy_rating: 'Existing Review Accuracy',
+    cleanliness_rating: 'Cleanliness',
+    host_communication_rating: 'Host Communication',
+    check_in_rating: 'Check-in Experience',
+    location_convenience_rating: 'Location Convenience',
+    value_for_money_rating: 'Value for Money',
+  }
+  return mapping[key] || key
+}
+
+function renderStars(value) {
+  const score = Math.max(0, Math.min(5, Number(value) || 0))
+  return Array.from({ length: 5 }, (_, idx) => (
+    <Star
+      key={`star-${idx}`}
+      className={[
+        'h-4 w-4',
+        idx < score ? 'fill-current text-amber-500' : 'text-slate-300',
+      ].join(' ')}
+      aria-hidden
+    />
+  ))
+}
+
 /** Map API/legacy rows to one of Positive | Neutral | Negative (ETL uses these exact strings). */
 function normalizeSentimentLabel(label) {
   if (label === 'Positive' || label === 'Neutral' || label === 'Negative') {
@@ -99,6 +129,8 @@ function isSafeHttpUrl(raw) {
 export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { userId } = useUser()
+  const { isStayed, toggleStayed, refreshStaysFromServer } = useCollection()
   const propertyId = id ?? '123'
   const numericListingId = useMemo(() => {
     const n = parseInt(String(id ?? ''), 10)
@@ -111,6 +143,10 @@ export default function PropertyDetails() {
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [reviewsError, setReviewsError] = useState(null)
+  const [stayReviews, setStayReviews] = useState([])
+  const [stayReviewsLoading, setStayReviewsLoading] = useState(false)
+  const [stayReviewError, setStayReviewError] = useState(null)
+  const [stayReviewModalOpen, setStayReviewModalOpen] = useState(false)
 
   const positiveReviews = useMemo(
     () =>
@@ -176,6 +212,22 @@ export default function PropertyDetails() {
   const [activeImage, setActiveImage] = useState(0)
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [reviewTab, setReviewTab] = useState('positive')
+
+  const existingUserStayReview = useMemo(() => {
+    if (!userId) return null
+    return stayReviews.find((review) => Number(review.user_id) === Number(userId)) || null
+  }, [stayReviews, userId])
+
+  const stayReviewSummary = useMemo(() => {
+    if (!stayReviews.length) {
+      return { averageOverall: null, reviewCount: 0 }
+    }
+    const total = stayReviews.reduce((sum, review) => sum + (Number(review.overall_rating) || 0), 0)
+    return {
+      averageOverall: total / stayReviews.length,
+      reviewCount: stayReviews.length,
+    }
+  }, [stayReviews])
 
   /** Parsed scraped URLs only (no fallbacks). */
   const scrapedGallery = useMemo(() => {
@@ -276,6 +328,43 @@ export default function PropertyDetails() {
     }
 
     loadReviews()
+    return () => {
+      cancelled = true
+    }
+  }, [numericListingId])
+
+  useEffect(() => {
+    if (!Number.isFinite(numericListingId)) {
+      setStayReviews([])
+      setStayReviewError(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadStayReviews() {
+      setStayReviewsLoading(true)
+      setStayReviewError(null)
+      try {
+        const data = await api.getListingStayReviews(numericListingId)
+        if (!cancelled) {
+          setStayReviews(Array.isArray(data?.reviews) ? data.reviews : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStayReviewError(
+            err?.response?.data?.detail || err?.message || 'Failed to load guest reviews',
+          )
+          setStayReviews([])
+        }
+      } finally {
+        if (!cancelled) {
+          setStayReviewsLoading(false)
+        }
+      }
+    }
+
+    loadStayReviews()
     return () => {
       cancelled = true
     }
@@ -418,6 +507,113 @@ export default function PropertyDetails() {
               Open on Airbnb
             </a>
           )}
+
+          <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                  Guest reflections
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">
+                  Post-stay reviews
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Ratings submitted after guests marked this listing as stayed.
+                </p>
+                {stayReviewSummary.reviewCount > 0 ? (
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
+                    <div className="flex items-center gap-0.5">{renderStars(Math.round(stayReviewSummary.averageOverall))}</div>
+                    <span className="text-sm font-bold">
+                      Average overall rating: {stayReviewSummary.averageOverall.toFixed(1)}/5
+                    </span>
+                    <span className="text-xs text-amber-700/80">
+                      ({stayReviewSummary.reviewCount} review{stayReviewSummary.reviewCount > 1 ? 's' : ''})
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+              {userId && isStayed(numericListingId) ? (
+                <button
+                  type="button"
+                  onClick={() => setStayReviewModalOpen(true)}
+                  className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-800 transition hover:border-teal-300 hover:bg-teal-100"
+                >
+                  {existingUserStayReview ? 'Manage review' : 'Leave a review'}
+                </button>
+              ) : null}
+            </div>
+
+            {stayReviewsLoading ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                Loading guest reviews…
+              </div>
+            ) : stayReviewError ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {stayReviewError}
+              </div>
+            ) : stayReviews.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
+                No post-stay reviews yet. Guests can share one after marking this stay as completed.
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                {stayReviews.map((review) => {
+                  const dimensionEntries = Object.entries(review).filter(([key]) =>
+                    key.endsWith('_rating') && key !== 'overall_rating',
+                  )
+                  return (
+                    <article
+                      key={review.id}
+                      className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {review.reviewer_name || 'Guest'}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Updated {formatReviewDate(review.updated_at || review.created_at)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-right">
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">
+                            Overall
+                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-amber-600">
+                            <div className="flex items-center gap-0.5">{renderStars(review.overall_rating)}</div>
+                            <span className="text-sm font-bold text-amber-700">{review.overall_rating}/5</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {dimensionEntries.map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                          >
+                            <p className="text-xs font-semibold text-slate-600">
+                              {formatDimensionLabel(key)}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="flex items-center gap-0.5">{renderStars(value)}</div>
+                              <span className="text-xs font-bold text-slate-700">{value}/5</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {review.comment ? (
+                        <p className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                          “{review.comment}”
+                        </p>
+                      ) : null}
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="space-y-6">
@@ -543,6 +739,25 @@ export default function PropertyDetails() {
           </button>
         </div>
       </div>
+
+      <StayReviewModal
+        isOpen={stayReviewModalOpen}
+        onClose={() => setStayReviewModalOpen(false)}
+        userId={userId}
+        listing={listing}
+        existingReview={existingUserStayReview}
+        onSaved={(savedReview) => {
+          if (!savedReview) {
+            setStayReviews((prev) => prev.filter((item) => Number(item.user_id) !== Number(userId)))
+          } else {
+            setStayReviews((prev) => {
+              const others = prev.filter((item) => Number(item.user_id) !== Number(savedReview.user_id))
+              return [{ ...savedReview, reviewer_name: 'You' }, ...others]
+            })
+          }
+          refreshStaysFromServer().catch(() => {})
+        }}
+      />
 
       {reviewsOpen && (
         <div

@@ -155,6 +155,31 @@ export const api = {
     return data;
   },
 
+  async getUserReviewConfig(userId) {
+    const { data } = await client.get(`/users/${userId}/stays/review-config`);
+    return data;
+  },
+
+  async getUserStayReview(userId, listingId) {
+    const { data } = await client.get(`/users/${userId}/stays/${listingId}/review`);
+    return data;
+  },
+
+  async saveUserReview(userId, listingId, payload) {
+    const { data } = await client.post(`/users/${userId}/stays/${listingId}/review`, payload);
+    return data;
+  },
+
+  async removeUserReview(userId, listingId) {
+    const { data } = await client.delete(`/users/${userId}/stays/${listingId}/review`);
+    return data;
+  },
+
+  async getListingStayReviews(listingId) {
+    const { data } = await client.get(`/listings/${listingId}/stay-reviews`);
+    return data;
+  },
+
   async addUserStay(userId, listingId) {
     const { data } = await client.post(`/users/${userId}/stays/${listingId}`);
     return data;

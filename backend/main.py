@@ -44,6 +44,7 @@ from models import (
     UserFavorite,
     UserPreference,
     UserStay,
+    UserStayReview,
 )
 from overpass_client import fetch_pois_bbox, load_offline_pois
 
@@ -75,10 +76,64 @@ def _ensure_user_profile_columns() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN top_vibe_tag VARCHAR(256)"))
 
 
+def _ensure_user_stay_review_table() -> None:
+    with engine.begin() as conn:
+        tables = {
+            row[0] for row in conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        if "user_stay_reviews" not in tables:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE user_stay_reviews (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        listing_id INTEGER NOT NULL,
+                        stay_id INTEGER NOT NULL,
+                        overall_rating INTEGER NOT NULL DEFAULT 5,
+                        listing_accuracy_rating INTEGER NOT NULL DEFAULT 5,
+                        airbnb_review_accuracy_rating INTEGER NOT NULL DEFAULT 5,
+                        cleanliness_rating INTEGER NOT NULL DEFAULT 5,
+                        host_communication_rating INTEGER NOT NULL DEFAULT 5,
+                        check_in_rating INTEGER NOT NULL DEFAULT 5,
+                        location_convenience_rating INTEGER NOT NULL DEFAULT 5,
+                        value_for_money_rating INTEGER NOT NULL DEFAULT 5,
+                        comment TEXT,
+                        created_at VARCHAR(26),
+                        updated_at VARCHAR(26),
+                        UNIQUE(user_id, listing_id),
+                        UNIQUE(stay_id),
+                        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE,
+                        FOREIGN KEY(stay_id) REFERENCES user_stays(id) ON DELETE CASCADE
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX ix_user_stay_reviews_user_id ON user_stay_reviews(user_id)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX ix_user_stay_reviews_listing_id ON user_stay_reviews(listing_id)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX ix_user_stay_reviews_stay_id ON user_stay_reviews(stay_id)"
+                )
+            )
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _ensure_user_profile_columns()
+    _ensure_user_stay_review_table()
     yield
 
 
@@ -226,6 +281,58 @@ class ProfileUpdateBody(BaseModel):
     avatar_url: str = Field(default="")
 
 
+REVIEW_DIMENSIONS = [
+    {
+        "key": "listing_accuracy_rating",
+        "label": "Listing Accuracy",
+        "description": "Did the space, amenities, photos, and description match the real stay?",
+    },
+    {
+        "key": "airbnb_review_accuracy_rating",
+        "label": "Existing Review Accuracy",
+        "description": "Did the previous Airbnb reviews reflect the real strengths and weaknesses of this listing?",
+    },
+    {
+        "key": "cleanliness_rating",
+        "label": "Cleanliness",
+        "description": "How clean were the room, linens, and shared areas on arrival?",
+    },
+    {
+        "key": "host_communication_rating",
+        "label": "Host Communication",
+        "description": "How clear, fast, and helpful was the host communication?",
+    },
+    {
+        "key": "check_in_rating",
+        "label": "Check-in Experience",
+        "description": "How smooth and convenient was the check-in process?",
+    },
+    {
+        "key": "location_convenience_rating",
+        "label": "Location Convenience",
+        "description": "How convenient was the location for transport, food, and daily needs?",
+    },
+    {
+        "key": "value_for_money_rating",
+        "label": "Value for Money",
+        "description": "Considering quality, location, and price, did it feel worth the cost?",
+    },
+]
+REVIEW_DIMENSION_KEYS = tuple(dim["key"] for dim in REVIEW_DIMENSIONS)
+
+
+class UserStayReviewPayload(BaseModel):
+    overall_rating: int = Field(..., ge=1, le=5)
+    listing_accuracy_rating: int = Field(..., ge=1, le=5)
+    airbnb_review_accuracy_rating: int = Field(..., ge=1, le=5)
+    cleanliness_rating: int = Field(..., ge=1, le=5)
+    host_communication_rating: int = Field(..., ge=1, le=5)
+    check_in_rating: int = Field(..., ge=1, le=5)
+    location_convenience_rating: int = Field(..., ge=1, le=5)
+    value_for_money_rating: int = Field(..., ge=1, le=5)
+    comment: str = Field(default="", max_length=1200)
+
+
 @app.post("/api/auth/signup")
 def auth_signup(
     body: AuthCredentials,
@@ -338,6 +445,32 @@ def _now_iso() -> str:
     return datetime.utcnow().isoformat()
 
 
+def _serialize_user_stay_review(review: UserStayReview) -> dict[str, Any]:
+    payload = {
+        "id": review.id,
+        "user_id": review.user_id,
+        "listing_id": review.listing_id,
+        "stay_id": review.stay_id,
+        "overall_rating": review.overall_rating,
+        "comment": review.comment,
+        "created_at": review.created_at,
+        "updated_at": review.updated_at,
+    }
+    for key in REVIEW_DIMENSION_KEYS:
+        payload[key] = getattr(review, key)
+    payload["dimension_average"] = round(
+        sum(getattr(review, key) for key in REVIEW_DIMENSION_KEYS) / len(REVIEW_DIMENSION_KEYS),
+        2,
+    )
+    return payload
+
+
+def _attach_review_to_listing_payload(payload: dict[str, Any], review: UserStayReview | None) -> dict[str, Any]:
+    next_payload = dict(payload)
+    next_payload["user_stay_review"] = _serialize_user_stay_review(review) if review else None
+    return next_payload
+
+
 @app.get("/api/users/{user_id}/favorites")
 def get_user_favorites(
     user_id: int,
@@ -409,14 +542,23 @@ def get_user_stays(
 ) -> dict[str, Any]:
     _user_or_404(db, user_id)
     stmt = (
-        select(Listing)
+        select(Listing, UserStayReview)
         .join(UserStay, UserStay.listing_id == Listing.id)
+        .outerjoin(
+            UserStayReview,
+            (UserStayReview.user_id == UserStay.user_id)
+            & (UserStayReview.listing_id == UserStay.listing_id),
+        )
         .where(UserStay.user_id == user_id)
         .options(selectinload(Listing.listing_tags))
         .order_by(UserStay.id.desc())
     )
-    rows = db.scalars(stmt).all()
-    return {"listings": [_listing_full(x) for x in rows], "total": len(rows)}
+    rows = db.execute(stmt).all()
+    listings = [
+        _attach_review_to_listing_payload(_listing_full(listing), review)
+        for listing, review in rows
+    ]
+    return {"listings": listings, "total": len(listings)}
 
 
 @app.post("/api/users/{user_id}/stays/{listing_id}")
@@ -464,6 +606,133 @@ def remove_user_stay(
     if row is None:
         return {"ok": True, "message": "Not in stayed list"}
     db.delete(row)
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/users/{user_id}/stays/review-config")
+def get_user_stay_review_config(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    return {"dimensions": REVIEW_DIMENSIONS}
+
+
+@app.post("/api/users/{user_id}/stays/{listing_id}/review")
+def save_user_stay_review(
+    user_id: int,
+    listing_id: int,
+    body: UserStayReviewPayload,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    _listing_or_404(db, listing_id)
+    stay = db.scalars(
+        select(UserStay).where(
+            UserStay.user_id == user_id,
+            UserStay.listing_id == listing_id,
+        )
+    ).first()
+    if stay is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Please mark this listing as stayed before leaving a review",
+        )
+
+    existing_review = db.scalars(
+        select(UserStayReview).where(
+            UserStayReview.user_id == user_id,
+            UserStayReview.listing_id == listing_id,
+        )
+    ).first()
+    if existing_review is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="You have already submitted a review for this listing",
+        )
+
+    now = _now_iso()
+    review = UserStayReview(
+        user_id=user_id,
+        listing_id=listing_id,
+        stay_id=stay.id,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(review)
+
+    review.overall_rating = body.overall_rating
+    review.comment = body.comment.strip() or None
+    for key in REVIEW_DIMENSION_KEYS:
+        setattr(review, key, getattr(body, key))
+
+    db.commit()
+    db.refresh(review)
+    return _serialize_user_stay_review(review)
+
+
+@app.get("/api/listings/{listing_id}/stay-reviews")
+def get_listing_stay_reviews(
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _listing_or_404(db, listing_id)
+    stmt = (
+        select(UserStayReview, User)
+        .join(User, User.id == UserStayReview.user_id)
+        .where(UserStayReview.listing_id == listing_id)
+        .order_by(UserStayReview.updated_at.desc(), UserStayReview.id.desc())
+    )
+    rows = db.execute(stmt).all()
+    reviews = []
+    for review, user in rows:
+        payload = _serialize_user_stay_review(review)
+        payload["reviewer_name"] = (
+            user.full_name.strip()
+            if isinstance(user.full_name, str) and user.full_name.strip()
+            else user.email
+        )
+        reviews.append(payload)
+    return {"reviews": reviews, "total": len(reviews)}
+
+
+@app.get("/api/users/{user_id}/stays/{listing_id}/review")
+def get_user_stay_review(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    _listing_or_404(db, listing_id)
+    review = db.scalars(
+        select(UserStayReview).where(
+            UserStayReview.user_id == user_id,
+            UserStayReview.listing_id == listing_id,
+        )
+    ).first()
+    if review is None:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return _serialize_user_stay_review(review)
+
+
+@app.delete("/api/users/{user_id}/stays/{listing_id}/review")
+def delete_user_stay_review(
+    user_id: int,
+    listing_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    _user_or_404(db, user_id)
+    _listing_or_404(db, listing_id)
+    review = db.scalars(
+        select(UserStayReview).where(
+            UserStayReview.user_id == user_id,
+            UserStayReview.listing_id == listing_id,
+        )
+    ).first()
+    if review is None:
+        raise HTTPException(status_code=404, detail="Review not found")
+    db.delete(review)
     db.commit()
     return {"ok": True}
 
