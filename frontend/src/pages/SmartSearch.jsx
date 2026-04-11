@@ -1,6 +1,18 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckSquare, GitCompare, MapPin, Minus, Plus, Search, Star, Tag, X } from 'lucide-react'
+import {
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  GitCompare,
+  MapPin,
+  Minus,
+  Plus,
+  Search,
+  Star,
+  Tag,
+  X,
+} from 'lucide-react'
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import { useCollection } from '../context/CollectionContext.jsx'
 import { useCompare } from '../context/CompareContext.jsx'
@@ -527,6 +539,7 @@ export default function SmartSearch() {
   const [searchFieldMode, setSearchFieldMode] = useState('tags')
   /** When false, listing requests omit map bbox; map and POIs still follow the viewport. */
   const [mapBoundsFilterEnabled, setMapBoundsFilterEnabled] = useState(true)
+  const [suggestedTagsOpen, setSuggestedTagsOpen] = useState(true)
   // track whether we've already applied the onboarding preference tag
   const preferenceApplied = useRef(false)
 
@@ -1108,11 +1121,39 @@ export default function SmartSearch() {
             </div>
           )}
 
-          <div className="mt-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                Suggested tags
-              </p>
+          <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/50">
+            <div
+              className={[
+                'flex flex-wrap items-center justify-between gap-2 px-2 py-2 sm:px-3',
+                suggestedTagsOpen ? 'border-b border-slate-100/80' : '',
+              ].join(' ')}
+            >
+              <button
+                type="button"
+                onClick={() => setSuggestedTagsOpen((o) => !o)}
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-left text-slate-600 transition-colors hover:bg-white/80 hover:text-slate-900"
+                aria-expanded={suggestedTagsOpen}
+                aria-controls="suggested-tags-panel"
+                id="suggested-tags-toggle"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm">
+                  {suggestedTagsOpen ? (
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" aria-hidden />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    Suggested tags
+                  </span>
+                  {!suggestedTagsOpen && vibeTagsForApi.length > 0 && (
+                    <span className="text-[11px] text-slate-400">
+                      {vibeTagsForApi.length} active
+                    </span>
+                  )}
+                </span>
+              </button>
               <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] font-semibold shadow-sm">
                 <button
                   type="button"
@@ -1140,29 +1181,36 @@ export default function SmartSearch() {
                 </button>
               </div>
             </div>
-            <div className="-mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1 pt-0.5">
-              {SUGGESTED_TAGS.map((tag) => {
-                const isSelected =
-                  searchFieldMode === 'tags'
-                    ? allActiveTags.has(tag)
-                    : selectedTags.has(tag)
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={[
-                      'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all',
-                      isSelected
-                        ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-slate-50',
-                    ].join(' ')}
-                  >
-                    {tag}
-                  </button>
-                )
-              })}
-            </div>
+            {suggestedTagsOpen && (
+              <div
+                id="suggested-tags-panel"
+                role="region"
+                aria-labelledby="suggested-tags-toggle"
+                className="-mx-1 flex flex-wrap gap-2 overflow-x-auto px-2 pb-2 pt-2 sm:px-3"
+              >
+                {SUGGESTED_TAGS.map((tag) => {
+                  const isSelected =
+                    searchFieldMode === 'tags'
+                      ? allActiveTags.has(tag)
+                      : selectedTags.has(tag)
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className={[
+                        'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all',
+                        isSelected
+                          ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-slate-50',
+                      ].join(' ')}
+                    >
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
