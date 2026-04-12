@@ -1460,7 +1460,9 @@ export default function SmartSearch() {
                       <div className="text-xs text-slate-400">
                         <p>Sentiment {formatSentimentScore(listing.average_sentiment_score)}</p>
                         <p className="mt-0.5 text-teal-700">
-                          Map fit ({poiCategory}) {listing.map_intent_score.toFixed(1)}
+                          {useStrategyRanking
+                            ? `Match score ${typeof listing.strategy_rank_score === 'number' ? listing.strategy_rank_score.toFixed(1) : '—'}`
+                            : `Map fit (${poiCategory}) ${typeof listing.map_intent_score === 'number' ? listing.map_intent_score.toFixed(1) : '—'}`}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
