@@ -5,6 +5,7 @@ import {
   LogOut,
   Mountain,
   SlidersHorizontal,
+  Users,
 } from 'lucide-react'
 
 const sideLinkClass = ({ isActive }) =>
@@ -19,6 +20,7 @@ const adminNav = [
   { to: '/admin/sync', label: 'Data sync', icon: Database },
   { to: '/admin/scenic', label: 'Scenic', icon: Mountain },
   { to: '/admin/strategy', label: 'Strategy', icon: SlidersHorizontal },
+  { to: '/admin/users', label: 'User data', icon: Users },
 ]
 
 export default function AdminLayout() {

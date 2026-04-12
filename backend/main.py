@@ -26,7 +26,7 @@ import bcrypt
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select, text
+from sqlalchemy import func, or_, select, text
 
 from sqlalchemy.orm import Session, selectinload
 
@@ -1308,6 +1308,177 @@ def admin_login(
         "message": "Login successful",
         "username": admin.username,
         "email": admin.email,
+    }
+
+
+def _admin_user_public_dict(user: User) -> dict[str, Any]:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "avatar_url": user.avatar_url,
+        "created_at": user.created_at,
+        "top_vibe_tag": user.top_vibe_tag,
+    }
+
+
+@app.get("/api/admin/users/stats")
+def admin_users_stats(
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    total_users = int(db.scalar(select(func.count()).select_from(User)) or 0)
+    total_stay_reviews = int(
+        db.scalar(select(func.count()).select_from(UserStayReview)) or 0
+    )
+    users_with_stays_sub = select(UserStay.user_id).distinct().subquery()
+    users_with_stays = int(
+        db.scalar(select(func.count()).select_from(users_with_stays_sub)) or 0
+    )
+    users_with_favorites_sub = select(UserFavorite.user_id).distinct().subquery()
+    users_with_favorites = int(
+        db.scalar(select(func.count()).select_from(users_with_favorites_sub)) or 0
+    )
+    return {
+        "total_users": total_users,
+        "users_with_stays": users_with_stays,
+        "users_with_favorites": users_with_favorites,
+        "total_stay_reviews": total_stay_reviews,
+    }
+
+
+@app.get("/api/admin/users")
+def admin_list_users(
+    db: Annotated[Session, Depends(get_db)],
+    q: Optional[str] = None,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    filters = []
+    if q is not None and str(q).strip():
+        filters.append(User.email.ilike(f"%{str(q).strip()}%"))
+
+    count_stmt = select(func.count()).select_from(User)
+    if filters:
+        count_stmt = count_stmt.where(*filters)
+    total = int(db.scalar(count_stmt) or 0)
+
+    stmt = select(User).where(*filters).order_by(User.id.desc()).limit(limit).offset(offset)
+    rows = db.scalars(stmt).all()
+    user_ids = [u.id for u in rows]
+
+    fav_map: dict[int, int] = {}
+    stay_map: dict[int, int] = {}
+    rev_map: dict[int, int] = {}
+    if user_ids:
+        fav_map = {
+            int(uid): int(c)
+            for uid, c in db.execute(
+                select(UserFavorite.user_id, func.count())
+                .where(UserFavorite.user_id.in_(user_ids))
+                .group_by(UserFavorite.user_id)
+            ).all()
+        }
+        stay_map = {
+            int(uid): int(c)
+            for uid, c in db.execute(
+                select(UserStay.user_id, func.count())
+                .where(UserStay.user_id.in_(user_ids))
+                .group_by(UserStay.user_id)
+            ).all()
+        }
+        rev_map = {
+            int(uid): int(c)
+            for uid, c in db.execute(
+                select(UserStayReview.user_id, func.count())
+                .where(UserStayReview.user_id.in_(user_ids))
+                .group_by(UserStayReview.user_id)
+            ).all()
+        }
+
+    users_out = []
+    for u in rows:
+        uid = u.id
+        item = _admin_user_public_dict(u)
+        item["favorite_count"] = fav_map.get(uid, 0)
+        item["stay_count"] = stay_map.get(uid, 0)
+        item["stay_review_count"] = rev_map.get(uid, 0)
+        users_out.append(item)
+
+    return {"users": users_out, "total": total, "limit": limit, "offset": offset}
+
+
+@app.get("/api/admin/users/{user_id}")
+def admin_user_detail(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    stays_out: list[dict[str, Any]] = []
+    for stay, listing_name in db.execute(
+        select(UserStay, Listing.name)
+        .outerjoin(Listing, Listing.id == UserStay.listing_id)
+        .where(UserStay.user_id == user_id)
+        .order_by(UserStay.id.desc())
+    ).all():
+        stays_out.append(
+            {
+                "listing_id": stay.listing_id,
+                "listing_name": listing_name
+                if isinstance(listing_name, str) and listing_name.strip()
+                else f"Listing {stay.listing_id}",
+                "created_at": stay.created_at,
+                "stayed_at": stay.stayed_at,
+            }
+        )
+
+    favorites_limit = 200
+    fav_rows = db.execute(
+        select(UserFavorite, Listing.name)
+        .outerjoin(Listing, Listing.id == UserFavorite.listing_id)
+        .where(UserFavorite.user_id == user_id)
+        .order_by(UserFavorite.id.desc())
+        .limit(favorites_limit)
+    ).all()
+    favorites_out: list[dict[str, Any]] = []
+    for fav, listing_name in fav_rows:
+        favorites_out.append(
+            {
+                "listing_id": fav.listing_id,
+                "listing_name": listing_name
+                if isinstance(listing_name, str) and listing_name.strip()
+                else f"Listing {fav.listing_id}",
+                "created_at": fav.created_at,
+            }
+        )
+
+    reviews_out: list[dict[str, Any]] = []
+    for review, listing_name in db.execute(
+        select(UserStayReview, Listing.name)
+        .outerjoin(Listing, Listing.id == UserStayReview.listing_id)
+        .where(UserStayReview.user_id == user_id)
+        .order_by(
+            UserStayReview.updated_at.desc().nulls_last(),
+            UserStayReview.id.desc(),
+        )
+    ).all():
+        payload = _serialize_user_stay_review(review)
+        payload["listing_name"] = (
+            listing_name
+            if isinstance(listing_name, str) and listing_name.strip()
+            else f"Listing {review.listing_id}"
+        )
+        reviews_out.append(payload)
+
+    return {
+        "user": _admin_user_public_dict(user),
+        "stays": stays_out,
+        "favorites": favorites_out,
+        "favorites_truncated": len(fav_rows) >= favorites_limit,
+        "favorites_limit": favorites_limit,
+        "stay_reviews": reviews_out,
     }
 
 

@@ -236,6 +236,22 @@ export const api = {
     return data;
   },
 
+  async getAdminUserStats() {
+    const { data } = await client.get("/admin/users/stats");
+    return data;
+  },
+
+  /** @param {{ q?: string, limit?: number, offset?: number }} params */
+  async getAdminUsers(params) {
+    const { data } = await client.get("/admin/users", { params });
+    return data;
+  },
+
+  async getAdminUser(userId) {
+    const { data } = await client.get(`/admin/users/${userId}`);
+    return data;
+  },
+
   // --- Scenic Spots ---
   async getScenics() {
     const { data } = await client.get("/admin/scenics");
