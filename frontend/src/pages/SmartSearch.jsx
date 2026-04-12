@@ -338,6 +338,30 @@ function formatSentimentScore(value) {
   return `${pct.toFixed(2)}%`
 }
 
+function listingSentimentRankValue(listing) {
+  const intel = listing?.intelligent_score
+  if (intel != null && Number.isFinite(Number(intel))) return Number(intel)
+  const avg = listing?.average_sentiment_score
+  if (avg != null && Number.isFinite(Number(avg))) {
+    const n = Number(avg)
+    return n <= 1 ? n * 100 : n
+  }
+  const rating = listing?.review_scores_rating
+  if (rating != null && Number.isFinite(Number(rating))) return Number(rating) * 20
+  return -1
+}
+
+function listingRecommendedValue(listing) {
+  if (typeof listing?.strategy_rank_score === 'number') return listing.strategy_rank_score
+  if (typeof listing?.map_intent_score === 'number') return listing.map_intent_score
+  return -1
+}
+
+function listingPriceValue(listing) {
+  const p = Number(listing?.price_clean)
+  return Number.isFinite(p) ? p : Number.POSITIVE_INFINITY
+}
+
 /** Extract tag-like words from search query and match against known tags. */
 function extractTagsFromQuery(query, knownTags) {
   if (!query || typeof query !== 'string') return []
@@ -535,6 +559,7 @@ export default function SmartSearch() {
   const [mapDisabled, setMapDisabled] = useState(false)
   const [mapRenderNonce, setMapRenderNonce] = useState(0)
   const [strategyConfig, setStrategyConfig] = useState(null)
+  const [sortMode, setSortMode] = useState('recommended')
   const [mergedPois, setMergedPois] = useState([])
   const [userTagScores, setUserTagScores] = useState(null)
   const [reviewModalListing, setReviewModalListing] = useState(null)
@@ -960,9 +985,47 @@ export default function SmartSearch() {
     hasPoiData,
   ])
 
+  const displayListings = useMemo(() => {
+    const arr = [...rankedListings]
+    arr.sort((a, b) => {
+      if (sortMode === 'price_low') {
+        const ap = listingPriceValue(a)
+        const bp = listingPriceValue(b)
+        if (ap !== bp) return ap - bp
+        const ar = listingRecommendedValue(a)
+        const br = listingRecommendedValue(b)
+        if (br !== ar) return br - ar
+        return (a.id || 0) - (b.id || 0)
+      }
+      if (sortMode === 'price_high') {
+        const ap = listingPriceValue(a)
+        const bp = listingPriceValue(b)
+        if (bp !== ap) return bp - ap
+        const ar = listingRecommendedValue(a)
+        const br = listingRecommendedValue(b)
+        if (br !== ar) return br - ar
+        return (a.id || 0) - (b.id || 0)
+      }
+      if (sortMode === 'sentiment') {
+        const as = listingSentimentRankValue(a)
+        const bs = listingSentimentRankValue(b)
+        if (bs !== as) return bs - as
+        const ar = listingRecommendedValue(a)
+        const br = listingRecommendedValue(b)
+        if (br !== ar) return br - ar
+        return (a.id || 0) - (b.id || 0)
+      }
+      const ar = listingRecommendedValue(a)
+      const br = listingRecommendedValue(b)
+      if (br !== ar) return br - ar
+      return (a.id || 0) - (b.id || 0)
+    })
+    return arr
+  }, [rankedListings, sortMode])
+
   const listingIdsSyncKey = useMemo(
-    () => rankedListings.map((l) => l.id).join(','),
-    [rankedListings],
+    () => displayListings.map((l) => l.id).join(','),
+    [displayListings],
   )
 
   useEffect(() => {
@@ -972,8 +1035,8 @@ export default function SmartSearch() {
   }, [userId, listingIdsSyncKey, syncListingFlags])
 
   const mappableListings = useMemo(
-    () => rankedListings.filter((x) => listingLatLon(x) !== null),
-    [rankedListings],
+    () => displayListings.filter((x) => listingLatLon(x) !== null),
+    [displayListings],
   )
   const mapCenter = useMemo(() => {
     const first = mappableListings[0]
@@ -1377,22 +1440,50 @@ export default function SmartSearch() {
         )}
 
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">
               Matching stays
             </h2>
-            <div className="text-right">
+            <div className="flex flex-col items-start gap-2 text-right sm:items-end">
               <span className="text-sm text-slate-500">
                 {isLoading ? '…' : `${totalCount} results`}
               </span>
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-sm">
+                <label htmlFor="matching-sort" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Sort by
+                </label>
+                <div className="relative min-w-[210px]">
+                  <select
+                    id="matching-sort"
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pr-10 text-sm font-medium text-slate-700 shadow-inner outline-none transition-all focus:border-teal-300 focus:bg-white focus:ring-4 focus:ring-teal-600/10"
+                  >
+                    <option value="recommended">Recommended</option>
+                    <option value="price_low">Price: Low to High</option>
+                    <option value="price_high">Price: High to Low</option>
+                    <option value="sentiment">Sentiment</option>
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    aria-hidden
+                  />
+                </div>
+              </div>
               <p className="text-[11px] text-slate-400">
-                {useStrategyRanking
-                  ? userTagScores && Object.keys(userTagScores).length > 0
-                    ? 'Sorted by match score (your vibe preferences + merged area POIs + price + reviews)'
-                    : 'Sorted by match score (default vibe profile + merged area POIs + price + reviews)'
-                  : hasPoiData
-                    ? `Sorted by ${poiCategory} proximity`
-                    : 'Default order (no POI data)'}
+                {sortMode === 'price_low'
+                  ? 'Sorted by lowest nightly price first'
+                  : sortMode === 'price_high'
+                    ? 'Sorted by highest nightly price first'
+                    : sortMode === 'sentiment'
+                      ? 'Sorted by strongest review sentiment first'
+                      : useStrategyRanking
+                        ? userTagScores && Object.keys(userTagScores).length > 0
+                          ? 'Sorted by match score (your vibe preferences + merged area POIs + price + reviews)'
+                          : 'Sorted by match score (default vibe profile + merged area POIs + price + reviews)'
+                        : hasPoiData
+                          ? `Sorted by ${poiCategory} proximity`
+                          : 'Default order (no POI data)'}
               </p>
             </div>
           </div>
@@ -1413,7 +1504,7 @@ export default function SmartSearch() {
             )}
             {!isLoading &&
               !error &&
-              rankedListings.map((listing) => {
+              displayListings.map((listing) => {
                 const selected = isInCompare(listing.id)
                 const vibePills = parseVibeTags(listing.vibe_tags)
                 return (
@@ -1558,7 +1649,7 @@ export default function SmartSearch() {
                   </article>
                 )
               })}
-            {!isLoading && !error && rankedListings.length === 0 && (
+            {!isLoading && !error && displayListings.length === 0 && (
               <div className="col-span-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-12 text-center text-sm text-slate-600">
                 No listings found.
               </div>
