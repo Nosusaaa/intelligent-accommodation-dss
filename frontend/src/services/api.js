@@ -253,8 +253,8 @@ export const api = {
   },
 
   // --- Scenic Spots ---
-  async getScenics() {
-    const { data } = await client.get("/admin/scenics");
+  async getScenics(params = {}) {
+    const { data } = await client.get("/admin/scenics", { params });
     return data;
   },
 

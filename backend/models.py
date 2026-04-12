@@ -265,11 +265,13 @@ class ScenicSpot(Base):
     __tablename__ = "scenic_spots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    radius_km: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     created_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    updated_at: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
 
 
 class StrategyConfig(Base):

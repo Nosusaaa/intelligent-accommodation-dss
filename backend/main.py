@@ -106,6 +106,25 @@ def _ensure_strategy_config_columns() -> None:
             conn.execute(text("ALTER TABLE strategy_configs ADD COLUMN default_preference_json TEXT"))
 
 
+def _ensure_scenic_spot_columns() -> None:
+    with engine.begin() as conn:
+        try:
+            rows = conn.exec_driver_sql("PRAGMA table_info(scenic_spots)").fetchall()
+        except Exception:
+            return
+        if not rows:
+            return
+        columns = {row[1] for row in rows}
+        if "latitude" not in columns:
+            conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN latitude FLOAT"))
+        if "longitude" not in columns:
+            conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN longitude FLOAT"))
+        if "category" not in columns:
+            conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN category VARCHAR(128)"))
+        if "updated_at" not in columns:
+            conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN updated_at VARCHAR(26)"))
+
+
 def _ensure_user_stay_review_table() -> None:
     with engine.begin() as conn:
         tables = {
@@ -198,6 +217,7 @@ async def lifespan(_app: FastAPI):
     _migrate_user_stay_review_sqlite_columns()
     _ensure_sync_log_columns()
     _ensure_strategy_config_columns()
+    _ensure_scenic_spot_columns()
     yield
 
 
@@ -1486,32 +1506,44 @@ def admin_user_detail(
 
 class ScenicSpotCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+    category: str = Field(..., min_length=1, max_length=128)
     description: Optional[str] = None
-    radius_km: float = Field(default=8.0, ge=1.0, le=50.0)
-    thumbnail_url: Optional[str] = None
 
 
 class ScenicSpotUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=256)
+    name: str = Field(..., min_length=1, max_length=256)
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+    category: str = Field(..., min_length=1, max_length=128)
     description: Optional[str] = None
-    radius_km: Optional[float] = Field(None, ge=1.0, le=50.0)
-    thumbnail_url: Optional[str] = None
+
+
+def _scenic_spot_dict(scenic: ScenicSpot) -> dict[str, Any]:
+    return {
+        "id": scenic.id,
+        "name": scenic.name,
+        "latitude": _json_value(scenic.latitude),
+        "longitude": _json_value(scenic.longitude),
+        "category": scenic.category,
+        "description": scenic.description,
+        "created_at": scenic.created_at,
+        "updated_at": scenic.updated_at,
+    }
 
 
 @app.get("/api/admin/scenics")
-def list_scenics(db: Annotated[Session, Depends(get_db)]) -> list[dict[str, Any]]:
-    rows = db.scalars(select(ScenicSpot).order_by(ScenicSpot.id)).all()
-    return [
-        {
-            "id": r.id,
-            "name": r.name,
-            "description": r.description,
-            "radius_km": r.radius_km,
-            "thumbnail_url": r.thumbnail_url,
-            "created_at": r.created_at,
-        }
-        for r in rows
-    ]
+def list_scenics(
+    db: Annotated[Session, Depends(get_db)],
+    q: Optional[str] = Query(None, description="Search scenic spots by name"),
+) -> list[dict[str, Any]]:
+    stmt = select(ScenicSpot)
+    q_stripped = (q or "").strip()
+    if q_stripped:
+        stmt = stmt.where(ScenicSpot.name.ilike(f"%{q_stripped}%"))
+    rows = db.scalars(stmt.order_by(ScenicSpot.id.desc())).all()
+    return [_scenic_spot_dict(r) for r in rows]
 
 
 @app.post("/api/admin/scenics")
@@ -1519,24 +1551,20 @@ def create_scenic(
     body: ScenicSpotCreate,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
+    now = datetime.utcnow().isoformat()
     scenic = ScenicSpot(
-        name=body.name,
-        description=body.description,
-        radius_km=body.radius_km,
-        thumbnail_url=body.thumbnail_url,
-        created_at=_now_iso(),
+        name=body.name.strip(),
+        latitude=body.latitude,
+        longitude=body.longitude,
+        category=body.category.strip(),
+        description=(body.description or "").strip() or None,
+        created_at=now,
+        updated_at=now,
     )
     db.add(scenic)
     db.commit()
     db.refresh(scenic)
-    return {
-        "id": scenic.id,
-        "name": scenic.name,
-        "description": scenic.description,
-        "radius_km": scenic.radius_km,
-        "thumbnail_url": scenic.thumbnail_url,
-        "created_at": scenic.created_at,
-    }
+    return _scenic_spot_dict(scenic)
 
 
 @app.put("/api/admin/scenics/{scenic_id}")
@@ -1548,24 +1576,15 @@ def update_scenic(
     scenic = db.get(ScenicSpot, scenic_id)
     if scenic is None:
         raise HTTPException(status_code=404, detail="Scenic spot not found")
-    if body.name is not None:
-        scenic.name = body.name
-    if body.description is not None:
-        scenic.description = body.description
-    if body.radius_km is not None:
-        scenic.radius_km = body.radius_km
-    if body.thumbnail_url is not None:
-        scenic.thumbnail_url = body.thumbnail_url
+    scenic.name = body.name.strip()
+    scenic.latitude = body.latitude
+    scenic.longitude = body.longitude
+    scenic.category = body.category.strip()
+    scenic.description = (body.description or "").strip() or None
+    scenic.updated_at = datetime.utcnow().isoformat()
     db.commit()
     db.refresh(scenic)
-    return {
-        "id": scenic.id,
-        "name": scenic.name,
-        "description": scenic.description,
-        "radius_km": scenic.radius_km,
-        "thumbnail_url": scenic.thumbnail_url,
-        "created_at": scenic.created_at,
-    }
+    return _scenic_spot_dict(scenic)
 
 
 @app.delete("/api/admin/scenics/{scenic_id}")
