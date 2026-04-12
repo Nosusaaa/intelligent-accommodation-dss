@@ -24,6 +24,7 @@ export default function GuestLogin() {
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -35,6 +36,16 @@ export default function GuestLogin() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    if (!isLoginMode) {
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters.')
+        return
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.')
+        return
+      }
+    }
     setIsLoading(true)
     try {
       const credentials = { email: email.trim(), password }
@@ -43,7 +54,10 @@ export default function GuestLogin() {
         await login({ userId: result?.user_id ?? null, email: result?.email ?? credentials.email })
         navigate('/search')
       } else {
-        const result = await api.signup(credentials)
+        const result = await api.signup({
+          ...credentials,
+          password_confirm: confirmPassword,
+        })
         await login({ userId: result?.user_id ?? null, email: credentials.email })
         navigate('/onboarding')
       }
@@ -115,10 +129,39 @@ export default function GuestLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={isLoginMode ? undefined : 8}
+              aria-invalid={!isLoginMode && password.length > 0 && password.length < 8}
               className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-teal-300 focus:ring-2 focus:ring-teal-500"
               placeholder="••••••••"
             />
+            {!isLoginMode ? (
+              <p className="mt-1 text-xs text-slate-500">Use at least 8 characters.</p>
+            ) : null}
           </div>
+          {!isLoginMode ? (
+            <div>
+              <label
+                htmlFor="guest-password-confirm"
+                className="block text-sm font-medium text-slate-700"
+              >
+                Confirm password
+              </label>
+              <input
+                id="guest-password-confirm"
+                name="password_confirm"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                aria-invalid={
+                  confirmPassword.length > 0 && confirmPassword !== password
+                }
+                className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-teal-300 focus:ring-2 focus:ring-teal-500 aria-invalid:border-red-300 aria-invalid:focus:border-red-400 aria-invalid:focus:ring-red-500/40"
+                placeholder="Re-enter your password"
+              />
+            </div>
+          ) : null}
 
           <button
             type="submit"
@@ -140,6 +183,7 @@ export default function GuestLogin() {
                 onClick={() => {
                   setIsLoginMode(false)
                   setError(null)
+                  setConfirmPassword('')
                 }}
               >
                 Sign Up
@@ -154,6 +198,7 @@ export default function GuestLogin() {
                 onClick={() => {
                   setIsLoginMode(true)
                   setError(null)
+                  setConfirmPassword('')
                 }}
               >
                 Sign In

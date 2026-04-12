@@ -121,7 +121,7 @@ export const api = {
     return data;
   },
 
-  /** @param {{ email: string, password: string }} credentials */
+  /** @param {{ email: string, password: string, password_confirm: string }} credentials */
   async signup(credentials) {
     const { data } = await client.post("/auth/signup", credentials);
     return data;

@@ -370,6 +370,12 @@ class AuthCredentials(BaseModel):
     password: str = Field(..., min_length=1, max_length=256)
 
 
+class SignupBody(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    password: str = Field(..., min_length=8, max_length=256)
+    password_confirm: str = Field(..., min_length=1, max_length=256)
+
+
 class ProfileResponse(BaseModel):
     user_id: int
     full_name: Optional[str] = None
@@ -440,9 +446,14 @@ class UserStayReviewPayload(BaseModel):
 
 @app.post("/api/auth/signup")
 def auth_signup(
-    body: AuthCredentials,
+    body: SignupBody,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
+    if body.password != body.password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
     email = _normalize_email(body.email)
     existing = db.scalars(select(User).where(User.email == email)).first()
     if existing is not None:
