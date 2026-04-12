@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Building2, Home, LogOut, Radar, Star, User } from 'lucide-react'
+import { Building2, Home, ListOrdered, LogOut, Radar, Star, User } from 'lucide-react'
 import { useUser } from '../../context/UserContext.jsx'
 
 const navLinkClass = ({ isActive }) =>
@@ -13,6 +13,7 @@ const navLinkClass = ({ isActive }) =>
 
 const navItems = [
   { to: '/search', label: 'Smart Search', icon: Building2 },
+  { to: '/rank', label: 'Rank', icon: ListOrdered },
   { to: '/compare', label: 'Compare', icon: Radar },
   { to: '/favorites', label: 'Favorites', icon: Star },
 ]

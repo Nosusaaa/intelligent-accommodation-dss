@@ -17,6 +17,7 @@ import Favorites from './pages/Favorites.jsx'
 import ForecastDashboard from './pages/ForecastDashboard.jsx'
 import PropertyDetails from './pages/PropertyDetails.jsx'
 import RadarCompare from './pages/RadarCompare.jsx'
+import Rank from './pages/Rank.jsx'
 import SmartSearch from './pages/SmartSearch.jsx'
 import SwipeOnboarding from './pages/SwipeOnboarding.jsx'
 
@@ -35,6 +36,7 @@ export default function App() {
                 <Route element={<UserLayout />}>
                   <Route path="/onboarding" element={<SwipeOnboarding />} />
                   <Route path="/search" element={<SmartSearch />} />
+                  <Route path="/rank" element={<Rank />} />
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/details/:id" element={<PropertyDetails />} />
