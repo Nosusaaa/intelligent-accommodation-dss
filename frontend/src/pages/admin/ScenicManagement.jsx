@@ -252,7 +252,7 @@ export default function ScenicManagement() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">category</label>
+                  <label className="block text-sm font-medium text-slate-700">Category</label>
                   <input value={form.category} onChange={(e) => handleChange('category', e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all focus:border-teal-300 focus:ring-2 focus:ring-teal-500" placeholder="park / museum / landmark" />
                 </div>
               </div>

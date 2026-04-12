@@ -8,10 +8,10 @@ export default function Home() {
       {/* Animated room image grid background */}
       <RoomSliderBackground />
 
-      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+      <div className="absolute right-4 top-4 z-30 sm:right-6 sm:top-6">
         <Link
           to="/admin/login"
-          className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-700"
+          className="pointer-events-auto rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 transition-colors hover:text-teal-700"
         >
           Admin Login
         </Link>
