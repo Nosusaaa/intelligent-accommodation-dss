@@ -11,6 +11,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _POIS_PATH = _REPO_ROOT / "Data" / "map_cache" / "pois_rochester.json"
 _MERGED_POI_CATEGORIES = ("transport", "park", "restaurant", "education", "hospital")
 
+# Larger values soften decay vs raw km (legacy was 100/(1+d_km)).
+POI_DISTANCE_SCALE_KM = 2.0
+
 # Same canonical strings as frontend `constants/suggestedVibeTags.js` / `Data/room_tags.csv`.
 DEFAULT_ADMIN_PREFERENCE_TAGS: dict[str, int] = {
     "Cozy & Homey": 4,
@@ -78,7 +81,9 @@ def poi_proximity_score_0_100(lat: float | None, lon: float | None, pois: list[d
             nearest = d
     if not math.isfinite(nearest):
         return 0.0
-    return float(100.0 / (1.0 + nearest))
+    # 100 at d=0, gentler falloff than 100/(1+d): e.g. d=1km -> ~67 with scale 2.
+    denom = 1.0 + (nearest / POI_DISTANCE_SCALE_KM)
+    return float(max(0.0, min(100.0, 100.0 / denom)))
 
 
 def sentiment_score_0_100(listing: dict[str, Any]) -> float:
@@ -133,9 +138,10 @@ def preference_score_0_100(vibe_tags: str | None, tag_weights: dict[str, int]) -
         return 50.0
     tags = parse_vibe_tag_list(vibe_tags)
     if not tags:
-        return 35.0
+        return 50.0
     max_w = max(tag_weights.values()) or 1
-    total = 0.0
+    # Score only listing tags that match a preference; avoids penalizing long tag lists.
+    matched_raw: list[int] = []
     for lt in tags:
         lt_l = lt.lower()
         best = 0
@@ -148,8 +154,12 @@ def preference_score_0_100(vibe_tags: str | None, tag_weights: dict[str, int]) -
                 best = max(best, sc)
             elif ul in lt_l or lt_l in ul:
                 best = max(best, int(sc * 0.65))
-        total += best
-    raw = 100.0 * (total / (max_w * len(tags)))
+        if best > 0:
+            matched_raw.append(best)
+    if not matched_raw:
+        return 0.0
+    total = float(sum(matched_raw))
+    raw = 100.0 * (total / (max_w * len(matched_raw)))
     return max(0.0, min(100.0, raw))
 
 
@@ -197,8 +207,12 @@ def rank_listings_payload(
     w_sentiment: int,
     w_pref: int,
     include_breakdown: bool = False,
+    price_bounds_override: tuple[float, float] | None = None,
 ) -> list[dict[str, Any]]:
-    pmin, pmax = price_bounds(listings)
+    if price_bounds_override is not None:
+        pmin, pmax = price_bounds_override
+    else:
+        pmin, pmax = price_bounds(listings)
     ranked: list[dict[str, Any]] = []
     for li in listings:
         lat = li.get("latitude")

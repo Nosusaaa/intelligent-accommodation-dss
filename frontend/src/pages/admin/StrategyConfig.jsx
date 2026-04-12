@@ -263,7 +263,9 @@ export default function StrategyConfig() {
           </h2>
           <p className="mt-1 text-xs text-slate-500">
             Uses last saved weights and default vibe tags, merged POI cache, and up to 6 listings with
-            coordinates. Save to refresh after editing weights or JSON.
+            coordinates. Candidates come from the first 200 listings (by id) with coordinates, biased
+            toward stronger POI proximity, then fully re-ranked. Match % is the raw weighted model score
+            (same semantics as the guest Rank page). Save to refresh after editing weights or JSON.
           </p>
           {previewMeta && (
             <p className="mt-1 text-[11px] text-slate-400">

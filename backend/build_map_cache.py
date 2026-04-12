@@ -21,8 +21,8 @@ CITY = "rochester"
 BBOX = {"south": 43.05, "west": -77.78, "north": 43.28, "east": -77.45}
 CATEGORIES = ["transport", "park", "restaurant", "education", "hospital"]
 SCHEMA_VERSION = 1
-# ~50 named POIs per category after merge/dedupe (Overpass is capped per tile).
-PER_CATEGORY_CAP = int(os.getenv("MAP_CACHE_PER_CATEGORY_CAP", "50"))
+# Per-category cap after merge/dedupe (Overpass may cap per tile; raise via env if needed).
+PER_CATEGORY_CAP = int(os.getenv("MAP_CACHE_PER_CATEGORY_CAP", "120"))
 # One full-Rochester bbox per category by default (fewer requests -> less 429 from public Overpass).
 SHARD_ROWS = int(os.getenv("MAP_CACHE_SHARD_ROWS", "1"))
 SHARD_COLS = int(os.getenv("MAP_CACHE_SHARD_COLS", "1"))

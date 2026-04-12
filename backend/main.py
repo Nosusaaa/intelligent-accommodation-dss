@@ -51,6 +51,8 @@ from overpass_client import fetch_pois_bbox, load_offline_pois
 from strategy_ranking import (
     load_merged_pois_from_cache,
     parse_default_preference_json,
+    poi_proximity_score_0_100,
+    price_bounds,
     rank_listings_payload,
     serialize_default_preference,
 )
@@ -1703,14 +1705,39 @@ def admin_strategy_preview_ranking(
         tag_weights = parse_default_preference_json(None)
 
     pois = load_merged_pois_from_cache()
-    stmt = (
+    # Fixed pool cap so cost normalization matches across preview limits (e.g. Admin 6 vs Rank 20).
+    preview_pool_cap = 200
+    pool_stmt = (
         select(Listing)
         .options(selectinload(Listing.listing_tags))
         .where(Listing.latitude.isnot(None), Listing.longitude.isnot(None))
         .order_by(Listing.id)
-        .limit(limit)
+        .limit(preview_pool_cap)
     )
-    rows = db.scalars(stmt).all()
+    pool_rows = db.scalars(pool_stmt).all()
+    pool_price_dicts: list[dict[str, Any]] = []
+    for r in pool_rows:
+        p = r.price_clean
+        if p is None:
+            continue
+        try:
+            v = float(p)
+        except (TypeError, ValueError):
+            continue
+        if v > 0:
+            pool_price_dicts.append({"price_clean": v})
+    pool_pmin, pool_pmax = price_bounds(pool_price_dicts)
+    scored: list[tuple[float, int, Listing]] = []
+    for row in pool_rows:
+        try:
+            la = float(row.latitude)
+            lo = float(row.longitude)
+        except (TypeError, ValueError):
+            continue
+        poi_only = poi_proximity_score_0_100(la, lo, pois)
+        scored.append((-poi_only, row.id or 0, row))
+    scored.sort(key=lambda t: (t[0], t[1]))
+    rows = [t[2] for t in scored[:limit]]
     listings = [_listing_full(x) for x in rows]
     ranked = rank_listings_payload(
         listings,
@@ -1721,6 +1748,7 @@ def admin_strategy_preview_ranking(
         w_sentiment=int(d["sentiment_weight"]),
         w_pref=int(d["preference_weight"]),
         include_breakdown=True,
+        price_bounds_override=(pool_pmin, pool_pmax),
     )
     rankings: list[dict[str, Any]] = []
     for item in ranked:
