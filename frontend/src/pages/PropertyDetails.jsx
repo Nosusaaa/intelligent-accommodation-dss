@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BedDouble,
+  ChevronDown,
   DollarSign,
   MapPin,
   MessageCircle,
@@ -126,6 +127,60 @@ function isSafeHttpUrl(raw) {
   }
 }
 
+function ExtractedReviewAccordionRow({
+  review,
+  borderLeftClass,
+  rowKey,
+  expandedKey,
+  onToggleKey,
+}) {
+  const isOpen = expandedKey === rowKey
+  const text = review.review_text_cleaned || '—'
+  return (
+    <li
+      className={[
+        'overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 shadow-sm',
+        borderLeftClass,
+      ].join(' ')}
+    >
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-2 px-4 py-3 text-left transition hover:bg-slate-100/80"
+        onClick={() => onToggleKey((prev) => (prev === rowKey ? null : rowKey))}
+        aria-expanded={isOpen}
+        aria-controls={`extracted-review-body-${rowKey}`}
+      >
+        <div className="min-w-0 flex-1">
+          <span className="font-semibold text-slate-900">
+            {review.reviewer_name || 'Guest'}
+          </span>
+          <span className="mt-0.5 block text-xs text-slate-500">
+            {formatReviewDate(review.review_date)}
+          </span>
+          <span className="mt-1 block text-xs text-slate-500">
+            {isOpen ? 'Hide review text' : 'Show review text'}
+          </span>
+        </div>
+        <ChevronDown
+          className={[
+            'mt-0.5 h-5 w-5 shrink-0 text-slate-400 transition-transform',
+            isOpen ? 'rotate-180' : '',
+          ].join(' ')}
+          aria-hidden
+        />
+      </button>
+      {isOpen ? (
+        <p
+          id={`extracted-review-body-${rowKey}`}
+          className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700"
+        >
+          {text}
+        </p>
+      ) : null}
+    </li>
+  )
+}
+
 export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -220,6 +275,10 @@ export default function PropertyDetails() {
   const [activeImage, setActiveImage] = useState(0)
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [reviewTab, setReviewTab] = useState('positive')
+  /** Post-stay review card: show dimension breakdown + comment only when expanded. */
+  const [expandedStayReviewId, setExpandedStayReviewId] = useState(null)
+  /** Extracted reviews modal row key `${tab}-${id}` — body text shown on expand. */
+  const [expandedExtractedReviewKey, setExpandedExtractedReviewKey] = useState(null)
 
   const existingUserStayReview = useMemo(() => {
     if (!userId) return null
@@ -264,7 +323,12 @@ export default function PropertyDetails() {
 
   useEffect(() => {
     setActiveImage(0)
+    setExpandedStayReviewId(null)
   }, [numericListingId])
+
+  useEffect(() => {
+    if (!reviewsOpen) setExpandedExtractedReviewKey(null)
+  }, [reviewsOpen])
 
   useEffect(() => {
     if (!displayImages.length) return
@@ -591,57 +655,96 @@ export default function PropertyDetails() {
                 No post-stay reviews yet. Guests can share one after marking this stay as completed.
               </div>
             ) : (
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 space-y-3">
                 {stayReviews.map((review) => {
                   const dimensionEntries = Object.entries(review).filter(([key]) =>
                     key.endsWith('_rating') && key !== 'overall_rating',
                   )
+                  const hasDetail =
+                    dimensionEntries.length > 0 || Boolean(review.comment && String(review.comment).trim())
+                  const isExpanded = expandedStayReviewId === review.id
+                  const panelId = `stay-review-detail-${review.id}`
                   return (
                     <article
                       key={review.id}
-                      className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
+                      className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/70 shadow-sm"
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                      <button
+                        type="button"
+                        className="flex w-full flex-wrap items-start justify-between gap-3 p-4 text-left transition hover:bg-slate-50/90"
+                        onClick={() => {
+                          if (!hasDetail) return
+                          setExpandedStayReviewId((prev) => (prev === review.id ? null : review.id))
+                        }}
+                        aria-expanded={hasDetail ? isExpanded : undefined}
+                        aria-controls={hasDetail ? panelId : undefined}
+                        disabled={!hasDetail}
+                      >
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-slate-900">
                             {review.reviewer_name || 'Guest'}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             Updated {formatReviewDate(review.updated_at || review.created_at)}
                           </p>
-                        </div>
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-right">
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">
-                            Overall
-                          </p>
-                          <div className="mt-1 flex items-center gap-2 text-amber-600">
-                            <div className="flex items-center gap-0.5">{renderStars(review.overall_rating)}</div>
-                            <span className="text-sm font-bold text-amber-700">{review.overall_rating}/5</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {dimensionEntries.map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
-                          >
-                            <p className="text-xs font-semibold text-slate-600">
-                              {formatDimensionLabel(key)}
+                          {hasDetail ? (
+                            <p className="mt-2 text-xs text-slate-500">
+                              {isExpanded ? 'Hide details' : 'Show rating breakdown & comment'}
                             </p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <div className="flex items-center gap-0.5">{renderStars(value)}</div>
-                              <span className="text-xs font-bold text-slate-700">{value}/5</span>
+                          ) : (
+                            <p className="mt-2 text-xs text-slate-400">No written or dimension details</p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-start gap-2">
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-right">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">
+                              Overall
+                            </p>
+                            <div className="mt-1 flex items-center gap-2 text-amber-600">
+                              <div className="flex items-center gap-0.5">{renderStars(review.overall_rating)}</div>
+                              <span className="text-sm font-bold text-amber-700">{review.overall_rating}/5</span>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                          {hasDetail ? (
+                            <ChevronDown
+                              className={[
+                                'mt-1 h-5 w-5 shrink-0 text-slate-400 transition-transform',
+                                isExpanded ? 'rotate-180' : '',
+                              ].join(' ')}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </div>
+                      </button>
 
-                      {review.comment ? (
-                        <p className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
-                          “{review.comment}”
-                        </p>
+                      {hasDetail && isExpanded ? (
+                        <div
+                          id={panelId}
+                          className="border-t border-slate-100 px-4 pb-4 pt-0"
+                        >
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            {dimensionEntries.map(([key, value]) => (
+                              <div
+                                key={key}
+                                className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                              >
+                                <p className="text-xs font-semibold text-slate-600">
+                                  {formatDimensionLabel(key)}
+                                </p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <div className="flex items-center gap-0.5">{renderStars(value)}</div>
+                                  <span className="text-xs font-bold text-slate-700">{value}/5</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {review.comment ? (
+                            <p className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                              “{review.comment}”
+                            </p>
+                          ) : null}
+                        </div>
                       ) : null}
                     </article>
                   )
@@ -907,22 +1010,14 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       positiveReviews.map((r) => (
-                        <li
+                        <ExtractedReviewAccordionRow
                           key={r.id}
-                          className="rounded-xl border border-slate-100 border-l-4 border-l-teal-500 bg-slate-50/50 px-4 py-4 shadow-sm"
-                        >
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="font-semibold text-slate-900">
-                              {r.reviewer_name || 'Guest'}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {formatReviewDate(r.review_date)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                            {r.review_text_cleaned || '—'}
-                          </p>
-                        </li>
+                          review={r}
+                          borderLeftClass="border-l-4 border-l-teal-500"
+                          rowKey={`positive-${r.id}`}
+                          expandedKey={expandedExtractedReviewKey}
+                          onToggleKey={setExpandedExtractedReviewKey}
+                        />
                       ))
                     )}
                   </ul>
@@ -952,22 +1047,14 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       neutralReviews.map((r) => (
-                        <li
+                        <ExtractedReviewAccordionRow
                           key={r.id}
-                          className="rounded-xl border border-slate-100 border-l-4 border-l-slate-400 bg-slate-50/50 px-4 py-4 shadow-sm"
-                        >
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="font-semibold text-slate-900">
-                              {r.reviewer_name || 'Guest'}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {formatReviewDate(r.review_date)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                            {r.review_text_cleaned || '—'}
-                          </p>
-                        </li>
+                          review={r}
+                          borderLeftClass="border-l-4 border-l-slate-400"
+                          rowKey={`neutral-${r.id}`}
+                          expandedKey={expandedExtractedReviewKey}
+                          onToggleKey={setExpandedExtractedReviewKey}
+                        />
                       ))
                     )}
                   </ul>
@@ -982,22 +1069,14 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       negativeReviews.map((r) => (
-                        <li
+                        <ExtractedReviewAccordionRow
                           key={r.id}
-                          className="rounded-xl border border-slate-100 border-l-4 border-l-orange-400 bg-slate-50/50 px-4 py-4 shadow-sm"
-                        >
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="font-semibold text-slate-900">
-                              {r.reviewer_name || 'Guest'}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {formatReviewDate(r.review_date)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                            {r.review_text_cleaned || '—'}
-                          </p>
-                        </li>
+                          review={r}
+                          borderLeftClass="border-l-4 border-l-orange-400"
+                          rowKey={`negative-${r.id}`}
+                          expandedKey={expandedExtractedReviewKey}
+                          onToggleKey={setExpandedExtractedReviewKey}
+                        />
                       ))
                     )}
                   </ul>
