@@ -20,12 +20,12 @@ from datetime import date, datetime
 import logging
 import os
 import time
-from typing import Annotated, Any, List, Optional
+from typing import Annotated, Any, List, Literal, Optional
 
 import bcrypt
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select, text
 
 from sqlalchemy.orm import Session, selectinload
@@ -142,6 +142,13 @@ def _ensure_scenic_spot_columns() -> None:
             conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN category VARCHAR(128)"))
         if "updated_at" not in columns:
             conn.execute(text("ALTER TABLE scenic_spots ADD COLUMN updated_at VARCHAR(26)"))
+
+
+# Aligned with frontend `POI_CATEGORIES` / `GET /api/map/pois` categories.
+SCENIC_MAP_POI_CATEGORIES: frozenset[str] = frozenset(
+    ("transport", "park", "restaurant", "education", "hospital"),
+)
+ScenicMapPoiCategory = Literal["transport", "park", "restaurant", "education", "hospital"]
 
 
 def _ensure_user_stay_review_table() -> None:
@@ -1272,6 +1279,63 @@ def get_map_pois(
     }
 
 
+@app.get("/api/scenics")
+def list_public_scenics(
+    db: Annotated[Session, Depends(get_db)],
+    north: Optional[float] = Query(None, ge=-90.0, le=90.0),
+    south: Optional[float] = Query(None, ge=-90.0, le=90.0),
+    east: Optional[float] = Query(None, ge=-180.0, le=180.0),
+    west: Optional[float] = Query(None, ge=-180.0, le=180.0),
+) -> dict[str, Any]:
+    """Read-only scenic spots for user maps (same rows as Admin CRUD). Optional bbox filters results."""
+    stmt = select(ScenicSpot).where(
+        ScenicSpot.latitude.isnot(None),
+        ScenicSpot.longitude.isnot(None),
+    )
+    bbox = (north, south, east, west)
+    if any(v is not None for v in bbox):
+        if any(v is None for v in bbox):
+            raise HTTPException(
+                status_code=422,
+                detail="Bbox requires all of: north, south, east, west",
+            )
+        assert north is not None and south is not None and east is not None and west is not None
+        if south > north:
+            raise HTTPException(status_code=422, detail="Invalid bbox: south must be <= north")
+        if west > east:
+            raise HTTPException(status_code=422, detail="Invalid bbox: west must be <= east")
+        stmt = stmt.where(
+            ScenicSpot.latitude >= south,
+            ScenicSpot.latitude <= north,
+            ScenicSpot.longitude >= west,
+            ScenicSpot.longitude <= east,
+        )
+    rows = db.scalars(stmt.order_by(ScenicSpot.id.asc())).all()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        try:
+            la = float(r.latitude)  # type: ignore[arg-type]
+            lo = float(r.longitude)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+        if not (-90.0 <= la <= 90.0 and -180.0 <= lo <= 180.0):
+            continue
+        cat_raw = (r.category or "").strip().lower()
+        cat = cat_raw if cat_raw in SCENIC_MAP_POI_CATEGORIES else "park"
+        out.append(
+            {
+                "id": f"scenic-{r.id}",
+                "lat": la,
+                "lon": lo,
+                "name": r.name,
+                "category": cat,
+                "description": r.description,
+                "source": "admin_scenic",
+            }
+        )
+    return {"scenics": out}
+
+
 @app.get("/api/listings/{listing_id}")
 def get_listing(
     listing_id: int,
@@ -1538,16 +1602,30 @@ class ScenicSpotCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
-    category: str = Field(..., min_length=1, max_length=128)
+    category: ScenicMapPoiCategory
     description: Optional[str] = None
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalize_scenic_category(cls, v: Any) -> str:
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
 
 
 class ScenicSpotUpdate(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
-    category: str = Field(..., min_length=1, max_length=128)
+    category: ScenicMapPoiCategory
     description: Optional[str] = None
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalize_scenic_category_update(cls, v: Any) -> str:
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
 
 
 def _scenic_spot_dict(scenic: ScenicSpot) -> dict[str, Any]:
@@ -1586,7 +1664,7 @@ def create_scenic(
         name=body.name.strip(),
         latitude=body.latitude,
         longitude=body.longitude,
-        category=body.category.strip(),
+        category=str(body.category),
         description=(body.description or "").strip() or None,
         created_at=now,
         updated_at=now,
@@ -1609,7 +1687,7 @@ def update_scenic(
     scenic.name = body.name.strip()
     scenic.latitude = body.latitude
     scenic.longitude = body.longitude
-    scenic.category = body.category.strip()
+    scenic.category = str(body.category)
     scenic.description = (body.description or "").strip() or None
     scenic.updated_at = datetime.utcnow().isoformat()
     db.commit()

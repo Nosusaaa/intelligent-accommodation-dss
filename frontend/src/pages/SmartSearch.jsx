@@ -19,11 +19,16 @@ import { useCompare } from '../context/CompareContext.jsx'
 import { usePreference } from '../context/PreferenceContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
-import ListingMap from '../components/ListingMap.jsx'
 import StayReviewIntentSheet from '../components/StayReviewIntentSheet.jsx'
 import StayReviewModal from '../components/StayReviewModal.jsx'
 import { formatListingPriceDisplay } from '../utils/listingPriceDisplay.js'
-import { listingMarkerIcon, POI_CATEGORIES, ROCHESTER_CENTER } from '../utils/mapConfig.js'
+import {
+  listingMarkerIcon,
+  POI_CATEGORIES,
+  POI_CATEGORY_LABELS,
+  ROCHESTER_CENTER,
+  normalizeMapPoiCategory,
+} from '../utils/mapConfig.js'
 import { rankListings } from '../utils/strategyRank.js'
 import { SUGGESTED_VIBE_TAGS } from '../constants/suggestedVibeTags.js'
 
@@ -67,6 +72,8 @@ const CATEGORY_POI_STYLE = {
   education: { color: '#7c3aed', fillColor: '#a78bfa', radius: 5 },
   hospital: { color: '#b91c1c', fillColor: '#f87171', radius: 6 },
 }
+
+const SCENIC_MAP_STYLE = { color: '#6d28d9', fillColor: '#ddd6fe', radius: 7 }
 
 class MapErrorBoundary extends Component {
   constructor(props) {
@@ -185,6 +192,7 @@ function MapPanel({
   mapCenter,
   mappableListings,
   mapPois,
+  mapScenics,
   poiCategory,
   setPoiCategory,
   onViewportChange,
@@ -235,28 +243,38 @@ function MapPanel({
           ))}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600">
-        {POI_CATEGORIES.map((c) => {
-          const style = CATEGORY_POI_STYLE[c] || CATEGORY_POI_STYLE.transport
-          const active = c === poiCategory
-          return (
-            <span
-              key={`legend-${c}`}
-              className={[
-                'inline-flex items-center gap-1.5 rounded-full px-2 py-1',
-                active ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500',
-              ].join(' ')}
-            >
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600">
+          {POI_CATEGORIES.map((c) => {
+            const style = CATEGORY_POI_STYLE[c] || CATEGORY_POI_STYLE.transport
+            const active = c === poiCategory
+            return (
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full border"
-                style={{ backgroundColor: style.fillColor, borderColor: style.color }}
-              />
-              {c}
-              {active ? ` (${poiCount})` : ''}
-            </span>
-          )
-        })}
-      </div>
+                key={`legend-${c}`}
+                className={[
+                  'inline-flex items-center gap-1.5 rounded-full px-2 py-1',
+                  active ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500',
+                ].join(' ')}
+              >
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full border"
+                  style={{ backgroundColor: style.fillColor, borderColor: style.color }}
+                />
+                {c}
+                {active ? ` (${poiCount})` : ''}
+              </span>
+            )
+          })}
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-slate-500">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full border"
+              style={{
+                backgroundColor: SCENIC_MAP_STYLE.fillColor,
+                borderColor: SCENIC_MAP_STYLE.color,
+              }}
+            />
+            curated ({mapScenics?.length ?? 0})
+          </span>
+        </div>
       <div className="h-[320px] w-full sm:h-[380px]">
         <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="h-full w-full">
           <TileLayer
@@ -306,6 +324,35 @@ function MapPanel({
               </Popup>
             </CircleMarker>
           ))}
+          {(mapScenics || []).map((poi) => {
+            const mapCat = normalizeMapPoiCategory(poi.category)
+            const st = CATEGORY_POI_STYLE[mapCat] || SCENIC_MAP_STYLE
+            return (
+              <CircleMarker
+                key={poi.id}
+                center={[poi.lat, poi.lon]}
+                radius={st.radius + 1}
+                pathOptions={{
+                  color: st.color,
+                  fillColor: st.fillColor,
+                  fillOpacity: 0.88,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">{poi.name || 'Scenic'}</p>
+                    <p className="text-xs text-slate-700">
+                      Curated · {POI_CATEGORY_LABELS[mapCat] ?? mapCat}
+                    </p>
+                    {poi.description ? (
+                      <p className="text-xs text-slate-600 leading-snug">{poi.description}</p>
+                    ) : null}
+                  </div>
+                </Popup>
+              </CircleMarker>
+            )
+          })}
         </MapContainer>
       </div>
       {mapError && (
@@ -553,6 +600,7 @@ export default function SmartSearch() {
   const PAGE_SIZE = 12
   const [viewport, setViewport] = useState(null)
   const [mapPois, setMapPois] = useState([])
+  const [mapScenics, setMapScenics] = useState([])
   const [poiCategory, setPoiCategory] = useState('transport')
   const [mapError, setMapError] = useState(null)
   const [mapMeta, setMapMeta] = useState(null)
@@ -567,7 +615,12 @@ export default function SmartSearch() {
   const [stayIntentConfirming, setStayIntentConfirming] = useState(false)
   const [stayIntentUnmarking, setStayIntentUnmarking] = useState(false)
   const poiCount = mapPois.length
-  const hasPoiData = poiCount > 0
+  const hasPoiData = mapPois.length > 0 || mapScenics.length > 0
+
+  const poisForMapIntent = useMemo(
+    () => [...mapPois, ...mapScenics],
+    [mapPois, mapScenics],
+  )
 
   const effectiveTagWeights = useMemo(() => {
     if (userTagScores && typeof userTagScores === 'object' && Object.keys(userTagScores).length > 0) {
@@ -837,6 +890,7 @@ export default function SmartSearch() {
     let cancelled = false
     if (!viewport) {
       setMapPois([])
+      setMapScenics([])
       setMapError(null)
       setMapMeta(null)
       return
@@ -844,15 +898,19 @@ export default function SmartSearch() {
     async function fetchPois() {
       try {
         setMapError(null)
-        const data = await api.getMapPois({
+        const bbox = {
           north: viewport.north,
           south: viewport.south,
           east: viewport.east,
           west: viewport.west,
-          category: poiCategory,
-        })
+        }
+        const [data, scenicsRows] = await Promise.all([
+          api.getMapPois({ ...bbox, category: poiCategory }),
+          api.getPublicScenics(bbox).catch(() => []),
+        ])
         if (!cancelled) {
           setMapPois(Array.isArray(data?.pois) ? data.pois : [])
+          setMapScenics(Array.isArray(scenicsRows) ? scenicsRows : [])
           setMapMeta({
             source: data?.source ?? null,
             coverage: Number.isFinite(data?.coverage) ? data.coverage : null,
@@ -863,6 +921,7 @@ export default function SmartSearch() {
         if (!cancelled) {
           setMapError(err?.response?.data?.detail || err?.message || 'Failed to load map POIs')
           setMapPois([])
+          setMapScenics([])
           setMapMeta(null)
         }
       }
@@ -916,17 +975,20 @@ export default function SmartSearch() {
     let cancelled = false
     async function loadMerged() {
       try {
-        const results = await Promise.all(
-          POI_MERGE_CATEGORIES.map((category) =>
-            api.getMapPois({
-              north: viewport.north,
-              south: viewport.south,
-              east: viewport.east,
-              west: viewport.west,
-              category,
-            }),
+        const bbox = {
+          north: viewport.north,
+          south: viewport.south,
+          east: viewport.east,
+          west: viewport.west,
+        }
+        const [results, scenicsRows] = await Promise.all([
+          Promise.all(
+            POI_MERGE_CATEGORIES.map((category) =>
+              api.getMapPois({ ...bbox, category }),
+            ),
           ),
-        )
+          api.getPublicScenics(bbox).catch(() => []),
+        ])
         if (cancelled) return
         const byId = new Map()
         for (const data of results) {
@@ -934,6 +996,10 @@ export default function SmartSearch() {
             const id = p?.id
             if (id != null && !byId.has(id)) byId.set(id, p)
           }
+        }
+        for (const p of scenicsRows || []) {
+          const id = p?.id
+          if (id != null && !byId.has(id)) byId.set(id, p)
         }
         setMergedPois([...byId.values()])
       } catch {
@@ -963,7 +1029,7 @@ export default function SmartSearch() {
     }
     const enriched = listings.map((listing) => ({
       ...listing,
-      map_intent_score: mapIntentScore(listing, mapPois, poiCategory),
+      map_intent_score: mapIntentScore(listing, poisForMapIntent, poiCategory),
     }))
     if (!hasPoiData) {
       return enriched.sort((a, b) => a.id - b.id)
@@ -980,7 +1046,7 @@ export default function SmartSearch() {
     mergedPois,
     effectiveTagWeights,
     strategyConfig,
-    mapPois,
+    poisForMapIntent,
     poiCategory,
     hasPoiData,
   ])
@@ -1426,6 +1492,7 @@ export default function SmartSearch() {
               mapCenter={mapCenter}
               mappableListings={mappableListings}
               mapPois={mapPois}
+              mapScenics={mapScenics}
               poiCategory={poiCategory}
               setPoiCategory={setPoiCategory}
               onViewportChange={onViewportChange}

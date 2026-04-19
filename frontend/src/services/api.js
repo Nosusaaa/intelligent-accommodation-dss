@@ -100,6 +100,12 @@ export const api = {
     }
   },
 
+  /** Public scenic spots (Admin `scenic_spots`) for user maps; optional bbox: north, south, east, west. */
+  async getPublicScenics(params = {}) {
+    const { data } = await client.get("/scenics", { params });
+    return Array.isArray(data?.scenics) ? data.scenics : [];
+  },
+
   async getListingById(id) {
     const { data } = await client.get(`/listings/${id}`);
     return data;

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../services/api'
+import { normalizeMapPoiCategory, POI_CATEGORY_LABELS } from '../utils/mapConfig.js'
 import {
   MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, useMap,
 } from 'react-leaflet'
@@ -120,6 +122,20 @@ const ICON_LISTING     = makeIcon('#0ea5e9', 36, 5)
 const ICON_RESTAURANT  = makeIcon('#f97316', 26, 3)
 const ICON_ATTRRACTION = makeIcon('#22c55e', 26, 3)
 
+/** Curated admin markers: same palette family as Smart Search `CATEGORY_POI_STYLE`. */
+const CURATED_ICON_COLORS = {
+  transport: '#2563eb',
+  park: '#15803d',
+  restaurant: '#ea580c',
+  education: '#7c3aed',
+  hospital: '#dc2626',
+}
+
+function curatedIconForCategory(rawCat) {
+  const c = normalizeMapPoiCategory(rawCat)
+  return makeIcon(CURATED_ICON_COLORS[c] || '#9333ea', 26, 3)
+}
+
 /* ── GeoJSON helpers ────────────────────────────────────────────────────── */
 function getGeoJSONBounds(features) {
   let minLat = Infinity, minLon = Infinity,
@@ -182,8 +198,14 @@ function POIPopup({ poi, distM }) {
   const distLabel = distM != null
     ? distM < 1000 ? `${Math.round(distM)}m` : `${(distM / 1000).toFixed(2)} km`
     : '—'
-  const catColor =
-    poi.category === 'restaurant' || poi.category === 'cafe' ? '#f97316' : '#22c55e'
+  const isCurated = poi.source === 'admin_scenic'
+  const mapCat = isCurated ? normalizeMapPoiCategory(poi.category) : null
+  const catColor = isCurated
+    ? (CURATED_ICON_COLORS[mapCat] || '#9333ea')
+    : poi.category === 'restaurant' || poi.category === 'cafe' ? '#f97316' : '#22c55e'
+  const catLabel = isCurated
+    ? (POI_CATEGORY_LABELS[mapCat] || String(poi.category || '').replace(/_/g, ' '))
+    : String(poi.category || 'place').replace(/_/g, ' ')
   return (
     <div className="text-sm min-w-[160px]">
       <p className="font-semibold text-slate-800 leading-tight">{poi.name}</p>
@@ -191,8 +213,11 @@ function POIPopup({ poi, distM }) {
         className="capitalize text-xs mt-0.5 px-1.5 py-0.5 rounded-full inline-block"
         style={{ background: catColor + '22', color: catColor }}
       >
-        {poi.category.replace(/_/g, ' ')}
+        {isCurated ? `Curated · ${catLabel}` : catLabel}
       </p>
+      {poi.description && (
+        <p className="text-xs text-slate-600 mt-1.5 leading-snug">{poi.description}</p>
+      )}
       {distM != null && (
         <p className="text-xs text-teal-600 mt-1">↗ {distLabel} from listing</p>
       )}
@@ -235,14 +260,22 @@ function HoverCard({ listing, pois }) {
       ? poi._dist
       : haversineM(listing.latitude, listing.longitude, poi.lat, poi.lon)
 
-  const restaurants = pois.filter(
-    (p) => p.category === 'restaurant' || p.category === 'cafe' || p.category === 'fast_food' || p.category === 'bar',
-  )
-  const attractions = pois.filter(
-    (p) =>
+  const restaurants = pois.filter((p) => {
+    if (p.source === 'admin_scenic')
+      return normalizeMapPoiCategory(p.category) === 'restaurant'
+    return (
+      p.category === 'restaurant' || p.category === 'cafe' ||
+      p.category === 'fast_food' || p.category === 'bar'
+    )
+  })
+  const attractions = pois.filter((p) => {
+    if (p.source === 'admin_scenic')
+      return normalizeMapPoiCategory(p.category) !== 'restaurant'
+    return (
       p.category === 'attraction' || p.category === 'museum' ||
-      p.category === 'gallery' || p.category === 'park',
-  )
+      p.category === 'gallery' || p.category === 'park'
+    )
+  })
 
   const restaurantsIn1km = restaurants.filter((p) => dist(p) <= 1000).length
   const attractionsIn1km = attractions.filter((p) => dist(p) <= 1000).length
@@ -301,7 +334,13 @@ function HoverCard({ listing, pois }) {
           <div className="text-slate-600 leading-snug">
             <span className="font-medium text-slate-700">{a.name}</span>
             <br />
-            <span className="text-slate-400">attraction · {distLabel(dist(a))}</span>
+            <span className="text-slate-400">
+              {a.source === 'admin_scenic'
+                ? `curated · ${POI_CATEGORY_LABELS[normalizeMapPoiCategory(a.category)]}`
+                : 'attraction'}
+              {' · '}
+              {distLabel(dist(a))}
+            </span>
           </div>
         </div>
       )}
@@ -313,12 +352,23 @@ function HoverCard({ listing, pois }) {
 export default function ListingMap({ listings = [] }) {
   const [hoveredId, setHoveredId] = useState(null)
   const [allPOIs, setAllPOIs] = useState([])
+  const [adminScenics, setAdminScenics] = useState([])
   const [poisLoading, setPOIsLoading] = useState(false)
   const [poisError, setPOIsError] = useState(null)
   const [neighbourhoodsGeoJSON, setNeighbourhoodsGeoJSON] = useState(null)
   const mapRef = useRef(null)
 
   const hoveredListing = listings.find((l) => l.id === hoveredId) || null
+
+  const adminScenicsForMap = useMemo(() => {
+    if (!hoveredListing) return adminScenics
+    return adminScenics.map((p) => ({
+      ...p,
+      _dist: haversineM(
+        hoveredListing.latitude, hoveredListing.longitude, p.lat, p.lon,
+      ),
+    }))
+  }, [adminScenics, hoveredListing])
 
   const ROCHESTER_CENTER = [43.1553, -77.6052]
   const DEFAULT_ZOOM = 12
@@ -335,6 +385,46 @@ export default function ListingMap({ listings = [] }) {
       .catch(() => { if (!cancelled) setNeighbourhoodsGeoJSON(null) })
     return () => { cancelled = true }
   }, [])
+
+  /* Admin curated scenic spots (same DB as Admin Scenic page) */
+  useEffect(() => {
+    let cancelled = false
+    const valid = listings.filter(
+      (l) => l.latitude != null && l.longitude != null &&
+        !Number.isNaN(Number(l.latitude)) && !Number.isNaN(Number(l.longitude)),
+    )
+    const params = {}
+    if (valid.length) {
+      let minLat = Infinity
+      let maxLat = -Infinity
+      let minLon = Infinity
+      let maxLon = -Infinity
+      for (const l of valid) {
+        const la = Number(l.latitude)
+        const lo = Number(l.longitude)
+        minLat = Math.min(minLat, la)
+        maxLat = Math.max(maxLat, la)
+        minLon = Math.min(minLon, lo)
+        maxLon = Math.max(maxLon, lo)
+      }
+      const pad = 0.04
+      params.south = minLat - pad
+      params.north = maxLat + pad
+      params.west = minLon - pad
+      params.east = maxLon + pad
+    }
+    api
+      .getPublicScenics(params)
+      .then((rows) => {
+        if (!cancelled) setAdminScenics(Array.isArray(rows) ? rows : [])
+      })
+      .catch(() => {
+        if (!cancelled) setAdminScenics([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [listings])
 
   /* Load all POIs on mount / listings change */
   useEffect(() => {
@@ -396,25 +486,38 @@ export default function ListingMap({ listings = [] }) {
 
   /* Compute distance from listing to each POI (memoised per hovered) */
   const poisWithDist = useMemo(() => {
-    if (!hoveredListing) return allPOIs
-    return allPOIs.map((p) => ({
+    if (!hoveredListing) return [...allPOIs, ...adminScenics]
+    const withD = allPOIs.map((p) => ({
       ...p,
       _dist: haversineM(
         hoveredListing.latitude, hoveredListing.longitude, p.lat, p.lon,
       ),
     }))
-  }, [allPOIs, hoveredListing])
+    const scenD = adminScenics.map((p) => ({
+      ...p,
+      _dist: haversineM(
+        hoveredListing.latitude, hoveredListing.longitude, p.lat, p.lon,
+      ),
+    }))
+    return [...withD, ...scenD]
+  }, [allPOIs, adminScenics, hoveredListing])
 
-  const restaurants = poisWithDist.filter(
-    (p) =>
+  const restaurants = poisWithDist.filter((p) => {
+    if (p.source === 'admin_scenic')
+      return normalizeMapPoiCategory(p.category) === 'restaurant'
+    return (
       p.category === 'restaurant' || p.category === 'cafe' ||
-      p.category === 'fast_food' || p.category === 'bar',
-  )
-  const attractions = poisWithDist.filter(
-    (p) =>
+      p.category === 'fast_food' || p.category === 'bar'
+    )
+  })
+  const attractions = poisWithDist.filter((p) => {
+    if (p.source === 'admin_scenic')
+      return normalizeMapPoiCategory(p.category) !== 'restaurant'
+    return (
       p.category === 'attraction' || p.category === 'museum' ||
-      p.category === 'gallery' || p.category === 'park',
-  )
+      p.category === 'gallery' || p.category === 'park'
+    )
+  })
 
   return (
     <div
@@ -452,6 +555,9 @@ export default function ListingMap({ listings = [] }) {
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-[#22c55e] ring-1 ring-white flex-shrink-0" />
           <span className="text-slate-600">Attraction</span>
+        </div>
+        <div className="text-[10px] leading-snug text-slate-500">
+          Admin spots use the same five colors as the user map (by category).
         </div>
         <div className="mt-1 pt-1 border-t border-slate-100 space-y-0.5">
           <div className="flex items-center gap-1.5">
@@ -541,6 +647,20 @@ export default function ListingMap({ listings = [] }) {
             position={[poi.lat, poi.lon]}
             icon={ICON_ATTRRACTION}
             zIndexOffset={hoveredListing ? 200 : 0}
+          >
+            <Popup>
+              <POIPopup poi={poi} distM={poi._dist ?? null} />
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Admin curated points (same category keys as user map POI layer) */}
+        {adminScenicsForMap.map((poi) => (
+          <Marker
+            key={poi.id}
+            position={[poi.lat, poi.lon]}
+            icon={curatedIconForCategory(poi.category)}
+            zIndexOffset={hoveredListing ? 260 : 20}
           >
             <Popup>
               <POIPopup poi={poi} distM={poi._dist ?? null} />

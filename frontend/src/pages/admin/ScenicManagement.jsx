@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { api } from '../../services/api'
+import {
+  POI_CATEGORIES,
+  POI_CATEGORY_LABELS,
+  normalizeMapPoiCategory,
+} from '../../utils/mapConfig.js'
 
 const EMPTY_FORM = {
   name: '',
   description: '',
   latitude: '',
   longitude: '',
-  category: '',
+  category: 'transport',
 }
 
 function formatDate(value) {
@@ -75,7 +80,7 @@ export default function ScenicManagement() {
       description: row.description ?? '',
       latitude: row.latitude ?? '',
       longitude: row.longitude ?? '',
-      category: row.category ?? '',
+      category: normalizeMapPoiCategory(row.category),
     })
     setDrawerOpen(true)
   }
@@ -86,7 +91,7 @@ export default function ScenicManagement() {
 
   const validateForm = () => {
     if (!form.name.trim()) return 'Please enter scenic spot name.'
-    if (!form.category.trim()) return 'Please enter category.'
+    if (!POI_CATEGORIES.includes(form.category)) return 'Please select a map category.'
     if (form.latitude === '' || Number.isNaN(Number(form.latitude))) return 'Please enter valid latitude.'
     if (form.longitude === '' || Number.isNaN(Number(form.longitude))) return 'Please enter valid longitude.'
     return null
@@ -97,7 +102,7 @@ export default function ScenicManagement() {
     description: form.description.trim(),
     latitude: Number(form.latitude),
     longitude: Number(form.longitude),
-    category: form.category.trim(),
+    category: form.category,
   })
 
   const handleSave = async (e) => {
@@ -194,7 +199,9 @@ export default function ScenicManagement() {
                   <tr key={row.id} className={idx % 2 ? 'bg-slate-50/70' : 'bg-white'}>
                     <td className="border-t border-slate-100 px-4 py-4 font-mono text-xs text-slate-600">{row.id}</td>
                     <td className="border-t border-slate-100 px-4 py-4 font-medium text-slate-900">{row.name}</td>
-                    <td className="border-t border-slate-100 px-4 py-4 text-slate-700">{row.category || '-'}</td>
+                    <td className="border-t border-slate-100 px-4 py-4 text-slate-700">
+                      {POI_CATEGORY_LABELS[normalizeMapPoiCategory(row.category)] ?? row.category ?? '-'}
+                    </td>
                     <td className="border-t border-slate-100 px-4 py-4 font-mono text-slate-700">{row.latitude ?? '-'}</td>
                     <td className="border-t border-slate-100 px-4 py-4 font-mono text-slate-700">{row.longitude ?? '-'}</td>
                     <td className="border-t border-slate-100 px-4 py-4 text-slate-600"><div className="max-w-xs truncate" title={row.description || ''}>{row.description || '-'}</div></td>
@@ -252,8 +259,21 @@ export default function ScenicManagement() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Category</label>
-                  <input value={form.category} onChange={(e) => handleChange('category', e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all focus:border-teal-300 focus:ring-2 focus:ring-teal-500" placeholder="park / museum / landmark" />
+                  <label className="block text-sm font-medium text-slate-700">Map category</label>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Same types as the user map (transport / park / restaurant / education / hospital).
+                  </p>
+                  <select
+                    value={form.category}
+                    onChange={(e) => handleChange('category', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-teal-300 focus:ring-2 focus:ring-teal-500"
+                  >
+                    {POI_CATEGORIES.map((key) => (
+                      <option key={key} value={key}>
+                        {POI_CATEGORY_LABELS[key]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
