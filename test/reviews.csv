@@ -1,0 +1,16 @@
+listing_id,reviewer_name,review_date,review_text_cleaned,vibe_tags_detail,sentiment_label
+1001,Alice M.,2026-03-10,Great location and very clean. The host responded quickly to all our questions. Would definitely stay again.,cozy|central|responsive host,positive
+1001,James T.,2026-03-22,Compact but well-equipped. Noise from the street was noticeable at night but not a dealbreaker.,central|compact|noisy,neutral
+1001,Sandra K.,2026-04-05,Fantastic value for downtown. Coffee shops within two minutes walk. Highly recommend.,great value|central|walkable,positive
+1002,Ben H.,2026-02-14,Perfect apartment for a family weekend. Huge kitchen and lovely patio. Kids loved it.,family-friendly|spacious|homey,positive
+1002,Yuki N.,2026-03-01,Beautiful hardwood floors and lots of natural light. Parking made the trip so much easier.,quiet|charming|convenient parking,positive
+1002,Carlos R.,2026-03-30,A bit pricey for what it is but the location on Park Ave is unbeatable. Overall positive experience.,park avenue|upscale|walkable,positive
+1003,Priya S.,2026-01-18,Clean and affordable. Housemates were respectful. Good option for a solo trip on a budget.,budget-friendly|clean|quiet,positive
+1003,Tom W.,2026-02-27,Functional room but bathroom could use an update. Host was very accommodating though.,basic|clean|helpful host,neutral
+1003,Elena B.,2026-03-15,Exactly what was advertised. Quiet neighbourhood and close to campus. No complaints.,university area|quiet|accurate listing,positive
+1004,Michael D.,2026-04-01,Stunning views of the lake from the loft. Spacious and modern. A little far from downtown but worth it.,lake view|spacious|scenic,positive
+1004,Grace L.,2026-04-08,Perfect summer getaway. Beach is a ten-minute walk and the kitchen is very well stocked.,family-friendly|beachside|well-equipped,positive
+1004,Owen P.,2026-04-12,One of the best Airbnbs I have stayed in Rochester. Felt like a luxury apartment.,luxury|spacious|lake view,positive
+1005,Hannah C.,2026-02-20,Great townhouse with plenty of space for a group. East End has the best bars and restaurants.,group-friendly|lively|central,positive
+1005,Raj M.,2026-03-08,Newly renovated and spotless. Check-in was seamless. Would book again for our next work trip.,modern|clean|easy check-in,positive
+1005,Diane F.,2026-04-02,Loved the neighbourhood. Three bedrooms made it very comfortable for our group of five.,spacious|group-friendly|walkable,positive
