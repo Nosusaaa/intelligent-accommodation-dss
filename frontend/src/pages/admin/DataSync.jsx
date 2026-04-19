@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, CheckCircle, FileText, Loader2, RefreshCw, Trash2, UploadCloud, X, XCircle } from 'lucide-react'
 import { api } from '../../services/api'
 
+// listing_tags before listings so filenames like listing_tags.csv are not matched by a bare "listing" substring.
 const SUPPORTED_TYPES = {
-  listings: { label: 'Listings', keywords: ['listings', 'cleaned_listings', 'listing'], icon: '🏠' },
+  listing_tags: { label: 'Listing Tags', keywords: ['listing_tags', 'room_tags', 'tags'], icon: '🏷️' },
+  listings: { label: 'Listings', keywords: ['listings', 'cleaned_listings'], icon: '🏠' },
   calendar: { label: 'Calendar', keywords: ['calendar', 'calendars'], icon: '📅' },
   reviews: { label: 'Reviews', keywords: ['reviews', 'review'], icon: '⭐' },
-  listing_tags: { label: 'Listing Tags', keywords: ['listing_tags', 'room_tags', 'tags'], icon: '🏷️' },
 }
 
 function getFileType(filename) {

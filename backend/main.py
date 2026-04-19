@@ -86,13 +86,30 @@ def _ensure_user_profile_columns() -> None:
 
 
 def _ensure_sync_log_columns() -> None:
-    """Ensure sync_logs table has the affected_ids column."""
+    """Align legacy sync_logs SQLite schemas with ``SyncLog`` ORM (upload/import logging)."""
     with engine.begin() as conn:
-        columns = {
-            row[1] for row in conn.exec_driver_sql("PRAGMA table_info(sync_logs)").fetchall()
-        }
-        if "affected_ids" not in columns:
-            conn.execute(text("ALTER TABLE sync_logs ADD COLUMN affected_ids TEXT"))
+        try:
+            rows = conn.exec_driver_sql("PRAGMA table_info(sync_logs)").fetchall()
+        except Exception:
+            return
+        if not rows:
+            return
+        columns = {row[1] for row in rows}
+        # Older DBs only had id, file_type, status, records_updated, sync_date, created_at.
+        alters: list[tuple[str, str]] = [
+            ("filename", "ALTER TABLE sync_logs ADD COLUMN filename VARCHAR(256)"),
+            ("total_rows", "ALTER TABLE sync_logs ADD COLUMN total_rows INTEGER NOT NULL DEFAULT 0"),
+            (
+                "duplicates",
+                "ALTER TABLE sync_logs ADD COLUMN duplicates INTEGER NOT NULL DEFAULT 0",
+            ),
+            ("invalid", "ALTER TABLE sync_logs ADD COLUMN invalid INTEGER NOT NULL DEFAULT 0"),
+            ("error_summary", "ALTER TABLE sync_logs ADD COLUMN error_summary TEXT"),
+            ("affected_ids", "ALTER TABLE sync_logs ADD COLUMN affected_ids TEXT"),
+        ]
+        for col, ddl in alters:
+            if col not in columns:
+                conn.execute(text(ddl))
 
 
 def _ensure_strategy_config_columns() -> None:
@@ -1950,11 +1967,12 @@ async def sync_upload_file(
         )
     
     # Validate file type based on filename keywords
+    # Order matters: more specific names first (e.g. "listing" would match inside "listing_tags").
     allowed_types = {
-        "listings": ["listings", "cleaned_listings", "listing"],
+        "listing_tags": ["listing_tags", "room_tags", "tags"],
+        "listings": ["listings", "cleaned_listings"],
         "calendar": ["calendar", "calendars", "calendar_cleaned"],
         "reviews": ["reviews", "review"],
-        "listing_tags": ["listing_tags", "room_tags", "tags"],
     }
     
     file_type = None
