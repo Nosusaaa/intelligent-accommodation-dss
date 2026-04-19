@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "city": "rochester",
-  "generated_at": "2026-04-11T08:58:20Z",
+  "generated_at": "2026-04-19T12:43:32Z",
   "bbox": {
     "south": 43.05,
     "west": -77.78,
@@ -9,11 +9,12 @@
     "east": -77.45
   },
   "category_counts": {
-    "transport": 50,
-    "park": 50,
-    "restaurant": 50,
-    "education": 50,
-    "hospital": 50
+    "transport": 120,
+    "park": 120,
+    "restaurant": 120,
+    "education": 120,
+    "hospital": 69,
+    "attraction": 120
   },
   "coverage": 1.0,
   "categories": {
@@ -417,9 +418,577 @@
         "lon": -77.5932835,
         "name": "Clinton & Elmwood",
         "category": "transport"
+      },
+      {
+        "id": 11938501063,
+        "type": "node",
+        "lat": 43.124795,
+        "lon": -77.5934135,
+        "name": "Clinton & Elmwood",
+        "category": "transport"
+      },
+      {
+        "id": 11938501048,
+        "type": "node",
+        "lat": 43.1394877,
+        "lon": -77.5957368,
+        "name": "Clinton & Goodman",
+        "category": "transport"
+      },
+      {
+        "id": 8887679163,
+        "type": "node",
+        "lat": 43.1367366,
+        "lon": -77.5758941,
+        "name": "Cobbs Hill Park",
+        "category": "transport"
+      },
+      {
+        "id": 11941900923,
+        "type": "node",
+        "lat": 43.1458455,
+        "lon": -77.5625721,
+        "name": "Colby & Park",
+        "category": "transport"
+      },
+      {
+        "id": 12115299898,
+        "type": "node",
+        "lat": 43.1231849,
+        "lon": -77.6193705,
+        "name": "College Town - Fitness Center",
+        "category": "transport"
+      },
+      {
+        "id": 12115300902,
+        "type": "node",
+        "lat": 43.1232954,
+        "lon": -77.6190429,
+        "name": "College Town - Fitness Center",
+        "category": "transport"
+      },
+      {
+        "id": 12603090930,
+        "type": "node",
+        "lat": 43.113677,
+        "lon": -77.487405,
+        "name": "Commercial & Garfield",
+        "category": "transport"
+      },
+      {
+        "id": 12603090931,
+        "type": "node",
+        "lat": 43.1136813,
+        "lon": -77.4880444,
+        "name": "Commercial & Garfield",
+        "category": "transport"
+      },
+      {
+        "id": 11925212587,
+        "type": "node",
+        "lat": 43.1129683,
+        "lon": -77.485582,
+        "name": "Commercial & Main",
+        "category": "transport"
+      },
+      {
+        "id": 11911860800,
+        "type": "node",
+        "lat": 43.114251,
+        "lon": -77.4901277,
+        "name": "Commercial & Washington",
+        "category": "transport"
+      },
+      {
+        "id": 8938798330,
+        "type": "node",
+        "lat": 43.1143508,
+        "lon": -77.4899523,
+        "name": "Commercial & Washington",
+        "category": "transport"
+      },
+      {
+        "id": 8888625823,
+        "type": "node",
+        "lat": 43.2170905,
+        "lon": -77.5983797,
+        "name": "Cooper Loop",
+        "category": "transport"
+      },
+      {
+        "id": 12117337785,
+        "type": "node",
+        "lat": 43.1084687,
+        "lon": -77.6217504,
+        "name": "Corporate Woods Building 120",
+        "category": "transport"
+      },
+      {
+        "id": 12117337787,
+        "type": "node",
+        "lat": 43.1070265,
+        "lon": -77.6219782,
+        "name": "Corporate Woods Building 155",
+        "category": "transport"
+      },
+      {
+        "id": 12117337788,
+        "type": "node",
+        "lat": 43.1068917,
+        "lon": -77.6195629,
+        "name": "Corporate Woods Building 30",
+        "category": "transport"
+      },
+      {
+        "id": 12117337784,
+        "type": "node",
+        "lat": 43.1069035,
+        "lon": -77.6193576,
+        "name": "Corporate Woods Building 30",
+        "category": "transport"
+      },
+      {
+        "id": 12117337786,
+        "type": "node",
+        "lat": 43.1065255,
+        "lon": -77.6227475,
+        "name": "Corporate Woods Overflow Lot",
+        "category": "transport"
+      },
+      {
+        "id": 11913845856,
+        "type": "node",
+        "lat": 43.1031618,
+        "lon": -77.4840742,
+        "name": "Country Club Plaza",
+        "category": "transport"
+      },
+      {
+        "id": 11988975384,
+        "type": "node",
+        "lat": 43.1059686,
+        "lon": -77.6193884,
+        "name": "Crittenden & Corporate Woods",
+        "category": "transport"
+      },
+      {
+        "id": 11988965091,
+        "type": "node",
+        "lat": 43.105827,
+        "lon": -77.6192573,
+        "name": "Crittenden & White Spruce",
+        "category": "transport"
+      },
+      {
+        "id": 12115300904,
+        "type": "node",
+        "lat": 43.1216044,
+        "lon": -77.626067,
+        "name": "Crittenden Boulevard at Crittenden Circle",
+        "category": "transport"
+      },
+      {
+        "id": 12117337783,
+        "type": "node",
+        "lat": 43.1047493,
+        "lon": -77.621762,
+        "name": "Crittenden Road at Rustic Village",
+        "category": "transport"
+      },
+      {
+        "id": 12117337789,
+        "type": "node",
+        "lat": 43.1050541,
+        "lon": -77.6215136,
+        "name": "Crittenden Road at Rustic Village",
+        "category": "transport"
+      },
+      {
+        "id": 11927314401,
+        "type": "node",
+        "lat": 43.1716801,
+        "lon": -77.5599263,
+        "name": "Culver & Bay",
+        "category": "transport"
+      },
+      {
+        "id": 11927314403,
+        "type": "node",
+        "lat": 43.1722903,
+        "lon": -77.5594204,
+        "name": "Culver & Laurelton",
+        "category": "transport"
+      },
+      {
+        "id": 11925212582,
+        "type": "node",
+        "lat": 43.2038584,
+        "lon": -77.5620331,
+        "name": "Culver & Ridge",
+        "category": "transport"
+      },
+      {
+        "id": 11925212581,
+        "type": "node",
+        "lat": 43.2046189,
+        "lon": -77.5618596,
+        "name": "Culver & Ridge",
+        "category": "transport"
+      },
+      {
+        "id": 11929448216,
+        "type": "node",
+        "lat": 43.173,
+        "lon": -77.6388199,
+        "name": "Dewey & Emerson",
+        "category": "transport"
+      },
+      {
+        "id": 11929448215,
+        "type": "node",
+        "lat": 43.1732341,
+        "lon": -77.638852,
+        "name": "Dewey & Emerson",
+        "category": "transport"
+      },
+      {
+        "id": 11929448210,
+        "type": "node",
+        "lat": 43.2236419,
+        "lon": -77.6417608,
+        "name": "Dewey & Maiden",
+        "category": "transport"
+      },
+      {
+        "id": 11929448212,
+        "type": "node",
+        "lat": 43.1990095,
+        "lon": -77.638932,
+        "name": "Dewey & Ridge",
+        "category": "transport"
+      },
+      {
+        "id": 11929448211,
+        "type": "node",
+        "lat": 43.1997283,
+        "lon": -77.6386311,
+        "name": "Dewey & Ridge",
+        "category": "transport"
+      },
+      {
+        "id": 11929448209,
+        "type": "node",
+        "lat": 43.2231114,
+        "lon": -77.6411691,
+        "name": "Dewey & Stone",
+        "category": "transport"
+      },
+      {
+        "id": 12116600284,
+        "type": "node",
+        "lat": 43.1551019,
+        "lon": -77.594296,
+        "name": "East & Alexander",
+        "category": "transport"
+      },
+      {
+        "id": 4121705523,
+        "type": "node",
+        "lat": 43.150654,
+        "lon": -77.5768411,
+        "name": "East & Berkeley",
+        "category": "transport"
+      },
+      {
+        "id": 4121705524,
+        "type": "node",
+        "lat": 43.1507034,
+        "lon": -77.5764294,
+        "name": "East & Berkeley",
+        "category": "transport"
+      },
+      {
+        "id": 11918971850,
+        "type": "node",
+        "lat": 43.1593618,
+        "lon": -77.5639862,
+        "name": "East High School",
+        "category": "transport"
+      },
+      {
+        "id": 11988975544,
+        "type": "node",
+        "lat": 43.1046199,
+        "lon": -77.6212073,
+        "name": "East Squire & Crittenden",
+        "category": "transport"
+      },
+      {
+        "id": 11988906032,
+        "type": "node",
+        "lat": 43.1004399,
+        "lon": -77.6151212,
+        "name": "East Squire & East Henrietta",
+        "category": "transport"
+      },
+      {
+        "id": 11988972126,
+        "type": "node",
+        "lat": 43.1028686,
+        "lon": -77.6211402,
+        "name": "East Squire & Lot 14",
+        "category": "transport"
+      },
+      {
+        "id": 11988965323,
+        "type": "node",
+        "lat": 43.1032138,
+        "lon": -77.6213164,
+        "name": "East Squire & Lot 14",
+        "category": "transport"
+      },
+      {
+        "id": 11988964929,
+        "type": "node",
+        "lat": 43.1044044,
+        "lon": -77.6213716,
+        "name": "East Squire & Lot 18",
+        "category": "transport"
+      },
+      {
+        "id": 11988833559,
+        "type": "node",
+        "lat": 43.1008607,
+        "lon": -77.6174312,
+        "name": "East Squire & Lot 5",
+        "category": "transport"
+      },
+      {
+        "id": 11988960172,
+        "type": "node",
+        "lat": 43.1009551,
+        "lon": -77.6175607,
+        "name": "East Squire & Lot 6",
+        "category": "transport"
+      },
+      {
+        "id": 11988968622,
+        "type": "node",
+        "lat": 43.1015835,
+        "lon": -77.620808,
+        "name": "East Squire & West Squire",
+        "category": "transport"
+      },
+      {
+        "id": 11570531218,
+        "type": "node",
+        "lat": 43.1016391,
+        "lon": -77.621051,
+        "name": "East Squire & West Squire",
+        "category": "transport"
+      },
+      {
+        "id": 960075353,
+        "type": "way",
+        "lat": 43.2016203,
+        "lon": -77.6401568,
+        "name": "Eastman Avenue Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 8882818125,
+        "type": "node",
+        "lat": 43.2016266,
+        "lon": -77.6401695,
+        "name": "Eastman Avenue Connection Hub",
+        "category": "transport"
+      },
+      {
+        "id": 11913845857,
+        "type": "node",
+        "lat": 43.2021411,
+        "lon": -77.6281626,
+        "name": "Eastman Business Park",
+        "category": "transport"
+      },
+      {
+        "id": 12116600283,
+        "type": "node",
+        "lat": 43.1589737,
+        "lon": -77.6012365,
+        "name": "Eastman Living Center",
+        "category": "transport"
+      },
+      {
+        "id": 12115997109,
+        "type": "node",
+        "lat": 43.1575158,
+        "lon": -77.6015124,
+        "name": "Eastman School",
+        "category": "transport"
+      },
+      {
+        "id": 12115997112,
+        "type": "node",
+        "lat": 43.1584265,
+        "lon": -77.6011408,
+        "name": "Eastman School",
+        "category": "transport"
+      },
+      {
+        "id": 10300729356,
+        "type": "node",
+        "lat": 43.1254922,
+        "lon": -77.5932998,
+        "name": "Elmwood & Clinton",
+        "category": "transport"
+      },
+      {
+        "id": 11922223091,
+        "type": "node",
+        "lat": 43.1257312,
+        "lon": -77.5923469,
+        "name": "Elmwood & Clinton",
+        "category": "transport"
+      },
+      {
+        "id": 11911860796,
+        "type": "node",
+        "lat": 43.1263013,
+        "lon": -77.5661175,
+        "name": "Elmwood & Winton",
+        "category": "transport"
+      },
+      {
+        "id": 11911860797,
+        "type": "node",
+        "lat": 43.1264824,
+        "lon": -77.5662987,
+        "name": "Elmwood & Winton",
+        "category": "transport"
+      },
+      {
+        "id": 11614888384,
+        "type": "node",
+        "lat": 43.0861718,
+        "lon": -77.6771414,
+        "name": "F Lot",
+        "category": "transport"
+      },
+      {
+        "id": 12603097719,
+        "type": "node",
+        "lat": 43.1044332,
+        "lon": -77.4876411,
+        "name": "Fairport & 353 Fairport",
+        "category": "transport"
+      },
+      {
+        "id": 12603097718,
+        "type": "node",
+        "lat": 43.102172,
+        "lon": -77.465895,
+        "name": "Fairport & Baird",
+        "category": "transport"
+      },
+      {
+        "id": 12603097717,
+        "type": "node",
+        "lat": 43.102244,
+        "lon": -77.465307,
+        "name": "Fairport & Baird",
+        "category": "transport"
+      },
+      {
+        "id": 12603097715,
+        "type": "node",
+        "lat": 43.1023893,
+        "lon": -77.4739391,
+        "name": "Fairport & Blossom",
+        "category": "transport"
+      },
+      {
+        "id": 12603097714,
+        "type": "node",
+        "lat": 43.102257,
+        "lon": -77.473367,
+        "name": "Fairport & Crescent East",
+        "category": "transport"
+      },
+      {
+        "id": 12603097712,
+        "type": "node",
+        "lat": 43.101373,
+        "lon": -77.462081,
+        "name": "Fairport & Jefferson",
+        "category": "transport"
+      },
+      {
+        "id": 12603097713,
+        "type": "node",
+        "lat": 43.101588,
+        "lon": -77.462207,
+        "name": "Fairport & Jefferson",
+        "category": "transport"
+      },
+      {
+        "id": 12603097711,
+        "type": "node",
+        "lat": 43.102635,
+        "lon": -77.480556,
+        "name": "Fairport & Lincoln",
+        "category": "transport"
+      },
+      {
+        "id": 12603097710,
+        "type": "node",
+        "lat": 43.102606,
+        "lon": -77.481372,
+        "name": "Fairport & Marsh",
+        "category": "transport"
+      },
+      {
+        "id": 12603097708,
+        "type": "node",
+        "lat": 43.100836,
+        "lon": -77.459238,
+        "name": "Fairport & O'Connor",
+        "category": "transport"
+      },
+      {
+        "id": 12603097706,
+        "type": "node",
+        "lat": 43.102193,
+        "lon": -77.468789,
+        "name": "Fairport & Sunset",
+        "category": "transport"
+      },
+      {
+        "id": 12603097705,
+        "type": "node",
+        "lat": 43.102342,
+        "lon": -77.468313,
+        "name": "Fairport & Sunset",
+        "category": "transport"
+      },
+      {
+        "id": 5101532130,
+        "type": "node",
+        "lat": 43.0606859,
+        "lon": -77.6948099,
+        "name": "Fitness Stop",
+        "category": "transport"
       }
     ],
     "park": [
+      {
+        "id": 1500954172,
+        "type": "way",
+        "lat": 43.1428693,
+        "lon": -77.5966727,
+        "name": "490 Farms",
+        "category": "park"
+      },
       {
         "id": 468681375,
         "type": "way",
@@ -819,6 +1388,558 @@
         "lon": -77.4851743,
         "name": "Edmund Lyon Park",
         "category": "park"
+      },
+      {
+        "id": 220377909,
+        "type": "way",
+        "lat": 43.1373478,
+        "lon": -77.6001679,
+        "name": "Ellwanger Barry",
+        "category": "park"
+      },
+      {
+        "id": 842172647,
+        "type": "way",
+        "lat": 43.1578497,
+        "lon": -77.5554453,
+        "name": "Emmighausen Garden",
+        "category": "park"
+      },
+      {
+        "id": 941843838,
+        "type": "way",
+        "lat": 43.1989337,
+        "lon": -77.4949082,
+        "name": "Empire Park",
+        "category": "park"
+      },
+      {
+        "id": 823171533,
+        "type": "way",
+        "lat": 43.0624658,
+        "lon": -77.5477803,
+        "name": "Farm View Park",
+        "category": "park"
+      },
+      {
+        "id": 545631859,
+        "type": "way",
+        "lat": 43.1392003,
+        "lon": -77.5876193,
+        "name": "Field St Rec Center",
+        "category": "park"
+      },
+      {
+        "id": 1086542089,
+        "type": "way",
+        "lat": 43.2167247,
+        "lon": -77.4957956,
+        "name": "Finn Park",
+        "category": "park"
+      },
+      {
+        "id": 546690448,
+        "type": "way",
+        "lat": 43.169589,
+        "lon": -77.7442889,
+        "name": "First Responders Park",
+        "category": "park"
+      },
+      {
+        "id": 1327762624,
+        "type": "way",
+        "lat": 43.169683,
+        "lon": -77.58754,
+        "name": "First Street Park",
+        "category": "park"
+      },
+      {
+        "id": 632642094,
+        "type": "way",
+        "lat": 43.1400232,
+        "lon": -77.5559064,
+        "name": "First Unitarian Universalist Gardens",
+        "category": "park"
+      },
+      {
+        "id": 431536807,
+        "type": "way",
+        "lat": 43.1272024,
+        "lon": -77.5782543,
+        "name": "Fonthill Park",
+        "category": "park"
+      },
+      {
+        "id": 486863284,
+        "type": "way",
+        "lat": 43.2482438,
+        "lon": -77.5012499,
+        "name": "Forest Lawn Park",
+        "category": "park"
+      },
+      {
+        "id": 101281412,
+        "type": "way",
+        "lat": 43.0864018,
+        "lon": -77.6686908,
+        "name": "Frisina Quad",
+        "category": "park"
+      },
+      {
+        "id": 543141941,
+        "type": "way",
+        "lat": 43.1517576,
+        "lon": -77.5875924,
+        "name": "Garden of Fragrance",
+        "category": "park"
+      },
+      {
+        "id": 468754786,
+        "type": "way",
+        "lat": 43.1594282,
+        "lon": -77.5471383,
+        "name": "Gazebo Park",
+        "category": "park"
+      },
+      {
+        "id": 108282608,
+        "type": "way",
+        "lat": 43.1575504,
+        "lon": -77.612073,
+        "name": "Genesee Crossroads Park",
+        "category": "park"
+      },
+      {
+        "id": 591058924,
+        "type": "way",
+        "lat": 43.146097,
+        "lon": -77.6108239,
+        "name": "Genesee Gateway Park",
+        "category": "park"
+      },
+      {
+        "id": 112636077,
+        "type": "way",
+        "lat": 43.256518,
+        "lon": -77.64161,
+        "name": "George Badgerow Park",
+        "category": "park"
+      },
+      {
+        "id": 317855555,
+        "type": "way",
+        "lat": 43.1575939,
+        "lon": -77.5841348,
+        "name": "Good Luck Garden",
+        "category": "park"
+      },
+      {
+        "id": 783155924,
+        "type": "way",
+        "lat": 43.1523935,
+        "lon": -77.5935856,
+        "name": "Goodwin Park",
+        "category": "park"
+      },
+      {
+        "id": 468745025,
+        "type": "way",
+        "lat": 43.0730331,
+        "lon": -77.4910761,
+        "name": "Great Embankment Park",
+        "category": "park"
+      },
+      {
+        "id": 70345412,
+        "type": "way",
+        "lat": 43.199394,
+        "lon": -77.7426511,
+        "name": "Greece Canal Park",
+        "category": "park"
+      },
+      {
+        "id": 101475976,
+        "type": "way",
+        "lat": 43.0848905,
+        "lon": -77.6701407,
+        "name": "Greek Lawn",
+        "category": "park"
+      },
+      {
+        "id": 63510673,
+        "type": "way",
+        "lat": 43.1696035,
+        "lon": -77.4860487,
+        "name": "Greenwood Park",
+        "category": "park"
+      },
+      {
+        "id": 945901889,
+        "type": "way",
+        "lat": 43.0886456,
+        "lon": -77.4876502,
+        "name": "Griffith Park",
+        "category": "park"
+      },
+      {
+        "id": 1011595666,
+        "type": "way",
+        "lat": 43.2287165,
+        "lon": -77.5958263,
+        "name": "Helmer Nature Center",
+        "category": "park"
+      },
+      {
+        "id": 1062681626,
+        "type": "way",
+        "lat": 43.1876476,
+        "lon": -77.7305717,
+        "name": "Henpeck Park",
+        "category": "park"
+      },
+      {
+        "id": 612729501,
+        "type": "way",
+        "lat": 43.1678185,
+        "lon": -77.616587,
+        "name": "Henry Lomb Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 993649784,
+        "type": "way",
+        "lat": 43.131924,
+        "lon": -77.4736744,
+        "name": "Heritage Park",
+        "category": "park"
+      },
+      {
+        "id": 486650743,
+        "type": "way",
+        "lat": 43.2148956,
+        "lon": -77.5485453,
+        "name": "Heyer-Bayer Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 108352080,
+        "type": "way",
+        "lat": 43.1625277,
+        "lon": -77.6126515,
+        "name": "High Falls Terrace Park",
+        "category": "park"
+      },
+      {
+        "id": 71471331,
+        "type": "way",
+        "lat": 43.1301542,
+        "lon": -77.606784,
+        "name": "Highland Park",
+        "category": "park"
+      },
+      {
+        "id": 771729806,
+        "type": "way",
+        "lat": 43.1365002,
+        "lon": -77.5604916,
+        "name": "Highland-Winton Park",
+        "category": "park"
+      },
+      {
+        "id": 632642091,
+        "type": "way",
+        "lat": 43.1432279,
+        "lon": -77.5559034,
+        "name": "Hillside Avenue Park",
+        "category": "park"
+      },
+      {
+        "id": 685006956,
+        "type": "way",
+        "lat": 43.0584417,
+        "lon": -77.5310214,
+        "name": "Hopkins Park",
+        "category": "park"
+      },
+      {
+        "id": 446121074,
+        "type": "way",
+        "lat": 43.0501719,
+        "lon": -77.4590074,
+        "name": "Horizon Hill Conservation Area",
+        "category": "park"
+      },
+      {
+        "id": 858321146,
+        "type": "way",
+        "lat": 43.0822888,
+        "lon": -77.581205,
+        "name": "Hoskins Park",
+        "category": "park"
+      },
+      {
+        "id": 749064689,
+        "type": "way",
+        "lat": 43.0820956,
+        "lon": -77.5834247,
+        "name": "Huntington Park East Courtyard",
+        "category": "park"
+      },
+      {
+        "id": 749064690,
+        "type": "way",
+        "lat": 43.0820821,
+        "lon": -77.584277,
+        "name": "Huntington Park West Courtyard",
+        "category": "park"
+      },
+      {
+        "id": 234834730,
+        "type": "way",
+        "lat": 43.084255,
+        "lon": -77.6770815,
+        "name": "Infinity Quad",
+        "category": "park"
+      },
+      {
+        "id": 775445262,
+        "type": "way",
+        "lat": 43.1859639,
+        "lon": -77.5354518,
+        "name": "Irondequoit Bay Park West",
+        "category": "park"
+      },
+      {
+        "id": 1116364260,
+        "type": "way",
+        "lat": 43.0486104,
+        "lon": -77.5600404,
+        "name": "Isaac Gordon Nature Park",
+        "category": "park"
+      },
+      {
+        "id": 902137716,
+        "type": "way",
+        "lat": 43.17154,
+        "lon": -77.6424027,
+        "name": "J.P. Riley Park",
+        "category": "park"
+      },
+      {
+        "id": 8369833611,
+        "type": "node",
+        "lat": 43.0865428,
+        "lon": -77.6683369,
+        "name": "Jan Strine Memorial Labryinth",
+        "category": "park"
+      },
+      {
+        "id": 108526502,
+        "type": "way",
+        "lat": 43.1673631,
+        "lon": -77.6298149,
+        "name": "Jones Square Park",
+        "category": "park"
+      },
+      {
+        "id": 283190746,
+        "type": "way",
+        "lat": 43.2070575,
+        "lon": -77.604968,
+        "name": "Joshua Park",
+        "category": "park"
+      },
+      {
+        "id": 8804170053,
+        "type": "node",
+        "lat": 43.1186135,
+        "lon": -77.507832,
+        "name": "Kali Garden",
+        "category": "park"
+      },
+      {
+        "id": 461381724,
+        "type": "way",
+        "lat": 43.0785365,
+        "lon": -77.650581,
+        "name": "Kenwick Park",
+        "category": "park"
+      },
+      {
+        "id": 952741580,
+        "type": "way",
+        "lat": 43.0886799,
+        "lon": -77.5335411,
+        "name": "King's Bend Park",
+        "category": "park"
+      },
+      {
+        "id": 40420320,
+        "type": "way",
+        "lat": 43.0636897,
+        "lon": -77.4692737,
+        "name": "Kreag Road Park",
+        "category": "park"
+      },
+      {
+        "id": 502484144,
+        "type": "way",
+        "lat": 43.1765329,
+        "lon": -77.525371,
+        "name": "La Salle's Landing Park",
+        "category": "park"
+      },
+      {
+        "id": 842172648,
+        "type": "way",
+        "lat": 43.1586703,
+        "lon": -77.5493941,
+        "name": "Linear Garden",
+        "category": "park"
+      },
+      {
+        "id": 40995244,
+        "type": "way",
+        "lat": 43.172512,
+        "lon": -77.6971894,
+        "name": "Lions Park",
+        "category": "park"
+      },
+      {
+        "id": 756807696,
+        "type": "way",
+        "lat": 43.0923903,
+        "lon": -77.5463613,
+        "name": "Lock 32 State Canal Park",
+        "category": "park"
+      },
+      {
+        "id": 781899826,
+        "type": "way",
+        "lat": 43.0754764,
+        "lon": -77.5174817,
+        "name": "Lusk",
+        "category": "park"
+      },
+      {
+        "id": 102648334,
+        "type": "way",
+        "lat": 43.1815712,
+        "lon": -77.6309647,
+        "name": "Maplewood Rose Garden",
+        "category": "park"
+      },
+      {
+        "id": 1316837423,
+        "type": "way",
+        "lat": 43.1423921,
+        "lon": -77.6081202,
+        "name": "Marie Daley Park",
+        "category": "park"
+      },
+      {
+        "id": 718492138,
+        "type": "way",
+        "lat": 43.1143519,
+        "lon": -77.6272396,
+        "name": "Mark's Park",
+        "category": "park"
+      },
+      {
+        "id": 108282593,
+        "type": "way",
+        "lat": 43.1539703,
+        "lon": -77.6018496,
+        "name": "Martin Luther King, Jr. Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 771729808,
+        "type": "way",
+        "lat": 43.1342942,
+        "lon": -77.567205,
+        "name": "Mayflower-Warrington Park",
+        "category": "park"
+      },
+      {
+        "id": 591844378,
+        "type": "way",
+        "lat": 43.1758518,
+        "lon": -77.5399461,
+        "name": "McAvoy Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 40995245,
+        "type": "way",
+        "lat": 43.171,
+        "lon": -77.6932673,
+        "name": "Memorial Park",
+        "category": "park"
+      },
+      {
+        "id": 55038400,
+        "type": "way",
+        "lat": 43.1048459,
+        "lon": -77.5867176,
+        "name": "Meridian Centre Park",
+        "category": "park"
+      },
+      {
+        "id": 374901691,
+        "type": "way",
+        "lat": 43.1874572,
+        "lon": -77.6264479,
+        "name": "Middle Maplewood Park",
+        "category": "park"
+      },
+      {
+        "id": 378090730,
+        "type": "way",
+        "lat": 43.1561933,
+        "lon": -77.6050823,
+        "name": "Midtown Commons",
+        "category": "park"
+      },
+      {
+        "id": 530960688,
+        "type": "way",
+        "lat": 43.1569059,
+        "lon": -77.6048081,
+        "name": "Midtown Parcel 5",
+        "category": "park"
+      },
+      {
+        "id": 629150085,
+        "type": "way",
+        "lat": 43.1459058,
+        "lon": -77.6052016,
+        "name": "Nathaniel Square",
+        "category": "park"
+      },
+      {
+        "id": 833947183,
+        "type": "way",
+        "lat": 43.1438446,
+        "lon": -77.5638809,
+        "name": "Norris Drive Park",
+        "category": "park"
+      },
+      {
+        "id": 468186774,
+        "type": "way",
+        "lat": 43.1182894,
+        "lon": -77.4832704,
+        "name": "Northside Park",
+        "category": "park"
+      },
+      {
+        "id": 1283844488,
+        "type": "way",
+        "lat": 43.1852698,
+        "lon": -77.5658312,
+        "name": "Norton Village Recreation Center",
+        "category": "park"
       }
     ],
     "restaurant": [
@@ -935,6 +2056,14 @@
         "category": "restaurant"
       },
       {
+        "id": 13729388113,
+        "type": "node",
+        "lat": 43.1509211,
+        "lon": -77.5918088,
+        "name": "Apogee Wine Bar",
+        "category": "restaurant"
+      },
+      {
         "id": 125920651,
         "type": "way",
         "lat": 43.085879,
@@ -975,6 +2104,14 @@
         "category": "restaurant"
       },
       {
+        "id": 13729388112,
+        "type": "node",
+        "lat": 43.1512181,
+        "lon": -77.5927677,
+        "name": "Ardor Park Artisanal Pizza",
+        "category": "restaurant"
+      },
+      {
         "id": 1511143223,
         "type": "node",
         "lat": 43.0971246,
@@ -999,6 +2136,14 @@
         "category": "restaurant"
       },
       {
+        "id": 13733081270,
+        "type": "node",
+        "lat": 43.1415763,
+        "lon": -77.5979474,
+        "name": "Asian Kitchen",
+        "category": "restaurant"
+      },
+      {
         "id": 7813809672,
         "type": "node",
         "lat": 43.2015857,
@@ -1020,22 +2165,6 @@
         "lat": 43.0927187,
         "lon": -77.6344152,
         "name": "Aş Evi",
-        "category": "restaurant"
-      },
-      {
-        "id": 6492805472,
-        "type": "node",
-        "lat": 43.1501139,
-        "lon": -77.5890773,
-        "name": "Bacco's Ristorante",
-        "category": "restaurant"
-      },
-      {
-        "id": 640293521,
-        "type": "way",
-        "lat": 43.1463666,
-        "lon": -77.5930824,
-        "name": "Bachelor Forum",
         "category": "restaurant"
       },
       {
@@ -1221,6 +2350,558 @@
         "lon": -77.6067947,
         "name": "Bill Gray's",
         "category": "restaurant"
+      },
+      {
+        "id": 1678959879,
+        "type": "node",
+        "lat": 43.1651334,
+        "lon": -77.660393,
+        "name": "Bill's Diner",
+        "category": "restaurant"
+      },
+      {
+        "id": 13140921602,
+        "type": "node",
+        "lat": 43.1636453,
+        "lon": -77.5874904,
+        "name": "Bitter Honey",
+        "category": "restaurant"
+      },
+      {
+        "id": 1244209193,
+        "type": "way",
+        "lat": 43.0877117,
+        "lon": -77.6211331,
+        "name": "BJ's",
+        "category": "restaurant"
+      },
+      {
+        "id": 5764259528,
+        "type": "node",
+        "lat": 43.0888646,
+        "lon": -77.6092743,
+        "name": "Blaze Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 261552107,
+        "type": "way",
+        "lat": 43.1433781,
+        "lon": -77.7085839,
+        "name": "BLU Bar and Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 13145210102,
+        "type": "node",
+        "lat": 43.2128013,
+        "lon": -77.7183643,
+        "name": "Blue Ridge Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 6410628900,
+        "type": "node",
+        "lat": 43.1481187,
+        "lon": -77.5781377,
+        "name": "Blue Wolf Bistro",
+        "category": "restaurant"
+      },
+      {
+        "id": 2351733082,
+        "type": "node",
+        "lat": 43.0741386,
+        "lon": -77.6085803,
+        "name": "Bob's Diner",
+        "category": "restaurant"
+      },
+      {
+        "id": 7248921206,
+        "type": "node",
+        "lat": 43.1737799,
+        "lon": -77.6073459,
+        "name": "Bobo's Chicken Shack",
+        "category": "restaurant"
+      },
+      {
+        "id": 1928072929,
+        "type": "node",
+        "lat": 43.1460775,
+        "lon": -77.6023795,
+        "name": "Boulder Coffee House",
+        "category": "restaurant"
+      },
+      {
+        "id": 936996917,
+        "type": "node",
+        "lat": 43.0611423,
+        "lon": -77.4765385,
+        "name": "Branca",
+        "category": "restaurant"
+      },
+      {
+        "id": 5762652619,
+        "type": "node",
+        "lat": 43.1558063,
+        "lon": -77.6048541,
+        "name": "Branca",
+        "category": "restaurant"
+      },
+      {
+        "id": 6410549912,
+        "type": "node",
+        "lat": 43.1549759,
+        "lon": -77.5947101,
+        "name": "Brass Bar & Lounge",
+        "category": "restaurant"
+      },
+      {
+        "id": 3234319937,
+        "type": "node",
+        "lat": 43.0903548,
+        "lon": -77.5157951,
+        "name": "Breathe Yoga",
+        "category": "restaurant"
+      },
+      {
+        "id": 1173725224,
+        "type": "node",
+        "lat": 43.0838476,
+        "lon": -77.6747672,
+        "name": "Brick City Café",
+        "category": "restaurant"
+      },
+      {
+        "id": 6410537441,
+        "type": "node",
+        "lat": 43.1498238,
+        "lon": -77.5991473,
+        "name": "Brickwood Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 406876355,
+        "type": "way",
+        "lat": 43.1498986,
+        "lon": -77.5991232,
+        "name": "Brickwood Grill",
+        "category": "restaurant"
+      },
+      {
+        "id": 2705961048,
+        "type": "node",
+        "lat": 43.0878478,
+        "lon": -77.6078419,
+        "name": "Brooklyn Joes",
+        "category": "restaurant"
+      },
+      {
+        "id": 5473298923,
+        "type": "node",
+        "lat": 43.1322958,
+        "lon": -77.6355984,
+        "name": "Brooks Landing Diner",
+        "category": "restaurant"
+      },
+      {
+        "id": 1247249650,
+        "type": "node",
+        "lat": 43.1575262,
+        "lon": -77.5876677,
+        "name": "Brown Hound Downtown",
+        "category": "restaurant"
+      },
+      {
+        "id": 12709982401,
+        "type": "node",
+        "lat": 43.1525737,
+        "lon": -77.5061274,
+        "name": "Browncroft Family Restaurant",
+        "category": "restaurant"
+      },
+      {
+        "id": 13160594501,
+        "type": "node",
+        "lat": 43.2541624,
+        "lon": -77.6995846,
+        "name": "Bru Kitchen & Sports Bar",
+        "category": "restaurant"
+      },
+      {
+        "id": 5502378969,
+        "type": "node",
+        "lat": 43.2057998,
+        "lon": -77.667079,
+        "name": "Buffalo Wild Wings",
+        "category": "restaurant"
+      },
+      {
+        "id": 11223279092,
+        "type": "node",
+        "lat": 43.2109444,
+        "lon": -77.4525953,
+        "name": "Buffalo Wild Wings",
+        "category": "restaurant"
+      },
+      {
+        "id": 324770350,
+        "type": "way",
+        "lat": 43.2033116,
+        "lon": -77.4954158,
+        "name": "Buntsy's Neighborhood Food and Drink",
+        "category": "restaurant"
+      },
+      {
+        "id": 8493092356,
+        "type": "node",
+        "lat": 43.1549548,
+        "lon": -77.6166784,
+        "name": "Busy Bee Restaurant",
+        "category": "restaurant"
+      },
+      {
+        "id": 924831379,
+        "type": "node",
+        "lat": 43.1474778,
+        "lon": -77.5759519,
+        "name": "Cafe Sasso",
+        "category": "restaurant"
+      },
+      {
+        "id": 483817903,
+        "type": "way",
+        "lat": 43.1507184,
+        "lon": -77.5901468,
+        "name": "Calabresella's on Park",
+        "category": "restaurant"
+      },
+      {
+        "id": 2884228689,
+        "type": "node",
+        "lat": 43.1507213,
+        "lon": -77.5901791,
+        "name": "Calabresella's on Park",
+        "category": "restaurant"
+      },
+      {
+        "id": 13469646151,
+        "type": "node",
+        "lat": 43.2322926,
+        "lon": -77.5417743,
+        "name": "California Cafe",
+        "category": "restaurant"
+      },
+      {
+        "id": 5365207037,
+        "type": "node",
+        "lat": 43.094344,
+        "lon": -77.6142077,
+        "name": "Cam's Pizzeria",
+        "category": "restaurant"
+      },
+      {
+        "id": 589970908,
+        "type": "way",
+        "lat": 43.2105186,
+        "lon": -77.5973226,
+        "name": "Cam's Pizzeria",
+        "category": "restaurant"
+      },
+      {
+        "id": 402664651,
+        "type": "way",
+        "lat": 43.1234302,
+        "lon": -77.6442809,
+        "name": "Campi's",
+        "category": "restaurant"
+      },
+      {
+        "id": 203048080,
+        "type": "way",
+        "lat": 43.1461409,
+        "lon": -77.712866,
+        "name": "Canton Eatery",
+        "category": "restaurant"
+      },
+      {
+        "id": 3218155726,
+        "type": "node",
+        "lat": 43.1295055,
+        "lon": -77.4766431,
+        "name": "Capones Italian Eatery",
+        "category": "restaurant"
+      },
+      {
+        "id": 685289414,
+        "type": "way",
+        "lat": 43.1587743,
+        "lon": -77.5486093,
+        "name": "Captain Jim's Fish Market",
+        "category": "restaurant"
+      },
+      {
+        "id": 13217886288,
+        "type": "node",
+        "lat": 43.1529657,
+        "lon": -77.5514892,
+        "name": "Captain Tony's Pizza & Pasta Emporium",
+        "category": "restaurant"
+      },
+      {
+        "id": 125920658,
+        "type": "way",
+        "lat": 43.0862933,
+        "lon": -77.636257,
+        "name": "Carabala's",
+        "category": "restaurant"
+      },
+      {
+        "id": 277011287,
+        "type": "way",
+        "lat": 43.1005824,
+        "lon": -77.460081,
+        "name": "Caraglio's Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 7833959527,
+        "type": "node",
+        "lat": 43.1640961,
+        "lon": -77.7319492,
+        "name": "Caraglio's Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 11933479345,
+        "type": "node",
+        "lat": 43.2016168,
+        "lon": -77.4960745,
+        "name": "Caraglio's Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 4881267921,
+        "type": "node",
+        "lat": 43.2173259,
+        "lon": -77.7342282,
+        "name": "Caraglio's Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 1499544213,
+        "type": "node",
+        "lat": 43.2537005,
+        "lon": -77.7149039,
+        "name": "Caraglio's Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 6541218342,
+        "type": "node",
+        "lat": 43.2546678,
+        "lon": -77.7320609,
+        "name": "Carbone's Pizzeria",
+        "category": "restaurant"
+      },
+      {
+        "id": 10184129509,
+        "type": "node",
+        "lat": 43.1582753,
+        "lon": -77.58581,
+        "name": "Carnegie Cellars",
+        "category": "restaurant"
+      },
+      {
+        "id": 539697680,
+        "type": "way",
+        "lat": 43.140937,
+        "lon": -77.60507,
+        "name": "Caverly's",
+        "category": "restaurant"
+      },
+      {
+        "id": 13733425375,
+        "type": "node",
+        "lat": 43.1435502,
+        "lon": -77.5878066,
+        "name": "Cedar",
+        "category": "restaurant"
+      },
+      {
+        "id": 267164116,
+        "type": "way",
+        "lat": 43.2781935,
+        "lon": -77.6537881,
+        "name": "Char Broil House Food & Spirit",
+        "category": "restaurant"
+      },
+      {
+        "id": 13208509249,
+        "type": "node",
+        "lat": 43.1546151,
+        "lon": -77.5894368,
+        "name": "Char Steak & Lounge",
+        "category": "restaurant"
+      },
+      {
+        "id": 421701178,
+        "type": "way",
+        "lat": 43.1183786,
+        "lon": -77.555019,
+        "name": "Charbroil Family Restaurant",
+        "category": "restaurant"
+      },
+      {
+        "id": 691846711,
+        "type": "way",
+        "lat": 43.1309064,
+        "lon": -77.4893336,
+        "name": "Charley Brown's Restaurant",
+        "category": "restaurant"
+      },
+      {
+        "id": 306154190,
+        "type": "way",
+        "lat": 43.188544,
+        "lon": -77.5053964,
+        "name": "Charlie's",
+        "category": "restaurant"
+      },
+      {
+        "id": 341294672,
+        "type": "way",
+        "lat": 43.2435218,
+        "lon": -77.6183356,
+        "name": "Charlotte Tavern",
+        "category": "restaurant"
+      },
+      {
+        "id": 2612246314,
+        "type": "node",
+        "lat": 43.1477814,
+        "lon": -77.5769977,
+        "name": "Cheese Masters",
+        "category": "restaurant"
+      },
+      {
+        "id": 12195538446,
+        "type": "node",
+        "lat": 43.0732294,
+        "lon": -77.6090257,
+        "name": "Chef King Chinese Restaraunt",
+        "category": "restaurant"
+      },
+      {
+        "id": 1064286075,
+        "type": "node",
+        "lat": 43.1295373,
+        "lon": -77.5675643,
+        "name": "Chen Garden",
+        "category": "restaurant"
+      },
+      {
+        "id": 858259778,
+        "type": "way",
+        "lat": 43.1644867,
+        "lon": -77.5887505,
+        "name": "Cherry's European",
+        "category": "restaurant"
+      },
+      {
+        "id": 2612246322,
+        "type": "node",
+        "lat": 43.1476874,
+        "lon": -77.5769031,
+        "name": "Chester Cab Pizza",
+        "category": "restaurant"
+      },
+      {
+        "id": 6421530351,
+        "type": "node",
+        "lat": 43.1578649,
+        "lon": -77.5983711,
+        "name": "Chick'n Out",
+        "category": "restaurant"
+      },
+      {
+        "id": 567183808,
+        "type": "way",
+        "lat": 43.141571,
+        "lon": -77.6612487,
+        "name": "Chili Family Diner",
+        "category": "restaurant"
+      },
+      {
+        "id": 6431599700,
+        "type": "node",
+        "lat": 43.2149565,
+        "lon": -77.7310543,
+        "name": "Chili's",
+        "category": "restaurant"
+      },
+      {
+        "id": 8786032451,
+        "type": "node",
+        "lat": 43.0892658,
+        "lon": -77.6455416,
+        "name": "China Buffet",
+        "category": "restaurant"
+      },
+      {
+        "id": 1439406470,
+        "type": "way",
+        "lat": 43.1506557,
+        "lon": -77.552201,
+        "name": "China Garden Kitchen",
+        "category": "restaurant"
+      },
+      {
+        "id": 1469230049,
+        "type": "way",
+        "lat": 43.1522596,
+        "lon": -77.6286985,
+        "name": "China Star",
+        "category": "restaurant"
+      },
+      {
+        "id": 814632971,
+        "type": "node",
+        "lat": 43.1052621,
+        "lon": -77.6175692,
+        "name": "Chopsticks",
+        "category": "restaurant"
+      },
+      {
+        "id": 13168437301,
+        "type": "node",
+        "lat": 43.158847,
+        "lon": -77.5821697,
+        "name": "Chortke",
+        "category": "restaurant"
+      },
+      {
+        "id": 562679108,
+        "type": "way",
+        "lat": 43.2120914,
+        "lon": -77.7121358,
+        "name": "Chuck E. Cheese",
+        "category": "restaurant"
+      },
+      {
+        "id": 1387016838,
+        "type": "way",
+        "lat": 43.115705,
+        "lon": -77.6216445,
+        "name": "Chuy's Taqueria",
+        "category": "restaurant"
+      },
+      {
+        "id": 8785949884,
+        "type": "node",
+        "lat": 43.1601139,
+        "lon": -77.5580542,
+        "name": "Clownboy Coffee",
+        "category": "restaurant"
       }
     ],
     "education": [
@@ -1283,7 +2964,7 @@
       {
         "id": 545063979,
         "type": "way",
-        "lat": 43.110462,
+        "lat": 43.1104615,
         "lon": -77.4842235,
         "name": "Bird/Morgan School",
         "category": "education"
@@ -1393,6 +3074,14 @@
         "category": "education"
       },
       {
+        "id": 13712353702,
+        "type": "node",
+        "lat": 43.240472,
+        "lon": -77.5932766,
+        "name": "Colebrook Elementary School",
+        "category": "education"
+      },
+      {
         "id": 1064505888,
         "type": "way",
         "lat": 43.1307391,
@@ -1470,14 +3159,6 @@
         "lat": 43.107949,
         "lon": -77.4953847,
         "name": "East Rochester Union Free School",
-        "category": "education"
-      },
-      {
-        "id": 1244516757,
-        "type": "node",
-        "lat": 43.157092,
-        "lon": -77.6015958,
-        "name": "Eastman Community Music School (Messinger Hall)",
         "category": "education"
       },
       {
@@ -1622,6 +3303,566 @@
         "lat": 43.1425626,
         "lon": -77.5577768,
         "name": "Hiller School",
+        "category": "education"
+      },
+      {
+        "id": 580696587,
+        "type": "way",
+        "lat": 43.2030686,
+        "lon": -77.6895806,
+        "name": "Holmes Road School",
+        "category": "education"
+      },
+      {
+        "id": 357564962,
+        "type": "node",
+        "lat": 43.1647843,
+        "lon": -77.6430579,
+        "name": "Holy Apostles School",
+        "category": "education"
+      },
+      {
+        "id": 447569246,
+        "type": "way",
+        "lat": 43.2523844,
+        "lon": -77.6118797,
+        "name": "Holy Cross School",
+        "category": "education"
+      },
+      {
+        "id": 1203292514,
+        "type": "way",
+        "lat": 43.1589139,
+        "lon": -77.6452857,
+        "name": "Holy Family School",
+        "category": "education"
+      },
+      {
+        "id": 357565116,
+        "type": "node",
+        "lat": 43.1378396,
+        "lon": -77.7352834,
+        "name": "Holy Ghost School",
+        "category": "education"
+      },
+      {
+        "id": 357565205,
+        "type": "node",
+        "lat": 43.1797842,
+        "lon": -77.6411136,
+        "name": "Holy Rosary School",
+        "category": "education"
+      },
+      {
+        "id": 1303615234,
+        "type": "way",
+        "lat": 43.203181,
+        "lon": -77.6709829,
+        "name": "Hoover Drive Junior High School",
+        "category": "education"
+      },
+      {
+        "id": 1205979091,
+        "type": "way",
+        "lat": 43.1504545,
+        "lon": -77.6947812,
+        "name": "Hope Hall School",
+        "category": "education"
+      },
+      {
+        "id": 357566060,
+        "type": "node",
+        "lat": 43.1464512,
+        "lon": -77.6172234,
+        "name": "Immaculate Conception School",
+        "category": "education"
+      },
+      {
+        "id": 883620564,
+        "type": "way",
+        "lat": 43.1430783,
+        "lon": -77.5273978,
+        "name": "Indian Landing Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 13712353740,
+        "type": "node",
+        "lat": 43.2404713,
+        "lon": -77.5950444,
+        "name": "Iroquois Middle School",
+        "category": "education"
+      },
+      {
+        "id": 591832164,
+        "type": "way",
+        "lat": 43.205511,
+        "lon": -77.5668321,
+        "name": "Ivan Green Primary School",
+        "category": "education"
+      },
+      {
+        "id": 539310871,
+        "type": "way",
+        "lat": 43.0907285,
+        "lon": -77.46474,
+        "name": "Jefferson Avenue Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 891111162,
+        "type": "way",
+        "lat": 43.0805837,
+        "lon": -77.5118048,
+        "name": "Jefferson Road Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 8986545876,
+        "type": "node",
+        "lat": 43.1459232,
+        "lon": -77.6347993,
+        "name": "Joseph C. Wilson Foundation Academy",
+        "category": "education"
+      },
+      {
+        "id": 357567663,
+        "type": "node",
+        "lat": 43.2011733,
+        "lon": -77.5866672,
+        "name": "Karlan School",
+        "category": "education"
+      },
+      {
+        "id": 203051528,
+        "type": "way",
+        "lat": 43.1524531,
+        "lon": -77.6816386,
+        "name": "Kings Preparatory High School",
+        "category": "education"
+      },
+      {
+        "id": 1272586922,
+        "type": "way",
+        "lat": 43.2593176,
+        "lon": -77.682447,
+        "name": "Kirk Road Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 504238313,
+        "type": "way",
+        "lat": 43.227932,
+        "lon": -77.4568941,
+        "name": "Klem Road Schools",
+        "category": "education"
+      },
+      {
+        "id": 264944289,
+        "type": "way",
+        "lat": 43.0547579,
+        "lon": -77.6486693,
+        "name": "Konica Minolta Business Solutions",
+        "category": "education"
+      },
+      {
+        "id": 817322168,
+        "type": "way",
+        "lat": 43.2490928,
+        "lon": -77.6005302,
+        "name": "Lake View",
+        "category": "education"
+      },
+      {
+        "id": 1205979079,
+        "type": "way",
+        "lat": 43.2542206,
+        "lon": -77.6434706,
+        "name": "Lakeshore Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 402394377,
+        "type": "way",
+        "lat": 43.1177562,
+        "lon": -77.623469,
+        "name": "Lattimore Building/URMC",
+        "category": "education"
+      },
+      {
+        "id": 970184317,
+        "type": "way",
+        "lat": 43.1869427,
+        "lon": -77.551209,
+        "name": "Laurelton-Pardee Intermediate School",
+        "category": "education"
+      },
+      {
+        "id": 1279918053,
+        "type": "way",
+        "lat": 43.2465412,
+        "lon": -77.6206327,
+        "name": "Leadership Academy for Young Men",
+        "category": "education"
+      },
+      {
+        "id": 357569111,
+        "type": "node",
+        "lat": 43.1895067,
+        "lon": -77.577778,
+        "name": "Lincoln School",
+        "category": "education"
+      },
+      {
+        "id": 970181118,
+        "type": "way",
+        "lat": 43.217173,
+        "lon": -77.5931825,
+        "name": "Listwood Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1170860944,
+        "type": "way",
+        "lat": 43.2266827,
+        "lon": -77.6556325,
+        "name": "Longridge School",
+        "category": "education"
+      },
+      {
+        "id": 1019641327,
+        "type": "way",
+        "lat": 43.0770739,
+        "lon": -77.4480778,
+        "name": "Martha Brown Middle School",
+        "category": "education"
+      },
+      {
+        "id": 51067264,
+        "type": "way",
+        "lat": 43.1242309,
+        "lon": -77.5908046,
+        "name": "McQuaid Jesuit High School",
+        "category": "education"
+      },
+      {
+        "id": 891001834,
+        "type": "way",
+        "lat": 43.0688861,
+        "lon": -77.524497,
+        "name": "Mendon Center Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 165788637,
+        "type": "way",
+        "lat": 43.0898828,
+        "lon": -77.4508878,
+        "name": "Minerva DeLand Junior High School",
+        "category": "education"
+      },
+      {
+        "id": 108525680,
+        "type": "way",
+        "lat": 43.1012451,
+        "lon": -77.6083858,
+        "name": "Monroe Community College",
+        "category": "education"
+      },
+      {
+        "id": 531180966,
+        "type": "way",
+        "lat": 43.1602342,
+        "lon": -77.6195367,
+        "name": "Monroe Community College Downtown Campus",
+        "category": "education"
+      },
+      {
+        "id": 357571888,
+        "type": "node",
+        "lat": 43.1475624,
+        "lon": -77.5966671,
+        "name": "Monroe Junior High School",
+        "category": "education"
+      },
+      {
+        "id": 8986545734,
+        "type": "node",
+        "lat": 43.1679825,
+        "lon": -77.5949326,
+        "name": "Montessori Academy School No. 53",
+        "category": "education"
+      },
+      {
+        "id": 357572347,
+        "type": "node",
+        "lat": 43.1645067,
+        "lon": -77.5977785,
+        "name": "Mount Carmel School",
+        "category": "education"
+      },
+      {
+        "id": 1279863244,
+        "type": "way",
+        "lat": 43.1776378,
+        "lon": -77.7558643,
+        "name": "Munn Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 8986545733,
+        "type": "node",
+        "lat": 43.1690661,
+        "lon": -77.5943382,
+        "name": "Nathaniel Hawthorne School No. 25",
+        "category": "education"
+      },
+      {
+        "id": 357572922,
+        "type": "node",
+        "lat": 43.1837974,
+        "lon": -77.6333923,
+        "name": "Nazareth Academy",
+        "category": "education"
+      },
+      {
+        "id": 552084975,
+        "type": "way",
+        "lat": 43.1920811,
+        "lon": -77.6331651,
+        "name": "Nazareth Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 357572931,
+        "type": "node",
+        "lat": 43.1867287,
+        "lon": -77.6341689,
+        "name": "Nazareth Hall School",
+        "category": "education"
+      },
+      {
+        "id": 302524883,
+        "type": "way",
+        "lat": 43.1026062,
+        "lon": -77.5200611,
+        "name": "Nazareth University",
+        "category": "education"
+      },
+      {
+        "id": 1491273724,
+        "type": "way",
+        "lat": 43.1625893,
+        "lon": -77.7155544,
+        "name": "Neil Armstrong School",
+        "category": "education"
+      },
+      {
+        "id": 992410078,
+        "type": "way",
+        "lat": 43.0785767,
+        "lon": -77.583558,
+        "name": "Norman Howard School",
+        "category": "education"
+      },
+      {
+        "id": 1279783276,
+        "type": "way",
+        "lat": 43.1688389,
+        "lon": -77.6982389,
+        "name": "Northstar Christian Academy",
+        "category": "education"
+      },
+      {
+        "id": 972925290,
+        "type": "way",
+        "lat": 43.1806129,
+        "lon": -77.5649455,
+        "name": "Northwest Junior High at Douglass",
+        "category": "education"
+      },
+      {
+        "id": 1111900409,
+        "type": "way",
+        "lat": 43.2667572,
+        "lon": -77.734807,
+        "name": "Northwood Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 6120714000,
+        "type": "node",
+        "lat": 43.0875808,
+        "lon": -77.6002244,
+        "name": "NY Chiropractic College",
+        "category": "education"
+      },
+      {
+        "id": 1170877581,
+        "type": "way",
+        "lat": 43.2260532,
+        "lon": -77.6632637,
+        "name": "Odyssey Academy",
+        "category": "education"
+      },
+      {
+        "id": 357575717,
+        "type": "node",
+        "lat": 43.1311733,
+        "lon": -77.6519468,
+        "name": "Our Lady of Good Counsel School",
+        "category": "education"
+      },
+      {
+        "id": 91603508,
+        "type": "way",
+        "lat": 43.1469928,
+        "lon": -77.5380646,
+        "name": "Our Lady of Mercy School for Young Women",
+        "category": "education"
+      },
+      {
+        "id": 357575829,
+        "type": "node",
+        "lat": 43.1072849,
+        "lon": -77.5641655,
+        "name": "Our Lady Queen of Peace School",
+        "category": "education"
+      },
+      {
+        "id": 1275084490,
+        "type": "way",
+        "lat": 43.2517003,
+        "lon": -77.6613109,
+        "name": "Paddy Hill Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 785451299,
+        "type": "way",
+        "lat": 43.1886609,
+        "lon": -77.5980264,
+        "name": "Padilla High School at the Franklin Campus",
+        "category": "education"
+      },
+      {
+        "id": 1088641098,
+        "type": "way",
+        "lat": 43.0501186,
+        "lon": -77.4925805,
+        "name": "Park Road Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 1279863239,
+        "type": "way",
+        "lat": 43.1049393,
+        "lon": -77.7252394,
+        "name": "Paul Road School",
+        "category": "education"
+      },
+      {
+        "id": 202578975,
+        "type": "way",
+        "lat": 43.1563824,
+        "lon": -77.4824647,
+        "name": "Penfield Central School District",
+        "category": "education"
+      },
+      {
+        "id": 26331324,
+        "type": "way",
+        "lat": 43.1362496,
+        "lon": -77.4701869,
+        "name": "Penfield High School",
+        "category": "education"
+      },
+      {
+        "id": 488547162,
+        "type": "way",
+        "lat": 43.2137928,
+        "lon": -77.6865283,
+        "name": "Phoenix Academy",
+        "category": "education"
+      },
+      {
+        "id": 357576812,
+        "type": "node",
+        "lat": 43.1489514,
+        "lon": -77.5652771,
+        "name": "Phoenix School",
+        "category": "education"
+      },
+      {
+        "id": 1391354789,
+        "type": "way",
+        "lat": 43.2400136,
+        "lon": -77.7109256,
+        "name": "Pine Brook School",
+        "category": "education"
+      },
+      {
+        "id": 456447991,
+        "type": "way",
+        "lat": 43.0608782,
+        "lon": -77.5172308,
+        "name": "Pittsford Mendon High School",
+        "category": "education"
+      },
+      {
+        "id": 293610727,
+        "type": "way",
+        "lat": 43.0894913,
+        "lon": -77.5239093,
+        "name": "Pittsford Sutherland High School",
+        "category": "education"
+      },
+      {
+        "id": 362490161,
+        "type": "way",
+        "lat": 43.0638607,
+        "lon": -77.6981307,
+        "name": "RIT Gosnell Boathouse",
+        "category": "education"
+      },
+      {
+        "id": 6120713999,
+        "type": "node",
+        "lat": 43.0875983,
+        "lon": -77.6005004,
+        "name": "Roberts Wesleyan College",
+        "category": "education"
+      },
+      {
+        "id": 1104833257,
+        "type": "way",
+        "lat": 43.1393041,
+        "lon": -77.6795787,
+        "name": "Rochester Academy Charter Elementary School",
+        "category": "education"
+      },
+      {
+        "id": 357582521,
+        "type": "node",
+        "lat": 43.1470069,
+        "lon": -77.5661104,
+        "name": "Rochester Academy of Medicine",
+        "category": "education"
+      },
+      {
+        "id": 386285691,
+        "type": "node",
+        "lat": 43.1366688,
+        "lon": -77.6082629,
+        "name": "Rochester Childfirst Network",
+        "category": "education"
+      },
+      {
+        "id": 882174674,
+        "type": "way",
+        "lat": 43.1732534,
+        "lon": -77.5056797,
+        "name": "Rochester Christian School",
         "category": "education"
       }
     ],
@@ -2025,6 +4266,1120 @@
         "lon": -77.7057655,
         "name": "Unity Hospital",
         "category": "hospital"
+      },
+      {
+        "id": 558949198,
+        "type": "way",
+        "lat": 43.1229386,
+        "lon": -77.625386,
+        "name": "University of Rochester Medical Center Main Campus",
+        "category": "hospital"
+      },
+      {
+        "id": 8785934114,
+        "type": "node",
+        "lat": 43.1647424,
+        "lon": -77.6295026,
+        "name": "Unnamed POI",
+        "category": "hospital"
+      },
+      {
+        "id": 7650863895,
+        "type": "node",
+        "lat": 43.2515882,
+        "lon": -77.6936871,
+        "name": "UR Medicine Primary Care",
+        "category": "hospital"
+      },
+      {
+        "id": 548489758,
+        "type": "way",
+        "lat": 43.1135588,
+        "lon": -77.598535,
+        "name": "UR Medicine Sleep Disorders Center",
+        "category": "hospital"
+      },
+      {
+        "id": 293221992,
+        "type": "way",
+        "lat": 43.0875836,
+        "lon": -77.5944029,
+        "name": "UR Medicine Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 8786052964,
+        "type": "node",
+        "lat": 43.1011308,
+        "lon": -77.5358148,
+        "name": "UR Medicine Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 1290057143,
+        "type": "way",
+        "lat": 43.1965198,
+        "lon": -77.4996051,
+        "name": "UR Medicine Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 560208101,
+        "type": "way",
+        "lat": 43.2072108,
+        "lon": -77.6826519,
+        "name": "UR Medicine Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 2351730981,
+        "type": "node",
+        "lat": 43.0678653,
+        "lon": -77.6093278,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 11992961405,
+        "type": "node",
+        "lat": 43.1191785,
+        "lon": -77.6206353,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 9443636219,
+        "type": "node",
+        "lat": 43.1263401,
+        "lon": -77.5934623,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 2569953190,
+        "type": "node",
+        "lat": 43.1701946,
+        "lon": -77.7004831,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 11908374636,
+        "type": "node",
+        "lat": 43.1935704,
+        "lon": -77.6277785,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 11992961403,
+        "type": "node",
+        "lat": 43.1967665,
+        "lon": -77.5993938,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 5967590505,
+        "type": "node",
+        "lat": 43.2040631,
+        "lon": -77.5614403,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 1296380467,
+        "type": "node",
+        "lat": 43.2525852,
+        "lon": -77.6474259,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 1511957705,
+        "type": "node",
+        "lat": 43.254062,
+        "lon": -77.6971694,
+        "name": "Walgreens",
+        "category": "hospital"
+      },
+      {
+        "id": 266729716,
+        "type": "way",
+        "lat": 43.1650256,
+        "lon": -77.6864347,
+        "name": "WellNOW Urgent Care",
+        "category": "hospital"
+      },
+      {
+        "id": 548491164,
+        "type": "way",
+        "lat": 43.1142772,
+        "lon": -77.5983236,
+        "name": "Westfall Park Medical Center",
+        "category": "hospital"
+      }
+    ],
+    "attraction": [
+      {
+        "id": 11749343425,
+        "type": "node",
+        "lat": 43.1395575,
+        "lon": -77.5723029,
+        "name": "144 Million Gallons",
+        "category": "attraction"
+      },
+      {
+        "id": 562674897,
+        "type": "way",
+        "lat": 43.212644,
+        "lon": -77.7172749,
+        "name": "Adventure Landing",
+        "category": "attraction"
+      },
+      {
+        "id": 684420016,
+        "type": "node",
+        "lat": 43.2077606,
+        "lon": -77.6224904,
+        "name": "African Black-footed Penguin",
+        "category": "attraction"
+      },
+      {
+        "id": 684408310,
+        "type": "node",
+        "lat": 43.2097374,
+        "lon": -77.6208172,
+        "name": "African Elephant",
+        "category": "attraction"
+      },
+      {
+        "id": 1947522146,
+        "type": "node",
+        "lat": 43.207001,
+        "lon": -77.6236945,
+        "name": "African Spurred Tortoise",
+        "category": "attraction"
+      },
+      {
+        "id": 8786028698,
+        "type": "node",
+        "lat": 43.0898305,
+        "lon": -77.646144,
+        "name": "Altitude Trampoline Park",
+        "category": "attraction"
+      },
+      {
+        "id": 684408285,
+        "type": "node",
+        "lat": 43.2075159,
+        "lon": -77.622727,
+        "name": "Amar Tiger",
+        "category": "attraction"
+      },
+      {
+        "id": 7001559303,
+        "type": "node",
+        "lat": 43.1036063,
+        "lon": -77.6161575,
+        "name": "Amy Karch Memorial Garden",
+        "category": "attraction"
+      },
+      {
+        "id": 8786069731,
+        "type": "node",
+        "lat": 43.1453108,
+        "lon": -77.5910034,
+        "name": "Art Museum Of Rochester",
+        "category": "attraction"
+      },
+      {
+        "id": 1947522151,
+        "type": "node",
+        "lat": 43.206933,
+        "lon": -77.6237052,
+        "name": "Asian Rock Python",
+        "category": "attraction"
+      },
+      {
+        "id": 1947455389,
+        "type": "node",
+        "lat": 43.2062888,
+        "lon": -77.6240202,
+        "name": "Bald Eagle",
+        "category": "attraction"
+      },
+      {
+        "id": 538922865,
+        "type": "way",
+        "lat": 43.2338096,
+        "lon": -77.5426063,
+        "name": "Bobsleds",
+        "category": "attraction"
+      },
+      {
+        "id": 6373318066,
+        "type": "node",
+        "lat": 43.2338199,
+        "lon": -77.5429401,
+        "name": "Bobsleds",
+        "category": "attraction"
+      },
+      {
+        "id": 2924037778,
+        "type": "node",
+        "lat": 43.1530145,
+        "lon": -77.6249652,
+        "name": "Bread & Water Theatre",
+        "category": "attraction"
+      },
+      {
+        "id": 594354996,
+        "type": "way",
+        "lat": 43.1546175,
+        "lon": -77.6099922,
+        "name": "Broad Street Bridge",
+        "category": "attraction"
+      },
+      {
+        "id": 638436737,
+        "type": "way",
+        "lat": 43.1542965,
+        "lon": -77.6077125,
+        "name": "Central Library of Rochester & Monroe County",
+        "category": "attraction"
+      },
+      {
+        "id": 543434158,
+        "type": "way",
+        "lat": 43.2527437,
+        "lon": -77.610619,
+        "name": "Charlotte-Genesee Lighthouse",
+        "category": "attraction"
+      },
+      {
+        "id": 558720570,
+        "type": "way",
+        "lat": 43.1547314,
+        "lon": -77.6091955,
+        "name": "City of Rochester, NY",
+        "category": "attraction"
+      },
+      {
+        "id": 1697237985,
+        "type": "node",
+        "lat": 43.1534597,
+        "lon": -77.6053064,
+        "name": "Civil War monument",
+        "category": "attraction"
+      },
+      {
+        "id": 1947522156,
+        "type": "node",
+        "lat": 43.2077515,
+        "lon": -77.623018,
+        "name": "Cougar",
+        "category": "attraction"
+      },
+      {
+        "id": 10064402339,
+        "type": "node",
+        "lat": 43.0837164,
+        "lon": -77.6802398,
+        "name": "Cybersecurity Experience Center",
+        "category": "attraction"
+      },
+      {
+        "id": 8873518426,
+        "type": "node",
+        "lat": 43.10909,
+        "lon": -77.486864,
+        "name": "East Rochester Centennial Walk",
+        "category": "attraction"
+      },
+      {
+        "id": 639563762,
+        "type": "way",
+        "lat": 43.1610169,
+        "lon": -77.5911397,
+        "name": "Eastman Dental Dispensary Building",
+        "category": "attraction"
+      },
+      {
+        "id": 655020813,
+        "type": "way",
+        "lat": 43.1579213,
+        "lon": -77.6009643,
+        "name": "Eastman Theatre",
+        "category": "attraction"
+      },
+      {
+        "id": 6050138244,
+        "type": "node",
+        "lat": 43.2052081,
+        "lon": -77.5542595,
+        "name": "Eastridge High School Auditorium",
+        "category": "attraction"
+      },
+      {
+        "id": 5925376506,
+        "type": "node",
+        "lat": 43.1517175,
+        "lon": -77.5884032,
+        "name": "Eisenhart Auditorium",
+        "category": "attraction"
+      },
+      {
+        "id": 684408294,
+        "type": "node",
+        "lat": 43.2066484,
+        "lon": -77.6233239,
+        "name": "Emu",
+        "category": "attraction"
+      },
+      {
+        "id": 8873518427,
+        "type": "node",
+        "lat": 43.1090232,
+        "lon": -77.4869004,
+        "name": "First East Rochester School Bell",
+        "category": "attraction"
+      },
+      {
+        "id": 9917532572,
+        "type": "node",
+        "lat": 43.1436824,
+        "lon": -77.58916,
+        "name": "Flower City Arts",
+        "category": "attraction"
+      },
+      {
+        "id": 522280132,
+        "type": "node",
+        "lat": 43.1531296,
+        "lon": -77.5798264,
+        "name": "George Eastman Museum",
+        "category": "attraction"
+      },
+      {
+        "id": 108280719,
+        "type": "way",
+        "lat": 43.1524682,
+        "lon": -77.6050566,
+        "name": "Geva Theatre Center",
+        "category": "attraction"
+      },
+      {
+        "id": 8403933362,
+        "type": "node",
+        "lat": 43.2105326,
+        "lon": -77.6201734,
+        "name": "Giraffe",
+        "category": "attraction"
+      },
+      {
+        "id": 864321050,
+        "type": "way",
+        "lat": 43.1019148,
+        "lon": -77.5154975,
+        "name": "Glazer Music Performance Center",
+        "category": "attraction"
+      },
+      {
+        "id": 3122945403,
+        "type": "node",
+        "lat": 43.1156471,
+        "lon": -77.5121793,
+        "name": "Great Famine Monument",
+        "category": "attraction"
+      },
+      {
+        "id": 5264927328,
+        "type": "node",
+        "lat": 43.2450469,
+        "lon": -77.6931883,
+        "name": "Greece Central Performing Arts Center",
+        "category": "attraction"
+      },
+      {
+        "id": 138358983,
+        "type": "way",
+        "lat": 43.259729,
+        "lon": -77.6972194,
+        "name": "Greece Historical Society",
+        "category": "attraction"
+      },
+      {
+        "id": 5107975423,
+        "type": "node",
+        "lat": 43.1947032,
+        "lon": -77.609589,
+        "name": "Halal markit turky",
+        "category": "attraction"
+      },
+      {
+        "id": 6056135690,
+        "type": "node",
+        "lat": 43.1604334,
+        "lon": -77.6038583,
+        "name": "Harro East Ballroom",
+        "category": "attraction"
+      },
+      {
+        "id": 11906433254,
+        "type": "node",
+        "lat": 43.1289694,
+        "lon": -77.6299999,
+        "name": "Hartnett Gallery",
+        "category": "attraction"
+      },
+      {
+        "id": 2470201935,
+        "type": "node",
+        "lat": 43.1582715,
+        "lon": -77.6005865,
+        "name": "Hatch Recital Hall",
+        "category": "attraction"
+      },
+      {
+        "id": 1422526932,
+        "type": "way",
+        "lat": 43.0667137,
+        "lon": -77.6230441,
+        "name": "Henry Hansen Ampitheatre",
+        "category": "attraction"
+      },
+      {
+        "id": 5502506673,
+        "type": "node",
+        "lat": 43.1611756,
+        "lon": -77.6166483,
+        "name": "High Falls Museum",
+        "category": "attraction"
+      },
+      {
+        "id": 117005466,
+        "type": "way",
+        "lat": 43.257727,
+        "lon": -77.6055541,
+        "name": "Historic Dentzel Carousel",
+        "category": "attraction"
+      },
+      {
+        "id": 108352066,
+        "type": "way",
+        "lat": 43.1559048,
+        "lon": -77.6157274,
+        "name": "Hochstein School of Music & Dance",
+        "category": "attraction"
+      },
+      {
+        "id": 10899902412,
+        "type": "node",
+        "lat": 43.1875721,
+        "lon": -77.6113524,
+        "name": "Home Plate (Silver Stadium)",
+        "category": "attraction"
+      },
+      {
+        "id": 2610562490,
+        "type": "node",
+        "lat": 43.1556003,
+        "lon": -77.5832123,
+        "name": "Image City Photography Gallery",
+        "category": "attraction"
+      },
+      {
+        "id": 6121005457,
+        "type": "node",
+        "lat": 43.083693,
+        "lon": -77.63606,
+        "name": "Indykart Raceway",
+        "category": "attraction"
+      },
+      {
+        "id": 1173725168,
+        "type": "node",
+        "lat": 43.0840941,
+        "lon": -77.6742964,
+        "name": "Ingle Auditorium",
+        "category": "attraction"
+      },
+      {
+        "id": 6018817897,
+        "type": "node",
+        "lat": 43.1590315,
+        "lon": -77.6199201,
+        "name": "Innovative Field Walk of Fame",
+        "category": "attraction"
+      },
+      {
+        "id": 543434159,
+        "type": "way",
+        "lat": 43.252765,
+        "lon": -77.6107683,
+        "name": "Keeper's House",
+        "category": "attraction"
+      },
+      {
+        "id": 357557774,
+        "type": "node",
+        "lat": 43.1574855,
+        "lon": -77.6013456,
+        "name": "Kilbourn Hall",
+        "category": "attraction"
+      },
+      {
+        "id": 552098732,
+        "type": "way",
+        "lat": 43.197646,
+        "lon": -77.6325853,
+        "name": "Kodak Center",
+        "category": "attraction"
+      },
+      {
+        "id": 1242669757,
+        "type": "node",
+        "lat": 43.1579405,
+        "lon": -77.6009568,
+        "name": "Kodak Hall at Eastman Theatre",
+        "category": "attraction"
+      },
+      {
+        "id": 5847432058,
+        "type": "node",
+        "lat": 43.0802426,
+        "lon": -77.6258816,
+        "name": "Lasertron",
+        "category": "attraction"
+      },
+      {
+        "id": 12115978293,
+        "type": "node",
+        "lat": 43.1577413,
+        "lon": -77.6047301,
+        "name": "Liberty Pole",
+        "category": "attraction"
+      },
+      {
+        "id": 684408308,
+        "type": "node",
+        "lat": 43.2090345,
+        "lon": -77.6217024,
+        "name": "Lion",
+        "category": "attraction"
+      },
+      {
+        "id": 638645907,
+        "type": "way",
+        "lat": 43.156221,
+        "lon": -77.610457,
+        "name": "Main Street Bridge",
+        "category": "attraction"
+      },
+      {
+        "id": 9913519773,
+        "type": "node",
+        "lat": 43.1576832,
+        "lon": -77.5883107,
+        "name": "Memorial Art Gallery",
+        "category": "attraction"
+      },
+      {
+        "id": 108277008,
+        "type": "way",
+        "lat": 43.1577059,
+        "lon": -77.5884545,
+        "name": "Memorial Art Gallery",
+        "category": "attraction"
+      },
+      {
+        "id": 2471523747,
+        "type": "node",
+        "lat": 43.1279286,
+        "lon": -77.6299407,
+        "name": "Meridian Marker",
+        "category": "attraction"
+      },
+      {
+        "id": 684408292,
+        "type": "node",
+        "lat": 43.2075733,
+        "lon": -77.623177,
+        "name": "Mexican Gray Wolf",
+        "category": "attraction"
+      },
+      {
+        "id": 1506930428,
+        "type": "node",
+        "lat": 43.1513425,
+        "lon": -77.6131349,
+        "name": "Monument to the Founders of Spiritualism",
+        "category": "attraction"
+      },
+      {
+        "id": 6440055685,
+        "type": "node",
+        "lat": 43.1581355,
+        "lon": -77.6211751,
+        "name": "Morrie Silver",
+        "category": "attraction"
+      },
+      {
+        "id": 1510905425,
+        "type": "node",
+        "lat": 43.1561687,
+        "lon": -77.5808427,
+        "name": "Multi Use Community Cultural Center",
+        "category": "attraction"
+      },
+      {
+        "id": 421700578,
+        "type": "way",
+        "lat": 43.1100359,
+        "lon": -77.5458751,
+        "name": "Nan Miller Gallery",
+        "category": "attraction"
+      },
+      {
+        "id": 5940092574,
+        "type": "node",
+        "lat": 43.1459734,
+        "lon": -77.6053151,
+        "name": "Nathaniel Square Dedication",
+        "category": "attraction"
+      },
+      {
+        "id": 108277015,
+        "type": "way",
+        "lat": 43.1525321,
+        "lon": -77.6010458,
+        "name": "National Museum of Play at The Strong",
+        "category": "attraction"
+      },
+      {
+        "id": 684408283,
+        "type": "node",
+        "lat": 43.2068938,
+        "lon": -77.6238646,
+        "name": "North American River Otter",
+        "category": "attraction"
+      },
+      {
+        "id": 7932640298,
+        "type": "node",
+        "lat": 43.0968987,
+        "lon": -77.5778806,
+        "name": "OFC Creations Theatre Center",
+        "category": "attraction"
+      },
+      {
+        "id": 1947452326,
+        "type": "node",
+        "lat": 43.2093229,
+        "lon": -77.6212023,
+        "name": "Olive Baboon",
+        "category": "attraction"
+      },
+      {
+        "id": 1954746090,
+        "type": "node",
+        "lat": 43.208443,
+        "lon": -77.6225264,
+        "name": "Owl",
+        "category": "attraction"
+      },
+      {
+        "id": 4721031401,
+        "type": "node",
+        "lat": 43.1590686,
+        "lon": -77.6690297,
+        "name": "Paley Studios",
+        "category": "attraction"
+      },
+      {
+        "id": 5925305478,
+        "type": "node",
+        "lat": 43.1562958,
+        "lon": -77.5691329,
+        "name": "Photo City Improv",
+        "category": "attraction"
+      },
+      {
+        "id": 684408298,
+        "type": "node",
+        "lat": 43.208437,
+        "lon": -77.6221318,
+        "name": "Polar Bear",
+        "category": "attraction"
+      },
+      {
+        "id": 1954746092,
+        "type": "node",
+        "lat": 43.2073596,
+        "lon": -77.6229206,
+        "name": "Raccoon",
+        "category": "attraction"
+      },
+      {
+        "id": 134651920,
+        "type": "way",
+        "lat": 43.1604959,
+        "lon": -77.5885245,
+        "name": "RBTL West Herr Auditorium Theatre",
+        "category": "attraction"
+      },
+      {
+        "id": 8403933599,
+        "type": "node",
+        "lat": 43.2072597,
+        "lon": -77.6231745,
+        "name": "Red Panda",
+        "category": "attraction"
+      },
+      {
+        "id": 12209064658,
+        "type": "node",
+        "lat": 43.157881,
+        "lon": -77.6050862,
+        "name": "RIT City Art Space",
+        "category": "attraction"
+      },
+      {
+        "id": 6141590927,
+        "type": "node",
+        "lat": 43.1569805,
+        "lon": -77.6084103,
+        "name": "Rochester Auto Museum",
+        "category": "attraction"
+      },
+      {
+        "id": 220617060,
+        "type": "way",
+        "lat": 43.1564089,
+        "lon": -77.6008349,
+        "name": "Rochester Contemporary Art Center",
+        "category": "attraction"
+      },
+      {
+        "id": 2610495442,
+        "type": "node",
+        "lat": 43.1524228,
+        "lon": -77.5600124,
+        "name": "Rochester Medical Museum and Archives",
+        "category": "attraction"
+      },
+      {
+        "id": 619023978,
+        "type": "way",
+        "lat": 43.1005656,
+        "lon": -77.6310743,
+        "name": "Rochester Movies 10",
+        "category": "attraction"
+      },
+      {
+        "id": 270109894,
+        "type": "node",
+        "lat": 43.1523864,
+        "lon": -77.5876579,
+        "name": "Rochester Museum and Science Center",
+        "category": "attraction"
+      },
+      {
+        "id": 5883937535,
+        "type": "node",
+        "lat": 43.1869711,
+        "lon": -77.5061777,
+        "name": "Royal Dynasty",
+        "category": "attraction"
+      },
+      {
+        "id": 108280712,
+        "type": "way",
+        "lat": 43.1541158,
+        "lon": -77.608351,
+        "name": "Rundel Memorial Library",
+        "category": "attraction"
+      },
+      {
+        "id": 552084921,
+        "type": "way",
+        "lat": 43.1936099,
+        "lon": -77.6328866,
+        "name": "Sacred Heart Garden",
+        "category": "attraction"
+      },
+      {
+        "id": 1947522164,
+        "type": "node",
+        "lat": 43.2079337,
+        "lon": -77.6228055,
+        "name": "Sandhill Crane",
+        "category": "attraction"
+      },
+      {
+        "id": 684408296,
+        "type": "node",
+        "lat": 43.2081823,
+        "lon": -77.6223651,
+        "name": "Sea Lion",
+        "category": "attraction"
+      },
+      {
+        "id": 538934158,
+        "type": "way",
+        "lat": 43.2324722,
+        "lon": -77.5431438,
+        "name": "Seabreeze",
+        "category": "attraction"
+      },
+      {
+        "id": 261988851,
+        "type": "way",
+        "lat": 43.2316324,
+        "lon": -77.5423009,
+        "name": "Seabreeze Amusement Park",
+        "category": "attraction"
+      },
+      {
+        "id": 538934159,
+        "type": "way",
+        "lat": 43.2323345,
+        "lon": -77.5432164,
+        "name": "Seabreeze Stage",
+        "category": "attraction"
+      },
+      {
+        "id": 874823203,
+        "type": "node",
+        "lat": 43.1786657,
+        "lon": -77.6286549,
+        "name": "Seat of Forgetting and Remembering",
+        "category": "attraction"
+      },
+      {
+        "id": 37609724,
+        "type": "way",
+        "lat": 43.2081979,
+        "lon": -77.621557,
+        "name": "Seneca Park Zoo",
+        "category": "attraction"
+      },
+      {
+        "id": 2825443717,
+        "type": "node",
+        "lat": 43.0827398,
+        "lon": -77.680465,
+        "name": "Shop One",
+        "category": "attraction"
+      },
+      {
+        "id": 894724137,
+        "type": "way",
+        "lat": 43.1279629,
+        "lon": -77.6321976,
+        "name": "Sloane Performing Arts Center",
+        "category": "attraction"
+      },
+      {
+        "id": 1947522166,
+        "type": "node",
+        "lat": 43.2063812,
+        "lon": -77.6239388,
+        "name": "Snow Leopard",
+        "category": "attraction"
+      },
+      {
+        "id": 684408287,
+        "type": "node",
+        "lat": 43.2073873,
+        "lon": -77.6232871,
+        "name": "Spotted Hyena",
+        "category": "attraction"
+      },
+      {
+        "id": 2610499670,
+        "type": "node",
+        "lat": 43.1398716,
+        "lon": -77.5421512,
+        "name": "Stone Tolan House",
+        "category": "attraction"
+      },
+      {
+        "id": 24880965,
+        "type": "way",
+        "lat": 43.1277928,
+        "lon": -77.6314752,
+        "name": "Strong Auditorium",
+        "category": "attraction"
+      },
+      {
+        "id": 1242662202,
+        "type": "node",
+        "lat": 43.1532425,
+        "lon": -77.6280045,
+        "name": "Susan B. Anthony House",
+        "category": "attraction"
+      },
+      {
+        "id": 8786026225,
+        "type": "node",
+        "lat": 43.1239917,
+        "lon": -77.6182295,
+        "name": "The Creators Hands",
+        "category": "attraction"
+      },
+      {
+        "id": 556876082,
+        "type": "way",
+        "lat": 43.1551769,
+        "lon": -77.5924894,
+        "name": "The Lyric Theater",
+        "category": "attraction"
+      },
+      {
+        "id": 108360410,
+        "type": "way",
+        "lat": 43.1545702,
+        "lon": -77.6125975,
+        "name": "Times Square Building",
+        "category": "attraction"
+      },
+      {
+        "id": 1954746093,
+        "type": "node",
+        "lat": 43.2051658,
+        "lon": -77.6236677,
+        "name": "Tortoise",
+        "category": "attraction"
+      },
+      {
+        "id": 6403412696,
+        "type": "node",
+        "lat": 43.0918381,
+        "lon": -77.5143654,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 5993442672,
+        "type": "node",
+        "lat": 43.1296411,
+        "lon": -77.6241478,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 107741653,
+        "type": "way",
+        "lat": 43.1328742,
+        "lon": -77.6099974,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 8626616579,
+        "type": "node",
+        "lat": 43.1417357,
+        "lon": -77.5758329,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 12186449822,
+        "type": "node",
+        "lat": 43.16081,
+        "lon": -77.6053427,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 5330821771,
+        "type": "node",
+        "lat": 43.1930787,
+        "lon": -77.6318644,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 4114527190,
+        "type": "node",
+        "lat": 43.2071033,
+        "lon": -77.6244925,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 8508746842,
+        "type": "node",
+        "lat": 43.2137341,
+        "lon": -77.719073,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 10795707043,
+        "type": "node",
+        "lat": 43.2313415,
+        "lon": -77.6569475,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 10795707044,
+        "type": "node",
+        "lat": 43.2313601,
+        "lon": -77.6558749,
+        "name": "Unnamed POI",
+        "category": "attraction"
+      },
+      {
+        "id": 11659981298,
+        "type": "node",
+        "lat": 43.1579177,
+        "lon": -77.6151151,
+        "name": "UUU Art Collective",
+        "category": "attraction"
+      },
+      {
+        "id": 2924036508,
+        "type": "node",
+        "lat": 43.1530159,
+        "lon": -77.6249409,
+        "name": "Village Idiots Improv Comedy",
+        "category": "attraction"
+      },
+      {
+        "id": 1954746094,
+        "type": "node",
+        "lat": 43.2065649,
+        "lon": -77.6233275,
+        "name": "Wallaby",
+        "category": "attraction"
+      },
+      {
+        "id": 857670599,
+        "type": "way",
+        "lat": 43.1323575,
+        "lon": -77.6117674,
+        "name": "Warner Castle",
+        "category": "attraction"
+      },
+      {
+        "id": 551543421,
+        "type": "way",
+        "lat": 43.1604443,
+        "lon": -77.5890234,
+        "name": "West Herr Performing Arts Center",
+        "category": "attraction"
+      },
+      {
+        "id": 5925477735,
+        "type": "node",
+        "lat": 43.1549152,
+        "lon": -77.6036308,
+        "name": "Xerox Auditorium",
+        "category": "attraction"
       }
     ]
   }

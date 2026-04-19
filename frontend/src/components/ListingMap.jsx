@@ -503,16 +503,14 @@ export default function ListingMap({ listings = [] }) {
   }, [allPOIs, adminScenics, hoveredListing])
 
   const restaurants = poisWithDist.filter((p) => {
-    if (p.source === 'admin_scenic')
-      return normalizeMapPoiCategory(p.category) === 'restaurant'
+    if (p.source === 'admin_scenic') return false // rendered exclusively by adminScenicsForMap
     return (
       p.category === 'restaurant' || p.category === 'cafe' ||
       p.category === 'fast_food' || p.category === 'bar'
     )
   })
   const attractions = poisWithDist.filter((p) => {
-    if (p.source === 'admin_scenic')
-      return normalizeMapPoiCategory(p.category) !== 'restaurant'
+    if (p.source === 'admin_scenic') return false // rendered exclusively by adminScenicsForMap
     return (
       p.category === 'attraction' || p.category === 'museum' ||
       p.category === 'gallery' || p.category === 'park'

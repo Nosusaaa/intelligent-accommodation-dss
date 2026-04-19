@@ -117,6 +117,16 @@ export default function Rank() {
                     <p className="mt-0.5 truncate text-xs text-slate-500">
                       {p.neighbourhood_cleansed || '—'}
                     </p>
+                    {p.breakdown && typeof p.breakdown === 'object' ? (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-teal-700">
+                          Score breakdown
+                        </summary>
+                        <pre className="mt-2 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] leading-relaxed text-slate-100">
+                          {JSON.stringify(p.breakdown, null, 2)}
+                        </pre>
+                      </details>
+                    ) : null}
                   </div>
                   <div className="shrink-0 text-right sm:ml-auto">
                     <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">

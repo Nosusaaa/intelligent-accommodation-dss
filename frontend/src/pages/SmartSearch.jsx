@@ -272,7 +272,7 @@ function MapPanel({
                 borderColor: SCENIC_MAP_STYLE.color,
               }}
             />
-            curated ({mapScenics?.length ?? 0})
+            curated ({(mapScenics || []).filter((p) => normalizeMapPoiCategory(p.category) === poiCategory).length})
           </span>
         </div>
       <div className="h-[320px] w-full sm:h-[380px]">
@@ -324,7 +324,7 @@ function MapPanel({
               </Popup>
             </CircleMarker>
           ))}
-          {(mapScenics || []).map((poi) => {
+          {(mapScenics || []).filter((p) => normalizeMapPoiCategory(p.category) === poiCategory).map((poi) => {
             const mapCat = normalizeMapPoiCategory(poi.category)
             const st = CATEGORY_POI_STYLE[mapCat] || SCENIC_MAP_STYLE
             return (

@@ -12,12 +12,10 @@ import AdminLogin from './pages/admin/AdminLogin.jsx'
 import DataSync from './pages/admin/DataSync.jsx'
 import ScenicManagement from './pages/admin/ScenicManagement.jsx'
 import StrategyConfig from './pages/admin/StrategyConfig.jsx'
-import UserData from './pages/admin/UserData.jsx'
 import Favorites from './pages/Favorites.jsx'
 import ForecastDashboard from './pages/ForecastDashboard.jsx'
 import PropertyDetails from './pages/PropertyDetails.jsx'
 import RadarCompare from './pages/RadarCompare.jsx'
-import Rank from './pages/Rank.jsx'
 import SmartSearch from './pages/SmartSearch.jsx'
 import SwipeOnboarding from './pages/SwipeOnboarding.jsx'
 
@@ -36,7 +34,6 @@ export default function App() {
                 <Route element={<UserLayout />}>
                   <Route path="/onboarding" element={<SwipeOnboarding />} />
                   <Route path="/search" element={<SmartSearch />} />
-                  <Route path="/rank" element={<Rank />} />
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/details/:id" element={<PropertyDetails />} />
@@ -49,7 +46,6 @@ export default function App() {
                   <Route path="sync" element={<DataSync />} />
                   <Route path="scenic" element={<ScenicManagement />} />
                   <Route path="strategy" element={<StrategyConfig />} />
-                  <Route path="users" element={<UserData />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
