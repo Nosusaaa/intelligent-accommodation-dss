@@ -323,9 +323,4 @@ export const api = {
     });
     return data;
   },
-
-  async clearAllData() {
-    const { data } = await client.delete("/admin/listings");
-    return data;
-  },
 };

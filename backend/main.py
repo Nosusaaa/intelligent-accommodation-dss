@@ -2274,29 +2274,3 @@ async def sync_upload_file(
         db.add(log)
         db.commit()
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
-
-
-@app.delete("/api/admin/listings")
-def clear_listings_data(
-    db: Annotated[Session, Depends(get_db)],
-) -> dict[str, Any]:
-    """Clear all listing-related data (for full sync reset)."""
-    from sqlalchemy import text as sql_text
-    
-    conn = db.connection()
-    tables = ["listings", "calendar", "monthly_metrics", "reviews", "listing_tags"]
-    deleted_counts = {}
-    
-    for table in tables:
-        try:
-            result = conn.exec_driver_sql(f"DELETE FROM {table}").row_count
-            deleted_counts[table] = result
-        except Exception:
-            deleted_counts[table] = 0
-    
-    db.commit()
-    
-    return {
-        "message": "All listing data cleared",
-        "deleted": deleted_counts,
-    }

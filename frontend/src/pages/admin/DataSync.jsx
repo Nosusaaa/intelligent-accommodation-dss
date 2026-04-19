@@ -126,7 +126,6 @@ export default function DataSync() {
   const [selectedFile, setSelectedFile] = useState(null)
   const [importResult, setImportResult] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [clearConfirm, setClearConfirm] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null) // { id, filename }
   const fileInputRef = useRef(null)
 
@@ -252,22 +251,6 @@ export default function DataSync() {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
-    }
-  }
-
-  const handleClearData = async () => {
-    if (!clearConfirm) {
-      setClearConfirm(true)
-      setTimeout(() => setClearConfirm(false), 5000)
-      return
-    }
-
-    try {
-      await api.clearAllData()
-      await loadData()
-      setClearConfirm(false)
-    } catch (err) {
-      console.error('Failed to clear data:', err)
     }
   }
 
@@ -519,27 +502,6 @@ export default function DataSync() {
           </div>
         </div>
       )}
-
-      {/* Danger Zone */}
-      <div className="rounded-xl border border-red-200 bg-white p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Trash2 className="h-5 w-5 text-red-600" />
-          <h2 className="text-lg font-semibold text-slate-900">Danger Zone</h2>
-        </div>
-        <p className="text-sm text-slate-600 mb-4">
-          Clear all listing data before a fresh import. This action cannot be undone.
-        </p>
-        <button
-          onClick={handleClearData}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-            clearConfirm
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-          }`}
-        >
-          {clearConfirm ? 'Click again to confirm' : 'Clear All Data'}
-        </button>
-      </div>
     </div>
   )
 }
