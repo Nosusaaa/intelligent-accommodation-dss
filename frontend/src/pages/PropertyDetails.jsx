@@ -127,60 +127,6 @@ function isSafeHttpUrl(raw) {
   }
 }
 
-function ExtractedReviewAccordionRow({
-  review,
-  borderLeftClass,
-  rowKey,
-  expandedKey,
-  onToggleKey,
-}) {
-  const isOpen = expandedKey === rowKey
-  const text = review.review_text_cleaned || '—'
-  return (
-    <li
-      className={[
-        'overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 shadow-sm',
-        borderLeftClass,
-      ].join(' ')}
-    >
-      <button
-        type="button"
-        className="flex w-full items-start justify-between gap-2 px-4 py-3 text-left transition hover:bg-slate-100/80"
-        onClick={() => onToggleKey((prev) => (prev === rowKey ? null : rowKey))}
-        aria-expanded={isOpen}
-        aria-controls={`extracted-review-body-${rowKey}`}
-      >
-        <div className="min-w-0 flex-1">
-          <span className="font-semibold text-slate-900">
-            {review.reviewer_name || 'Guest'}
-          </span>
-          <span className="mt-0.5 block text-xs text-slate-500">
-            {formatReviewDate(review.review_date)}
-          </span>
-          <span className="mt-1 block text-xs text-slate-500">
-            {isOpen ? 'Hide review text' : 'Show review text'}
-          </span>
-        </div>
-        <ChevronDown
-          className={[
-            'mt-0.5 h-5 w-5 shrink-0 text-slate-400 transition-transform',
-            isOpen ? 'rotate-180' : '',
-          ].join(' ')}
-          aria-hidden
-        />
-      </button>
-      {isOpen ? (
-        <p
-          id={`extracted-review-body-${rowKey}`}
-          className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700"
-        >
-          {text}
-        </p>
-      ) : null}
-    </li>
-  )
-}
-
 export default function PropertyDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -277,8 +223,6 @@ export default function PropertyDetails() {
   const [reviewTab, setReviewTab] = useState('positive')
   /** Post-stay review card: show dimension breakdown + comment only when expanded. */
   const [expandedStayReviewId, setExpandedStayReviewId] = useState(null)
-  /** Extracted reviews modal row key `${tab}-${id}` — body text shown on expand. */
-  const [expandedExtractedReviewKey, setExpandedExtractedReviewKey] = useState(null)
 
   const existingUserStayReview = useMemo(() => {
     if (!userId) return null
@@ -325,10 +269,6 @@ export default function PropertyDetails() {
     setActiveImage(0)
     setExpandedStayReviewId(null)
   }, [numericListingId])
-
-  useEffect(() => {
-    if (!reviewsOpen) setExpandedExtractedReviewKey(null)
-  }, [reviewsOpen])
 
   useEffect(() => {
     if (!displayImages.length) return
@@ -1010,14 +950,22 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       positiveReviews.map((r) => (
-                        <ExtractedReviewAccordionRow
+                        <li
                           key={r.id}
-                          review={r}
-                          borderLeftClass="border-l-4 border-l-teal-500"
-                          rowKey={`positive-${r.id}`}
-                          expandedKey={expandedExtractedReviewKey}
-                          onToggleKey={setExpandedExtractedReviewKey}
-                        />
+                          className="rounded-xl border border-slate-100 border-l-4 border-l-teal-500 bg-slate-50/50 px-4 py-4 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="font-semibold text-slate-900">
+                              {r.reviewer_name || 'Guest'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatReviewDate(r.review_date)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                            {r.review_text_cleaned || '—'}
+                          </p>
+                        </li>
                       ))
                     )}
                   </ul>
@@ -1047,14 +995,22 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       neutralReviews.map((r) => (
-                        <ExtractedReviewAccordionRow
+                        <li
                           key={r.id}
-                          review={r}
-                          borderLeftClass="border-l-4 border-l-slate-400"
-                          rowKey={`neutral-${r.id}`}
-                          expandedKey={expandedExtractedReviewKey}
-                          onToggleKey={setExpandedExtractedReviewKey}
-                        />
+                          className="rounded-xl border border-slate-100 border-l-4 border-l-slate-400 bg-slate-50/50 px-4 py-4 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="font-semibold text-slate-900">
+                              {r.reviewer_name || 'Guest'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatReviewDate(r.review_date)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                            {r.review_text_cleaned || '—'}
+                          </p>
+                        </li>
                       ))
                     )}
                   </ul>
@@ -1069,14 +1025,22 @@ export default function PropertyDetails() {
                       </li>
                     ) : (
                       negativeReviews.map((r) => (
-                        <ExtractedReviewAccordionRow
+                        <li
                           key={r.id}
-                          review={r}
-                          borderLeftClass="border-l-4 border-l-orange-400"
-                          rowKey={`negative-${r.id}`}
-                          expandedKey={expandedExtractedReviewKey}
-                          onToggleKey={setExpandedExtractedReviewKey}
-                        />
+                          className="rounded-xl border border-slate-100 border-l-4 border-l-orange-400 bg-slate-50/50 px-4 py-4 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="font-semibold text-slate-900">
+                              {r.reviewer_name || 'Guest'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatReviewDate(r.review_date)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                            {r.review_text_cleaned || '—'}
+                          </p>
+                        </li>
                       ))
                     )}
                   </ul>
