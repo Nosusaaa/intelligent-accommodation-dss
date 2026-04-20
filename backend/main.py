@@ -1864,6 +1864,7 @@ def admin_strategy_preview_ranking(
                 "id": li.get("id"),
                 "name": li.get("name"),
                 "neighbourhood_cleansed": li.get("neighbourhood_cleansed"),
+                "picture_url": li.get("picture_url"),
                 "score": item["score"],
                 "breakdown": item.get("breakdown"),
             }

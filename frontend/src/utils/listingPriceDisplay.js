@@ -17,9 +17,9 @@ export function getListingPriceNightly(priceClean) {
  *
  * @param {unknown} priceClean
  * @param {{ missingLabel?: string }} [opts]
- * @returns {string} e.g. `$129` or missing label (default `询价`).
+ * @returns {string} e.g. `$129` or missing label (default `-`).
  */
-export function formatListingPriceDisplay(priceClean, { missingLabel = '询价' } = {}) {
+export function formatListingPriceDisplay(priceClean, { missingLabel = '-' } = {}) {
   const n = getListingPriceNightly(priceClean)
   if (n == null) return missingLabel
   return `$${Math.round(n)}`
