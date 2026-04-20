@@ -12,6 +12,7 @@ import AdminLogin from './pages/admin/AdminLogin.jsx'
 import DataSync from './pages/admin/DataSync.jsx'
 import ScenicManagement from './pages/admin/ScenicManagement.jsx'
 import StrategyConfig from './pages/admin/StrategyConfig.jsx'
+import UserData from './pages/admin/UserData.jsx'
 import Favorites from './pages/Favorites.jsx'
 import ForecastDashboard from './pages/ForecastDashboard.jsx'
 import PropertyDetails from './pages/PropertyDetails.jsx'
@@ -46,6 +47,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Navigate to="sync" replace />} />
                   <Route path="sync" element={<DataSync />} />
+                  <Route path="users" element={<UserData />} />
                   <Route path="scenic" element={<ScenicManagement />} />
                   <Route path="strategy" element={<StrategyConfig />} />
                 </Route>
