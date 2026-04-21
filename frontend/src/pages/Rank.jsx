@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ListOrdered, Loader2 } from 'lucide-react'
+import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api'
 
 const PREVIEW_LIMIT = 20
@@ -8,6 +9,7 @@ const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80'
 
 export default function Rank() {
+  const { userId } = useUser()
   const [rows, setRows] = useState([])
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -40,6 +42,20 @@ export default function Rank() {
   useEffect(() => {
     load()
   }, [load])
+
+  if (!userId) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200 bg-amber-50 px-6 py-10 text-center">
+        <p className="text-slate-800">Sign in to view ranking.</p>
+        <Link
+          to="/guest-login"
+          className="mt-4 inline-block rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          Go to sign in
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
