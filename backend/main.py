@@ -1351,11 +1351,25 @@ def get_listing(
     return _listing_full(listing)
 
 
+def _year_month_label(raw: str | None) -> str:
+    if not raw:
+        return ""
+    s = str(raw)
+    if len(s) >= 7:
+        try:
+            y = int(s[:4])
+            m = int(s[5:7])
+            return datetime(y, m, 1).strftime("%b")
+        except Exception:
+            return s
+    return s
+
+
 @app.get("/api/listings/{listing_id}/forecast")
 def get_listing_forecast(
     listing_id: int,
     db: Annotated[Session, Depends(get_db)],
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     if db.get(Listing, listing_id) is None:
         raise HTTPException(status_code=404, detail="Listing not found")
 
@@ -1365,7 +1379,36 @@ def get_listing_forecast(
         .order_by(MonthlyMetric.year_month)
     )
     rows = db.scalars(stmt).all()
-    return [_monthly_metric_row(m) for m in rows]
+    metrics = [_monthly_metric_row(m) for m in rows]
+    normal_curve: list[dict[str, Any]] = []
+    monthly_details: list[dict[str, Any]] = []
+    for idx, m in enumerate(metrics):
+        month = _year_month_label(m.get("year_month")) or f"M{idx + 1}"
+        p_raw = m.get("avg_adjusted_price")
+        o_raw = m.get("occupancy_rate")
+        try:
+            price = float(p_raw) if p_raw is not None else None
+        except (TypeError, ValueError):
+            price = None
+        try:
+            occ = float(o_raw) if o_raw is not None else 0.0
+        except (TypeError, ValueError):
+            occ = 0.0
+        if price is None:
+            continue
+        normal_curve.append({"month": month, "price": round(price)})
+        monthly_details.append(
+            {
+                "month": month,
+                "price": round(price),
+                "occupancy": round(max(0.0, occ) * 100),
+            }
+        )
+    return {
+        "normal_curve": normal_curve,
+        "monthly_details": monthly_details,
+        "months_count": len(normal_curve),
+    }
 
 
 @app.get("/api/listings/{listing_id}/reviews")

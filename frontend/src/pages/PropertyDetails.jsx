@@ -799,15 +799,6 @@ export default function PropertyDetails() {
             </button>
           </section>
 
-          <div className="rounded-xl bg-teal-50 p-4 text-teal-900 shadow-sm ring-1 ring-teal-100/80">
-            <h3 className="text-sm font-semibold">Why recommended</h3>
-            <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-teal-800/90">
-              <li>Strong match to your quiet + walkable preferences</li>
-              <li>Price sits below similar waterfront comps</li>
-              <li>Sentiment skews positive on cleanliness and location</li>
-            </ul>
-          </div>
-
           <button
             type="button"
             onClick={() => navigate(`/forecast/${propertyId}`)}
