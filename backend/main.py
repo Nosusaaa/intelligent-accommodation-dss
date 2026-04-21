@@ -2148,6 +2148,8 @@ async def sync_upload_file(
 
             cols_str = ", ".join(columns)
             placeholders = ", ".join([f":{c}" for c in columns])
+            update_cols = [c for c in columns if c != "id"]
+            update_set = ", ".join([f"{c}=excluded.{c}" for c in update_cols])
             affected_ids = []
 
             for _, row in df[columns].iterrows():
@@ -2155,10 +2157,20 @@ async def sync_upload_file(
                 try:
                     if "id" in values and values["id"]:
                         affected_ids.append(int(values["id"]))
-                    conn.exec_driver_sql(
-                        f"INSERT OR REPLACE INTO listings ({cols_str}) VALUES ({placeholders})",
-                        values
-                    )
+                    if update_set:
+                        conn.exec_driver_sql(
+                            f"""
+                            INSERT INTO listings ({cols_str})
+                            VALUES ({placeholders})
+                            ON CONFLICT(id) DO UPDATE SET {update_set}
+                            """,
+                            values,
+                        )
+                    else:
+                        conn.exec_driver_sql(
+                            f"INSERT OR IGNORE INTO listings ({cols_str}) VALUES ({placeholders})",
+                            values,
+                        )
                     rows_processed += 1
                 except Exception:
                     pass

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, Loader2, X } from 'lucide-react'
 import { usePreference } from '../context/PreferenceContext.jsx'
+import { useUser } from '../context/UserContext.jsx'
 import { api } from '../services/api.js'
 import {
   formatListingPriceDisplay,
@@ -24,6 +25,7 @@ function parseVibeTags(raw) {
 export default function SwipeOnboarding() {
   const navigate = useNavigate()
   const { saveTopVibeTag } = usePreference()
+  const { userId, fetchProfile } = useUser()
 
   const [rooms, setRooms] = useState([])
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
@@ -68,18 +70,29 @@ export default function SwipeOnboarding() {
     const topTag = Object.keys(scores).length
       ? Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]
       : null
+    let resolvedTopTag = topTag
 
     // Persist to backend if user_id is available
-    const userId = sessionStorage.getItem('user_id')
     if (userId && Object.keys(scores).length > 0) {
       try {
-        await api.savePreferences({ user_id: Number(userId), tag_scores: scores })
+        const pref = await api.savePreferences({ user_id: Number(userId), tag_scores: scores })
+        const prefTopTag =
+          pref?.top_vibe_tag != null ? String(pref.top_vibe_tag).trim() : ''
+        if (prefTopTag) resolvedTopTag = prefTopTag
+
+        // Refresh user profile so `/search` reads the latest `profile.top_vibe_tag`.
+        const refreshedProfile = await fetchProfile(Number(userId))
+        const profileTopTag =
+          refreshedProfile?.top_vibe_tag != null
+            ? String(refreshedProfile.top_vibe_tag).trim()
+            : ''
+        if (profileTopTag) resolvedTopTag = profileTopTag
       } catch {
         // non-fatal: still navigate
       }
     }
 
-    saveTopVibeTag(topTag)
+    saveTopVibeTag(resolvedTopTag || null)
     navigate('/search')
   }
 

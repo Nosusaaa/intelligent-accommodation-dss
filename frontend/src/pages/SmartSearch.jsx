@@ -795,11 +795,8 @@ export default function SmartSearch() {
     if (!tag) return
     if (lastAutoAppliedVibeRef.current === tag) return
     lastAutoAppliedVibeRef.current = tag
-    setSelectedTags((prev) => {
-      const next = new Set(prev)
-      next.add(tag)
-      return next
-    })
+    // Keep Smart Search aligned with a single current user vibe when returning from retest/profile.
+    setSelectedTags(new Set([tag]))
   }, [resolvedVibeTag])
 
   useEffect(() => {
