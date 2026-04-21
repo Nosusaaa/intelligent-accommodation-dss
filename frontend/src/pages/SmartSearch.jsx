@@ -642,9 +642,9 @@ export default function SmartSearch() {
    * `GET /profile` `top_vibe_tag` once `profile.user_id` matches (avoid stale cache before fetch).
    */
   const resolvedVibeTag = useMemo(() => {
+    if (!userId) return null
     const fromSession =
       topVibeTag != null && String(topVibeTag).trim() ? String(topVibeTag).trim() : ''
-    if (!userId) return fromSession || null
     const pid = profile?.user_id != null ? Number(profile.user_id) : null
     const profileMatches = pid === Number(userId)
     if (!profileMatches) return null
