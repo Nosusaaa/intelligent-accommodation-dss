@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock3, Loader2 } from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -20,8 +20,7 @@ export default function ForecastDashboard() {
     : null
 
   const [listing, setListing] = useState(null)
-  const [normalCurve, setNormalCurve] = useState([])
-  const [monthlyDetails, setMonthlyDetails] = useState([])
+  const [forecast, setForecast] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -44,10 +43,7 @@ export default function ForecastDashboard() {
         ])
         if (!cancelled) {
           setListing(listingData)
-          setNormalCurve(Array.isArray(forecastData?.normal_curve) ? forecastData.normal_curve : [])
-          setMonthlyDetails(
-            Array.isArray(forecastData?.monthly_details) ? forecastData.monthly_details : [],
-          )
+          setForecast(Array.isArray(forecastData) ? forecastData : [])
         }
       } catch (err) {
         if (!cancelled) {
@@ -68,20 +64,118 @@ export default function ForecastDashboard() {
 
   /** Positive nightly from `price_clean`, or null — charts use a neutral scaffold when missing. */
   const nightlyPrice = getListingPriceNightly(listing?.price_clean)
-  const fallbackCurve = useMemo(() => {
-    const base = nightlyPrice ?? 100
-    return [
-      { month: 'Jan', price: Math.round(base * 0.95) },
-      { month: 'Feb', price: Math.round(base * 0.98) },
-      { month: 'Mar', price: Math.round(base) },
-      { month: 'Apr', price: Math.round(base * 1.02) },
-      { month: 'May', price: Math.round(base * 1.05) },
-      { month: 'Jun', price: Math.round(base * 1.08) },
-    ]
-  }, [nightlyPrice])
+  const chartScaffold = nightlyPrice ?? 100
 
-  const chartData = normalCurve.length > 0 ? normalCurve : fallbackCurve
-  const gradientId = `priceTrendFill-normal-${id ?? 'unknown'}`
+  // Derive scenario data from real monthly metrics
+  const scenarioData = useMemo(() => {
+    if (!forecast.length) {
+      // Fallback mock data when no real data available
+      return {
+        peak: [
+          { month: 'Jan', price: Math.round(chartScaffold * 1.25) },
+          { month: 'Feb', price: Math.round(chartScaffold * 1.28) },
+          { month: 'Mar', price: Math.round(chartScaffold * 1.32) },
+          { month: 'Apr', price: Math.round(chartScaffold * 1.35) },
+          { month: 'May', price: Math.round(chartScaffold * 1.40) },
+          { month: 'Jun', price: Math.round(chartScaffold * 1.45) },
+        ],
+        normal: [
+          { month: 'Jan', price: Math.round(chartScaffold * 0.95) },
+          { month: 'Feb', price: Math.round(chartScaffold * 0.98) },
+          { month: 'Mar', price: Math.round(chartScaffold * 1.0) },
+          { month: 'Apr', price: Math.round(chartScaffold * 1.02) },
+          { month: 'May', price: Math.round(chartScaffold * 1.05) },
+          { month: 'Jun', price: Math.round(chartScaffold * 1.08) },
+        ],
+        off: [
+          { month: 'Jan', price: Math.round(chartScaffold * 0.65) },
+          { month: 'Feb', price: Math.round(chartScaffold * 0.68) },
+          { month: 'Mar', price: Math.round(chartScaffold * 0.72) },
+          { month: 'Apr', price: Math.round(chartScaffold * 0.75) },
+          { month: 'May', price: Math.round(chartScaffold * 0.78) },
+          { month: 'Jun', price: Math.round(chartScaffold * 0.82) },
+        ],
+      }
+    }
+
+    // Use real data from monthly_metrics
+    const monthLabels = forecast.map((m) => {
+      const ym = String(m.year_month ?? '')
+      if (ym.length >= 7) {
+        const [, mnum] = ym.split('-')
+        const date = new Date(parseInt(ym.slice(0, 4), 10), parseInt(mnum, 10) - 1, 1)
+        return date.toLocaleDateString('en-US', { month: 'short' })
+      }
+      return ym
+    })
+
+    const prices = forecast.map((m) => {
+      const p = Number(m.avg_adjusted_price)
+      return Number.isFinite(p) ? p : (nightlyPrice ?? 0)
+    })
+
+    const avgPrice =
+      prices.reduce((a, b) => a + b, 0) / prices.length || (nightlyPrice ?? 0)
+
+    return {
+      peak: prices.map((p, i) => ({ month: monthLabels[i] || `M${i + 1}`, price: Number((p * 1.2).toFixed(2)) })),
+normal: prices.map((p, i) => ({ month: monthLabels[i] || `M${i + 1}`, price: Number(p.toFixed(2)) })),
+off: prices.map((p, i) => ({ month: monthLabels[i] || `M${i + 1}`, price: Number((p * 0.8).toFixed(2)) })),
+      realData: forecast.map((m, i) => ({
+        month: monthLabels[i] || `M${i + 1}`,
+        price: prices[i],
+        occupancy: Math.round((Number(m.occupancy_rate) || 0) * 100),
+      })),
+      avgPrice: Math.round(avgPrice),
+    }
+  }, [forecast, nightlyPrice, chartScaffold])
+
+  const [activeScenario, setActiveScenario] = useState('normal')
+
+  const chartData = scenarioData[activeScenario] || scenarioData.normal
+
+  // Generate buy/wait suggestion based on real data
+  const suggestion = useMemo(() => {
+    if (!forecast.length) {
+      return {
+        action: 'buy',
+        headline: 'Fair value window',
+        detail: 'Based on historical pricing patterns, this listing shows typical seasonal variation.',
+        confidence: 75,
+      }
+    }
+
+    const avgOccupancy = forecast.length > 0
+      ? forecast.reduce((sum, m) => sum + (Number(m.occupancy_rate) || 0), 0) / forecast.length
+      : 0
+    const avgPrice = scenarioData.avgPrice ?? nightlyPrice ?? 0
+    const listingNightly = nightlyPrice ?? 0
+
+    if (avgOccupancy > 0.75 || (listingNightly > avgPrice * 1.15)) {
+      return {
+        action: 'wait',
+        headline: 'Wait — prices are elevated',
+        detail: `Occupancy is high at ${Math.round(avgOccupancy * 100)}%. Prices may soften outside peak periods.`,
+        confidence: Math.round(70 + avgOccupancy * 20),
+      }
+    } else if (avgOccupancy < 0.45 || listingNightly < avgPrice * 0.85) {
+      return {
+        action: 'buy',
+        headline: 'Buy — strongest value',
+        detail: `Low season pricing detected. Occupancy ${Math.round(avgOccupancy * 100)}% — this is a great time to book.`,
+        confidence: Math.round(80 + (1 - avgOccupancy) * 15),
+      }
+    } else {
+      return {
+        action: 'buy',
+        headline: 'Buy — fair value window',
+        detail: `Stable market conditions with ${Math.round(avgOccupancy * 100)}% average occupancy. Current rate aligns with market average.`,
+        confidence: Math.round(75 + (0.6 - Math.abs(avgOccupancy - 0.6)) * 30),
+      }
+    }
+  }, [forecast, scenarioData, nightlyPrice])
+
+  const gradientId = `priceTrendFill-${activeScenario}-${id ?? 'unknown'}`
 
   if (loading) {
     return (
@@ -127,19 +221,49 @@ export default function ForecastDashboard() {
             Price trend & timing
           </h1>
         </div>
+        <div
+          className="inline-flex shrink-0 rounded-xl bg-slate-100 p-1 shadow-inner"
+          role="tablist"
+          aria-label="Scenario selection"
+        >
+          {[
+            { id: 'off', label: 'Off Season' },
+            { id: 'normal', label: 'Normal' },
+            { id: 'peak', label: 'Peak' },
+          ].map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={activeScenario === s.id}
+              onClick={() => setActiveScenario(s.id)}
+              className={[
+                'rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-300',
+                activeScenario === s.id
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900',
+              ].join(' ')}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-sm font-medium text-slate-900">Price trend</p>
-          {normalCurve.length > 0 && (
+          {forecast.length > 0 && (
             <p className="text-xs text-slate-500">
-              Real data from {normalCurve.length} months
+              Real data from {forecast.length} months
             </p>
           )}
         </div>
         <p className="mb-4 text-sm text-slate-500">
-          Projected nightly rate (USD) — scenario: <span className="font-medium text-slate-700">Normal</span>
+          Projected nightly rate (USD) — scenario:{' '}
+          <span className="font-medium text-slate-700">
+            {activeScenario === 'peak' ? 'Peak' : activeScenario === 'off' ? 'Off Season' : 'Normal'}
+          </span>
         </p>
         <div className="h-72 w-full sm:h-80">
           {chartData && chartData.length > 0 ? (
@@ -193,7 +317,50 @@ export default function ForecastDashboard() {
         </div>
       </div>
 
-      {monthlyDetails.length > 0 && (
+      <div
+        className={[
+          'rounded-2xl border p-6 shadow-sm sm:p-8',
+          suggestion.action === 'buy'
+            ? 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white'
+            : 'border-amber-200 bg-gradient-to-br from-amber-50 to-white',
+        ].join(' ')}
+      >
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            {suggestion.action === 'buy' ? (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+                <CheckCircle2 className="h-8 w-8" aria-hidden />
+              </span>
+            ) : (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/25">
+                <Clock3 className="h-8 w-8" aria-hidden />
+              </span>
+            )}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Buy / wait suggestion
+              </p>
+              <p
+                className={[
+                  'mt-1 text-2xl font-bold tracking-tight sm:text-3xl',
+                  suggestion.action === 'buy' ? 'text-emerald-900' : 'text-amber-900',
+                ].join(' ')}
+              >
+                {suggestion.headline}
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                {suggestion.detail}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 rounded-xl border border-slate-100 bg-white/80 px-4 py-3 text-center text-sm text-slate-600 shadow-sm">
+            <p className="font-semibold text-slate-900">Confidence</p>
+            <p className="mt-1 text-2xl font-bold text-teal-700">{Math.min(99, suggestion.confidence)}%</p>
+          </div>
+        </div>
+      </div>
+
+      {forecast.length > 0 && (
         <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
           <p className="mb-4 text-sm font-semibold text-slate-900">Monthly details</p>
           <div className="overflow-x-auto">
@@ -206,7 +373,7 @@ export default function ForecastDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {monthlyDetails.map((row, i) => (
+                {(scenarioData.realData || []).map((row, i) => (
                   <tr key={i} className="border-b border-slate-50 last:border-0">
                     <td className="py-2.5 pr-4 text-slate-700">{row.month}</td>
                     <td className="py-2.5 pr-4 text-right font-mono font-medium text-slate-900">
