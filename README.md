@@ -119,6 +119,10 @@ The production frontend build currently completes successfully. Some legacy and 
 
 This repository is an academic demonstration rather than a production booking platform. Authentication is local and does not issue JWT or session tokens, some comparison values are demonstration data, and there is currently no hosted public demo.
 
-## Author
+## Authors
 
-GitHub: [@AvaPeng-625](https://github.com/AvaPeng-625)
+This project was developed as a university team capstone. Contributions from the original team are preserved in the Git history.
+
+- [@Nosusaaa](https://github.com/Nosusaaa)
+- [@AvaPeng-625](https://github.com/AvaPeng-625)
+- [@OASISYX](https://github.com/OASISYX)
