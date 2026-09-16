@@ -163,20 +163,19 @@
 | GET  | `/api/map/pois`    | 以 bbox + `category` 查询 POI（离线优先）；返回 `pois`、`cached`、`upstream`、`fallback_used`、`source`、`generated_at`、`coverage`。                                  |
 
 
-> > > > > > > 31d06c28a6643412cea4e0ead038fcfda7667ccd
-> > > > > > > | GET  | `/api/listings/{listing_id}`          | 单条房源；404 若不存在。                                                                                             |
-> > > > > > > | GET  | `/api/listings/{listing_id}/forecast` | 该房源 `monthly_metrics`，按 `year_month` 排序。                                                                   |
-> > > > > > > | GET  | `/api/listings/{listing_id}/reviews`  | 该房源评论，按日期与 id 降序。                                                                                          |
-> > > > > > > | **Admin API** |||
-> > > > > > > | POST | `/api/admin/login`                    | Body：`{ username, password }`；bcrypt 验证；成功返回 `username`、`email`。                                              |
-> > > > > > > | GET  | `/api/admin/scenics`                  | 获取所有景点列表。                                                                                                    |
-> > > > > > > | POST | `/api/admin/scenics`                  | 新增景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                  |
-> > > > > > > | PUT  | `/api/admin/scenics/{id}`             | 更新景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                   |
-> > > > > > > | DELETE | `/api/admin/scenics/{id}`           | 删除景点。                                                                                                        |
-> > > > > > > | GET  | `/api/admin/strategy`                 | 获取策略配置（config_key = "default"）。                                                                             |
-> > > > > > > | PUT  | `/api/admin/strategy`                 | 保存策略配置；Body：`{ scenic_weight, cost_weight, sentiment_weight, preference_weight }`。                           |
-> > > > > > > | GET  | `/api/admin/sync-logs`                | 获取同步日志列表，按 id 降序。                                                                                         |
-> > > > > > > | POST | `/api/admin/sync-logs`                | 创建同步记录；Body：`{ file_type, status, records_updated }`。                                                      |
+| GET  | `/api/listings/{listing_id}`          | 单条房源；404 若不存在。                                                                                             |
+| GET  | `/api/listings/{listing_id}/forecast` | 该房源 `monthly_metrics`，按 `year_month` 排序。                                                                   |
+| GET  | `/api/listings/{listing_id}/reviews`  | 该房源评论，按日期与 id 降序。                                                                                          |
+| **Admin API** |||
+| POST | `/api/admin/login`                    | Body：`{ username, password }`；bcrypt 验证；成功返回 `username`、`email`。                                              |
+| GET  | `/api/admin/scenics`                  | 获取所有景点列表。                                                                                                    |
+| POST | `/api/admin/scenics`                  | 新增景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                  |
+| PUT  | `/api/admin/scenics/{id}`             | 更新景点；Body：`{ name, description, radius_km, thumbnail_url }`。                                                   |
+| DELETE | `/api/admin/scenics/{id}`           | 删除景点。                                                                                                        |
+| GET  | `/api/admin/strategy`                 | 获取策略配置（config_key = "default"）。                                                                             |
+| PUT  | `/api/admin/strategy`                 | 保存策略配置；Body：`{ scenic_weight, cost_weight, sentiment_weight, preference_weight }`。                           |
+| GET  | `/api/admin/sync-logs`                | 获取同步日志列表，按 id 降序。                                                                                         |
+| POST | `/api/admin/sync-logs`                | 创建同步记录；Body：`{ file_type, status, records_updated }`。                                                      |
 
 **鉴权**：列表、详情、预测、评论等**业务接口均未要求登录**，与数据库 `User` 表无绑定。
 
@@ -227,5 +226,4 @@ ORM 见 `[backend/models.py](../backend/models.py)`：`Listing`、`Calendar`、`
 | 2026-03-22 | **v0.2.3**：`/search` 升级为真实地图联动（Leaflet + OSM）；`/api/listings` 支持 `map_mode + bbox`；新增 `/api/map/pois`（Overpass）与后端缓存；文档补充 Overpass 公共实例配置。                                                                                                      |
 | 2026-03-21 | **v0.2.4**：地图稳定性升级：依赖拓扑规范为 `frontend/` 单一依赖树；地图错误边界切换列表模式并支持重试；`/api/map/pois` 增加 fallback 上游、失败冷却窗口与 `upstream/fallback_used` 响应字段；补充前后端排障说明。                                                                                                  |
 | 2026-03-21 | **v0.2.5**：地图离线优先：新增 `Data/map_cache` 与 `build_map_cache.py`；`/api/map/pois` 增加 `source/generated_at/coverage`；POI 类别选择参与列表排序（`map_intent_score`），不再仅影响图层显示。                                                                                    |
-
 
